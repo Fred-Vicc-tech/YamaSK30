@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.9.2";
+const wchar_t* const kVersionText = L"v0.9.3";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -569,9 +569,23 @@ void wideFromNarrow(const char* in, wchar_t* out, int max)
     out[i] = 0;
 }
 
+// Vilken effektenhet varje DELAY-läge och REVERB TYPE är modellerad efter
+const wchar_t* effectStyle(int param, float v)
+{
+    if (param == kParamDelayMode) return stepIndex(v, kNumDelayModes) ? L"TAPE - Roland Space Echo Style" : L"DIGI - Korg SDD-3000 Style";
+    if (param == kParamReverbType) {
+        static const wchar_t* const t[kNumReverbTypes] = {
+            L"PLATE - Lexicon MPX500 Style", L"HALL - Lexicon MPX500 Style", L"CHAMBER - Lexicon MPX500 Style",
+            L"ROOM - Lexicon MPX500 Style", L"AMBIENCE - AMS RMX16 Style", L"NONLIN - AMS RMX16 Style" };
+        return t[stepIndex(v, kNumReverbTypes)];
+    }
+    return nullptr;
+}
+
 // Värde som text (för displayen), med enhet
 void valueText(int param, float v, wchar_t* out, int max)
 {
+    if (const wchar_t* st = effectStyle(param, v)) { swprintf(out, max, L"%ls", st); return; }
     char buf[48];
     paramDisplayText(param, v, buf, sizeof buf);
     wchar_t w[48];
@@ -845,6 +859,15 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     drawPanel(g, 824.0f, kRowBY, 590.0f, kRowBH);  drawSectionTitle(g, ff, L"POLY-SYNTH", 824.0f, kRowBY, 590.0f);
     drawPanel(g, 16.0f, kRowCY, 1398.0f, kRowCH);
     for (const Group& gr : ed->groups) drawGroup(g, ff, gr);
+
+    // EFFECTS: vilken enhet delayen och reverbet är modellerade efter just nu
+    if (!ed->showBack) {
+        const bool dlyOn = fxLevelDb(pv[kParamDelayLevel]) > -100.0, revOn = revLevelDb(pv[kParamReverbLevel]) > -100.0;
+        drawText(g, effectStyle(kParamDelayMode, pv[kParamDelayMode]), ff, 8.5f, FontStyleBold, dlyOn ? kCyan : kTextDim,
+                 1032.0f, kRowAY + 195.0f, 370.0f, StringAlignmentNear);
+        drawText(g, effectStyle(kParamReverbType, pv[kParamReverbType]), ff, 8.5f, FontStyleBold, revOn ? kCyan : kTextDim,
+                 1032.0f, kRowAY + 207.0f, 370.0f, StringAlignmentNear);
+    }
 
     // --- Reglage ---
     for (size_t i = 0; i < ed->ctls.size(); ++i) {

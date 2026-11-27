@@ -1,5 +1,9 @@
 # Ändringslogg
 
+## 0.9.3 (2026-11-27)
+- EFFECTS visar vilken enhet som är vald, t.ex. "TAPE - Roland Space Echo Style" och
+  "AMBIENCE - AMS RMX16 Style" (lyser blått när effektens LEVEL är uppe). Samma text i displayen.
+
 ## 0.9.2 (2026-11-27)
 - DELAY: omkopplare DIGI / TAPE. TAPE är i Roland RE-201 Space Echo-stil: wow och flutter, bandmättning
   och filter i återmatningen så att varje eko blir mörkare och tunnare.
