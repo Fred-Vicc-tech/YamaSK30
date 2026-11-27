@@ -113,7 +113,8 @@ const wchar_t* const kDisplayNames[kNumParams] = {
     L"SOLO PULSE WIDTH", L"SOLO PW SOURCE", L"SOLO CUTOFF FREQ", L"SOLO RESONANCE", L"SOLO VCF MODULATION", L"SOLO EG DEPTH",
     L"SOLO VCA", L"SOLO ATTACK TIME", L"SOLO DECAY TIME", L"SOLO SUSTAIN LEVEL", L"SOLO RELEASE TIME",
     L"TOUCH VIBRATO", L"TOUCH BRILLIANCE", L"TOUCH MODULATION", L"SOLO TUNE", L"KEYBOARD SPLIT", L"SPLIT AT", L"MANUAL BASS UP TO",
-    L"DELAY TIME", L"DELAY FEEDBACK", L"DELAY MODULATION", L"DELAY LEVEL", L"REVERB DECAY", L"REVERB LEVEL"
+    L"DELAY TIME", L"DELAY FEEDBACK", L"DELAY MOD INTENSITY", L"DELAY LEVEL", L"REVERB DECAY", L"REVERB LEVEL",
+    L"DELAY MOD SPEED", L"DELAY HIGH CUT", L"DELAY LOW CUT", L"REVERB TYPE"
 };
 
 struct Editor
@@ -131,10 +132,10 @@ struct Editor
     int hoverParam = -1;            // visas i displayen
     int lastParam = -1;
 
-    RectDef presetPrev = { 652.0f, 26.0f, 28.0f, 28.0f };
-    RectDef presetNext = { 892.0f, 26.0f, 28.0f, 28.0f };
-    RectDef btnSave = { 930.0f, 26.0f, 62.0f, 28.0f };
-    RectDef btnLoad = { 998.0f, 26.0f, 62.0f, 28.0f };
+    RectDef presetPrev = { 702.0f, 26.0f, 28.0f, 28.0f };
+    RectDef presetNext = { 962.0f, 26.0f, 28.0f, 28.0f };
+    RectDef btnSave = { 1002.0f, 26.0f, 62.0f, 28.0f };
+    RectDef btnLoad = { 1070.0f, 26.0f, 62.0f, 28.0f };
     RectDef splitPrev, splitNext, bassPrev, bassNext;
 
     float peakShown = 0.0f;
@@ -150,7 +151,7 @@ struct Editor
     bool dragThumb = false;
     int dragThumbY = 0;
     float dragScroll0 = 0.0f;
-    RectDef btnBack = { 1050.0f, 100.0f, 100.0f, 32.0f };
+    RectDef btnBack = { 1150.0f, 100.0f, 100.0f, 32.0f };
     RectDef btnEng = { 0, 0, 0, 0 }, btnSwe = { 0, 0, 0, 0 };
     HWND prevFocus = nullptr;
     bool tracking = false;
@@ -182,10 +183,10 @@ struct Editor
 
         // --- OUTPUT ---
         knob(kParamMaster, 52.0f, kRowAY + 112.0f, L"MASTER\nVOLUME");
-        fader(kParamSoloVol, 102.0f, ta, L"SOLO");
-        fader(kParamOrgVol, 133.0f, ta, L"ORGAN");
+        fader(kParamSoloVol, 98.0f, ta, L"SOLO");
+        fader(kParamOrgVol, 131.0f, ta, L"ORGAN");
         fader(kParamVolume, 164.0f, ta, L"STRING");
-        fader(kParamPolyVol, 195.0f, ta, L"POLY-\nSYNTH");
+        fader(kParamPolyVol, 197.0f, ta, L"POLY");
 
         // --- PITCH ---
         knob(kParamTune, 254.0f, kRowAY + 112.0f, L"TUNE");
@@ -193,17 +194,17 @@ struct Editor
         knob(kParamSoloTune, 342.0f, kRowAY + 112.0f, L"SOLO\nTUNE");
 
         // --- SOLO SYNTHESIZER ---
-        fader(kParamLfoSpeed, 392.0f, ta, L"LFO\nSPEED");
-        fader(kParamPortamento, 423.0f, ta, L"PORTA-\nMENTO");
-        fader(kParamGlide, 454.0f, ta, L"GLIDE\nDEPTH");
+        fader(kParamLfoSpeed, 392.0f, ta, L"LFO");
+        fader(kParamPortamento, 423.0f, ta, L"PORTA");
+        fader(kParamGlide, 454.0f, ta, L"GLIDE");
         fader(kParamSoloFeet, 492.0f, ta, L"FEET", kCapCream, kNumSoloFeet);
         fader(kParamSoloWave, 523.0f, ta, L"WAVE");
         fader(kParamSoloPw, 554.0f, ta, L"PW");
         sw(kParamPwSource, 580.0f, ta + 18.0f, L"", 3, kNumPwSources, L"LFO", 0, L"MAN", 1, L"EG", 2);
         groups.push_back({ 476.0f, 610.0f, kRowAY + 36.0f, L"VCO" });
         fader(kParamSoloCutoff, 642.0f, ta, L"CUT\nOFF");
-        fader(kParamSoloReso, 673.0f, ta, L"RESO-\nNANCE");
-        fader(kParamSoloMod, 704.0f, ta, L"MODU-\nLATION");
+        fader(kParamSoloReso, 673.0f, ta, L"RESO");
+        fader(kParamSoloMod, 704.0f, ta, L"MOD");
         fader(kParamSoloEgDepth, 735.0f, ta, L"EG\nDEPTH");
         groups.push_back({ 626.0f, 750.0f, kRowAY + 36.0f, L"VCF" });
         sw(kParamVcaMode, 762.0f, ta + 18.0f, L"", 3, kNumVcaModes, L"HOLD", 0, L"GATE", 1, L"EG", 2);
@@ -214,15 +215,19 @@ struct Editor
         fader(kParamSoloRelease, 915.0f, ta, L"R");
         groups.push_back({ 808.0f, 929.0f, kRowAY + 36.0f, L"EG" });
 
-        // --- EFFECTS (som på Fredriks inspelning: SDD-3000-delay och plattreverb) ---
-        fader(kParamDelayTime, 974.0f, ta, L"TIME");
-        fader(kParamDelayFeedback, 1004.0f, ta, L"FEED-\nBACK");
-        fader(kParamDelayMod, 1034.0f, ta, L"MOD");
-        fader(kParamDelayLevel, 1064.0f, ta, L"LEVEL");
-        groups.push_back({ 960.0f, 1078.0f, kRowAY + 36.0f, L"DELAY" });
-        fader(kParamReverbDecay, 1106.0f, ta, L"DECAY");
-        fader(kParamReverbLevel, 1137.0f, ta, L"LEVEL");
-        groups.push_back({ 1092.0f, 1151.0f, kRowAY + 36.0f, L"REVERB" });
+        // --- EFFECTS (som på Fredriks inspelning: Korg SDD-3000 och Lexicon MPX500) ---
+        fader(kParamDelayTime, 972.0f, ta, L"TIME");
+        fader(kParamDelayFeedback, 1001.0f, ta, L"FEED-\nBACK");
+        fader(kParamDelaySpeed, 1030.0f, ta, L"MOD\nSPEED");
+        fader(kParamDelayMod, 1059.0f, ta, L"INTEN-\nSITY");
+        fader(kParamDelayHighCut, 1088.0f, ta, L"HIGH\nCUT", kCapCream, kNumHighCut);
+        fader(kParamDelayLowCut, 1117.0f, ta, L"LOW\nCUT", kCapCream, kNumLowCut);
+        fader(kParamDelayLevel, 1146.0f, ta, L"LEVEL");
+        groups.push_back({ 958.0f, 1160.0f, kRowAY + 36.0f, L"DELAY" });
+        fader(kParamReverbType, 1184.0f, ta, L"TYPE", kCapCream, kNumReverbTypes);
+        fader(kParamReverbDecay, 1213.0f, ta, L"DECAY");
+        fader(kParamReverbLevel, 1242.0f, ta, L"LEVEL");
+        groups.push_back({ 1170.0f, 1256.0f, kRowAY + 36.0f, L"REVERB" });
 
         // --- VIBRATO ---
         fader(kParamVibDelay, 46.0f, tb, L"DELAY");
@@ -243,29 +248,29 @@ struct Editor
         groups.push_back({ 428.0f, 712.0f, kRowBY + 36.0f, L"TONE LEVER" });
 
         // --- POLY-SYNTH ---
-        fader(kParamSustainTime, 790.0f, tb, L"S ~ L");
-        fader(kParamBrilliance, 825.0f, tb, L"BRILLI-\nANCE");
-        sw(kParamMode, 854.0f, tb + 24.0f, L"MODE", 2, 2, L"II", 1, L"I", 0);
-        fader(kParamPolyFeet, 892.0f, tb, L"FEET", kCapAmber, kNumFeet);
-        fader(kParamCutoff, 928.0f, tb, L"CUTOFF", kCapAmber);
-        fader(kParamResonance, 963.0f, tb, L"RESO-\nNANCE", kCapAmber);
-        fader(kParamEgDepth, 998.0f, tb, L"EG\nDEPTH", kCapAmber);
-        fader(kParamAttack, 1036.0f, tb, L"A", kCapAmber);
-        fader(kParamDecay, 1070.0f, tb, L"D", kCapAmber);
-        fader(kParamSustainLevel, 1104.0f, tb, L"S", kCapAmber);
-        fader(kParamRelease, 1138.0f, tb, L"R", kCapAmber);
-        groups.push_back({ 912.0f, 1012.0f, kRowBY + 36.0f, L"VCF" });
-        groups.push_back({ 1020.0f, 1152.0f, kRowBY + 36.0f, L"EG" });
+        fader(kParamSustainTime, 800.0f, tb, L"S ~ L");
+        fader(kParamBrilliance, 838.0f, tb, L"BRILLI-\nANCE");
+        sw(kParamMode, 868.0f, tb + 24.0f, L"MODE", 2, 2, L"II", 1, L"I", 0);
+        fader(kParamPolyFeet, 924.0f, tb, L"FEET", kCapAmber, kNumFeet);
+        fader(kParamCutoff, 970.0f, tb, L"CUTOFF\nFREQ", kCapAmber);
+        fader(kParamResonance, 1010.0f, tb, L"RESO-\nNANCE", kCapAmber);
+        fader(kParamEgDepth, 1050.0f, tb, L"EG\nDEPTH", kCapAmber);
+        fader(kParamAttack, 1100.0f, tb, L"ATTACK", kCapAmber);
+        fader(kParamDecay, 1140.0f, tb, L"DECAY", kCapAmber);
+        fader(kParamSustainLevel, 1180.0f, tb, L"SUSTAIN", kCapAmber);
+        fader(kParamRelease, 1220.0f, tb, L"RELEASE", kCapAmber);
+        groups.push_back({ 952.0f, 1066.0f, kRowBY + 36.0f, L"VCF" });
+        groups.push_back({ 1082.0f, 1238.0f, kRowBY + 36.0f, L"EG" });
 
         // DECAY/SUSTAIN (orgel) och SLOW ATTACK/SUSTAIN (poly-synth): fyrkantiga knappar
         btns.push_back({ { 167.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"DECAY", kActToggle, kParamOrgDecay, 0, 0, false });
         btns.push_back({ { 167.0f, kRowBY + 124.0f, 34.0f, 34.0f }, L"SUSTAIN", kActToggle, kParamOrgSustain, 0, 0, false });
-        btns.push_back({ { 735.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"SLOW\nATTACK", kActToggle, kParamSlowAttack, 0, 0, false });
-        btns.push_back({ { 735.0f, kRowBY + 124.0f, 34.0f, 34.0f }, L"SUSTAIN", kActToggle, kParamSustain, 0, 0, false });
+        btns.push_back({ { 745.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"SLOW\nATTACK", kActToggle, kParamSlowAttack, 0, 0, false });
+        btns.push_back({ { 745.0f, kRowBY + 124.0f, 34.0f, 34.0f }, L"SUSTAIN", kActToggle, kParamSustain, 0, 0, false });
 
         // --- Knappraden ---
-        const float by = kRowCY + 32.0f, bw = 33.0f, pitch = 37.0f, gap = 12.0f;
-        float x = 28.0f;
+        const float by = kRowCY + 32.0f, bw = 34.0f, pitch = 38.0f, gap = 24.0f;
+        float x = 34.0f;
         auto group = [&](const wchar_t* label, int n) { groups.push_back({ x, x + (n - 1) * pitch + bw, kRowCY + 18.0f, label }); };
         auto add = [&](const wchar_t* label, int act, int param, int index, int count, bool cream) {
             btns.push_back({ { x, by, bw, bw }, label, act, param, index, count, cream });
@@ -480,7 +485,7 @@ void drawFader(Graphics& g, const FontFamily& ff, const Ctl& c, float v, bool di
     g.DrawRectangle(&capEdge, x - 11.0f, cy - 7.0f, 22.0f, 14.0f);
     Pen mid(Color(255, 40, 34, 26), 1.5f);
     g.DrawLine(&mid, x - 9.0f, cy, x + 9.0f, cy);
-    drawText(g, c.label, ff, 9.0f, FontStyleBold, dim ? kTextDim : kLabel, x - 22.0f, y + L + 12.0f, 44.0f, StringAlignmentCenter, 30.0f);
+    drawText(g, c.label, ff, 8.5f, FontStyleBold, dim ? kTextDim : kLabel, x - 20.0f, y + L + 12.0f, 40.0f, StringAlignmentCenter, 30.0f);
 }
 
 // Ratt i TrueSub-stil (kuggkant, cyan båge)
@@ -591,8 +596,9 @@ bool isDim(const float* pv, int param)
     default: break;
     }
     if (param >= kParamOrg16 && param <= kParamOrg1) return orgSel != 4;
-    if (param == kParamDelayTime || param == kParamDelayFeedback || param == kParamDelayMod) return pv[kParamDelayLevel] <= 0.0f;
-    if (param == kParamReverbDecay) return pv[kParamReverbLevel] <= 0.0f;
+    if (param == kParamDelayTime || param == kParamDelayFeedback || param == kParamDelayMod || param == kParamDelaySpeed
+        || param == kParamDelayHighCut || param == kParamDelayLowCut) return pv[kParamDelayLevel] <= 0.0f;
+    if (param == kParamReverbDecay || param == kParamReverbType) return pv[kParamReverbLevel] <= 0.0f;
     if ((param >= kParamLfoSpeed && param <= kParamSoloRelease) || param == kParamSoloTune) return pv[kParamSoloVol] <= 0.0f;
     return false;
 }
@@ -613,8 +619,8 @@ bool btnOn(const float* pv, const Btn& b)
 // ---------------------------------------------------------------------------
 // Baksidan: credits och manual (ENG / SWE)
 // ---------------------------------------------------------------------------
-const float kManX = 40.0f, kManW = 1080.0f, kManTop = 214.0f, kManBottom = 650.0f;
-const float kThumbX = 1138.0f, kThumbW = 6.0f;
+const float kManX = 40.0f, kManW = 1180.0f, kManTop = 214.0f, kManBottom = 650.0f;
+const float kThumbX = 1238.0f, kThumbW = 6.0f;
 
 float manualMaxScroll(const Editor* ed) { return std::max(0.0f, ed->contentH - (kManBottom - kManTop)); }
 
@@ -651,7 +657,7 @@ float layoutManual(Graphics& g, const FontFamily& ff, bool swedish, float y0, bo
 
 void paintBack(Editor* ed, Graphics& g, const FontFamily& ff)
 {
-    drawPanel(g, 16.0f, 78.0f, 1148.0f, 90.0f);
+    drawPanel(g, 16.0f, 78.0f, 1248.0f, 90.0f);
     wchar_t title[64];
     swprintf(title, 64, L"TrueSymph %ls", kVersionText);
     drawText(g, title, ff, 22, FontStyleBold, kText, 36.0f, 86.0f, 400.0f, StringAlignmentNear);
@@ -680,7 +686,7 @@ void paintBack(Editor* ed, Graphics& g, const FontFamily& ff)
     }
     drawFlatButton(g, ff, ed->btnBack, L"BACK");
 
-    drawPanel(g, 16.0f, 176.0f, 1148.0f, 484.0f);
+    drawPanel(g, 16.0f, 176.0f, 1248.0f, 484.0f);
     drawText(g, L"MANUAL", ff, 14, FontStyleBold, kGold, 36.0f, 184.0f, 80.0f, StringAlignmentNear);
     // ENG | SWE
     const float lx = 36.0f + textWidth(g, L"MANUAL", ff, 14, FontStyleBold) + 14.0f;
@@ -692,7 +698,7 @@ void paintBack(Editor* ed, Graphics& g, const FontFamily& ff)
     drawText(g, L"SWE", ff, 13, FontStyleBold, ed->swedish ? kCyan : kTextDim, ed->btnSwe.x, 185.0f, ed->btnSwe.w + 6.0f, StringAlignmentNear);
     drawText(g, ed->swedish ? L"rulla med mushjulet  ·  klicka på loggan eller BACK för att gå tillbaka"
                             : L"scroll with the mouse wheel  ·  click the logo or BACK to return",
-             ff, 11, FontStyleRegular, kTextDim, 560.0f, 188.0f, 586.0f, StringAlignmentFar);
+             ff, 11, FontStyleRegular, kTextDim, 660.0f, 188.0f, 586.0f, StringAlignmentFar);
 
     if (ed->contentH <= 0.0f) ed->contentH = layoutManual(g, ff, ed->swedish, 0.0f, false);
     const float maxScroll = manualMaxScroll(ed);
@@ -758,7 +764,7 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     wchar_t txt[96];
     // Display: reglaget under musen (eller det senast ändrade)
     {
-        const float dx = 330.0f, dy = 14.0f, dw = 300.0f, dh = 44.0f;
+        const float dx = 340.0f, dy = 14.0f, dw = 330.0f, dh = 44.0f;
         drawBox(g, dx, dy, dw, dh);
         const int prm = ed->dragCtl >= 0 ? ed->ctls[ed->dragCtl].param : (ed->hoverParam >= 0 ? ed->hoverParam : ed->lastParam);
         if (prm >= 0) {
@@ -791,10 +797,10 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     }
     drawFlatButton(g, ff, ed->btnSave, L"SAVE");
     drawFlatButton(g, ff, ed->btnLoad, L"LOAD");
-    drawText(g, kVersionText, ff, 12, FontStyleRegular, kTextDim, 1074.0f, 8.0f, 86.0f, StringAlignmentFar);
+    drawText(g, kVersionText, ff, 12, FontStyleRegular, kTextDim, 1170.0f, 8.0f, 92.0f, StringAlignmentFar);
     // Utnivå (dBFS, som i Live) och limiterns lampa
     {
-        const float mx = 1074.0f, my = 30.0f, mw = 86.0f, mh = 8.0f;
+        const float mx = 1162.0f, my = 30.0f, mw = 98.0f, mh = 8.0f;
         const double db = ed->peakShown > 1e-6f ? 20.0 * std::log10(ed->peakShown) : -100.0;
         if (db > ed->peakHoldDb || GetTickCount() > ed->peakHoldUntil) { ed->peakHoldDb = db; ed->peakHoldUntil = GetTickCount() + 1500; }
         const float lr = p->limitDb.exchange(0.0f);
@@ -810,9 +816,9 @@ void paint(Editor* ed, HDC hdc, int width, int height)
         Pen edgeP(Color(255, 70, 74, 80), 1.0f);
         g.DrawRectangle(&edgeP, mx, my, mw, mh);
         if (ed->peakHoldDb > -100.0) swprintf(txt, 96, L"%.1f dB", ed->peakHoldDb); else swprintf(txt, 96, L"-inf dB");
-        drawText(g, txt, ff, 11, FontStyleBold, kTextDim, mx - 10.0f, my + mh + 3.0f, 60.0f, StringAlignmentNear);
+        drawText(g, txt, ff, 11, FontStyleBold, kTextDim, mx - 3.0f, my + mh + 3.0f, 60.0f, StringAlignmentNear);
         const bool lim = GetTickCount() < ed->limitUntil;
-        drawText(g, L"LIMIT", ff, 11, FontStyleBold, lim ? Color(255, 255, 70, 50) : Color(255, 50, 54, 58), mx + 40.0f, my + mh + 3.0f, 46.0f, StringAlignmentFar);
+        drawText(g, L"LIMIT", ff, 11, FontStyleBold, lim ? Color(255, 255, 70, 50) : Color(255, 50, 54, 58), mx + 52.0f, my + mh + 3.0f, 46.0f, StringAlignmentFar);
     }
 
     if (ed->showBack) {
@@ -826,11 +832,11 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     drawPanel(g, 16.0f, kRowAY, 202.0f, kRowAH);   drawSectionTitle(g, ff, L"OUTPUT", 16.0f, kRowAY, 202.0f);
     drawPanel(g, 226.0f, kRowAY, 144.0f, kRowAH);  drawSectionTitle(g, ff, L"PITCH", 226.0f, kRowAY, 144.0f);
     drawPanel(g, 378.0f, kRowAY, 564.0f, kRowAH);  drawSectionTitle(g, ff, L"SOLO SYNTHESIZER", 378.0f, kRowAY, 564.0f);
-    drawPanel(g, 950.0f, kRowAY, 214.0f, kRowAH);  drawSectionTitle(g, ff, L"EFFECTS", 950.0f, kRowAY, 214.0f);
+    drawPanel(g, 950.0f, kRowAY, 314.0f, kRowAH);  drawSectionTitle(g, ff, L"EFFECTS", 950.0f, kRowAY, 314.0f);
     drawPanel(g, 16.0f, kRowBY, 134.0f, kRowBH);   drawSectionTitle(g, ff, L"VIBRATO", 16.0f, kRowBY, 134.0f);
     drawPanel(g, 158.0f, kRowBY, 562.0f, kRowBH);  drawSectionTitle(g, ff, L"ORGAN", 158.0f, kRowBY, 562.0f);
-    drawPanel(g, 728.0f, kRowBY, 436.0f, kRowBH);  drawSectionTitle(g, ff, L"POLY-SYNTH", 728.0f, kRowBY, 436.0f);
-    drawPanel(g, 16.0f, kRowCY, 1148.0f, kRowCH);
+    drawPanel(g, 728.0f, kRowBY, 536.0f, kRowBH);  drawSectionTitle(g, ff, L"POLY-SYNTH", 728.0f, kRowBY, 536.0f);
+    drawPanel(g, 16.0f, kRowCY, 1248.0f, kRowCH);
     for (const Group& gr : ed->groups) drawGroup(g, ff, gr);
 
     // --- Reglage ---

@@ -1,8 +1,10 @@
 # Ändringslogg
 
 ## 0.7.0 (2026-11-27)
-- EFFECTS högst upp till höger (SOLO-panelen smalare): DELAY i SDD-3000-stil (TIME, FEEDBACK, MOD, LEVEL)
-  och plattreverb (DECAY, LEVEL). Stereo när effekterna är på; LEVEL i botten = av (mono och torrt som förut).
+- EFFECTS högst upp till höger (SOLO-panelen smalare, fönstret 1280 px): DELAY efter Korg SDD-3000:s
+  servicemanual (TIME 1-1000 ms, FEEDBACK, MOD SPEED 0,1-15 Hz, INTENSITY upp till 2:1, HIGH CUT 8k/4k/2k,
+  LOW CUT 125/250/500 Hz, bandbredd 17 kHz, LEVEL) och REVERB med typerna från Lexicon MPX500:s banker
+  (PLATE, HALL, CHAMBER, ROOM; DECAY, LEVEL). Stereo när effekterna är på; LEVEL i botten = av.
 - Wah-basen från inspelningen (0:25): solosynten med LFO 3,2 Hz på ett resonant filter. Nytt ljud Rec: Wah Bass,
   och Rec: Pluck + Bass har fått wah-basen. Alla Rec:-ljud har delay och reverb som på inspelningen.
 - Limitern är stereo (samma sänkning i båda kanalerna).

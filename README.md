@@ -51,7 +51,8 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | Etapp 5 i Live | Testat av användaren: fungerar |
 | Presetlista vid klick på presetnamnet | **Ej testat ännu** |
 | 8 ljud (Rec:) uppmätta ur Fredriks SK30-inspelning, med delay och reverb | Klar |
-| EFFECTS: DELAY (SDD-3000-stil) och REVERB (platta), stereo | Klar, automatiskt testad |
+| EFFECTS: DELAY efter SDD-3000:s servicemanual (0–1023 ms, 17 kHz, HIGH/LOW CUT, MOD 0,1–15 Hz, 2:1) och REVERB med MPX500:s typer, stereo | Klar, automatiskt testad |
+| Fönstret 1280 px brett | Klar |
 
 ## Installera och testa
 
@@ -138,10 +139,14 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | 73 | BassPt | översta MANUAL BASS-tangent | C1–C5 (Live), standard F#1 |
 | 74 | DlyTime | DELAY TIME | 1–1000 ms |
 | 75 | DlyFdbk | DELAY FEEDBACK | 0–95 % |
-| 76 | DlyMod | DELAY MOD | 0–100 % |
+| 76 | DlyMod | DELAY MOD INTENSITY | 1:1 – 2:1 (SDD-3000) |
 | 77 | DlyLvl | DELAY LEVEL | av, −36…0 dB |
 | 78 | RevDcy | REVERB DECAY | 0,3–8 s |
 | 79 | RevLvl | REVERB LEVEL | av, −36…0 dB |
+| 80 | DlySpd | DELAY MOD SPEED | 0,1–15 Hz |
+| 81 | DlyHiCt | DELAY HIGH CUT | OFF, 8k, 4k, 2k (−6 dB/okt) |
+| 82 | DlyLoCt | DELAY LOW CUT | OFF, 125, 250, 500 Hz (−3 dB/okt) |
+| 83 | RevType | REVERB TYPE | PLATE, HALL, CHAMBER, ROOM |
 
 Reglagen 18–24 gäller bara i POLY-SYNTH MANUAL, och tone levers bara i ORGAN MANUAL.
 

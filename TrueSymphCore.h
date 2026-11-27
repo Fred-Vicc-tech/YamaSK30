@@ -19,7 +19,7 @@
 
 namespace truesymph {
 
-const int kEditorWidth = 1180, kEditorHeight = 668;
+const int kEditorWidth = 1280, kEditorHeight = 668;
 const uint32_t kStateVersion = 1;
 const int kMaxQueuedEvents = 1024;
 

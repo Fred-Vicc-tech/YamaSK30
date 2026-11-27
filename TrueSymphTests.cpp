@@ -724,6 +724,33 @@ int main()
         check(t2 > 1e-5 && rate > 15.0 && rate < 60.0, "REVERB: efterklang ungefar som vald tid");
         check(finite(L) && finite(R), "REVERB: inga ogiltiga tal");
 
+        // REVERB TYPE: alla fyra låter och skiljer sig åt
+        {
+            double tail[kNumReverbTypes];
+            for (int ty = 0; ty < kNumReverbTypes; ++ty) {
+                Engine e; e.prepare(sr); plain(e);
+                e.setReverbLevelNorm(1.0); e.setReverbTypeNorm(stepNorm(ty, kNumReverbTypes)); e.setReverbDecayNorm(normFromReverbSec(2.0));
+                e.handleMidi(0x90, 60, 100); stereo(e, 0.3, L, R); e.handleMidi(0x80, 60, 0); stereo(e, 1.0, L, R);
+                tail[ty] = rms(L, (size_t)(0.3 * sr), (size_t)(0.5 * sr));
+            }
+            check(tail[0] > 1e-5 && tail[1] > 1e-5 && tail[2] > 1e-5 && tail[3] > 1e-5, "REVERB TYPE: alla fyra later");
+            check(std::fabs(tail[0] - tail[1]) > 1e-6 && std::fabs(tail[0] - tail[3]) > 1e-6, "REVERB TYPE: typerna skiljer sig");
+        }
+        // DELAY HIGH CUT 2k ger mörkare eko än OFF
+        {
+            double c[2];
+            for (int k = 0; k < 2; ++k) {
+                Engine e; e.prepare(sr); plain(e); e.setStringNorm(2, 1.0);
+                e.setDelayLevelNorm(1.0); e.setDelayFeedbackNorm(0.0); e.setDelayModNorm(0.0); e.setDelayTimeNorm(normFromDelayMs(200.0));
+                e.setDelayFiltersNorm(k ? 1.0 : 0.0, 0.0);
+                e.handleMidi(0x90, 72, 100);
+                std::vector<double> v((size_t)(0.5 * sr));
+                for (size_t i = 0; i < v.size(); ++i) { if (i == (size_t)(0.15 * sr)) e.handleMidi(0x80, 72, 0); double l, r; e.nextStereo(l, r); v[i] = l; }
+                c[k] = centroid(v, (size_t)(0.25 * sr), 4096, sr);
+            }
+            check(c[1] < c[0] * 0.85, "DELAY HIGH CUT: morkare eko");
+        }
+
         // Allt på max med effekter: fortfarande under -0,3 dBFS
         Engine mx; mx.prepare(sr);
         mx.setMasterNorm(1.0); mx.setVolumeNorm(1.0); mx.setDelayLevelNorm(1.0); mx.setDelayFeedbackNorm(1.0); mx.setReverbLevelNorm(1.0);

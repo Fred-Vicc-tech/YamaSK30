@@ -73,9 +73,11 @@ static const ManualPara kManualEng[] = {
                 L"has priority. The solo synthesizer never goes through the effect." },
 
     { kManHead, L"EFFECTS" },
-    { kManBody, L"The recording was played through a Korg SDD-3000 delay and a Lexicon MPX500 reverb, so TrueSymph has both. DELAY: "
-                L"TIME (1-1000 ms), FEEDBACK (repeats, darker each time like the SDD-3000), MOD (the delay time sways, left and right in "
-                L"opposite directions, which makes the echo wide) and LEVEL. REVERB: a plate reverb with DECAY (0.3-8 s) and LEVEL. "
+    { kManBody, L"The recording was played through a Korg SDD-3000 delay and a Lexicon MPX500 reverb, so TrueSymph has both. DELAY "
+                L"follows the SDD-3000 service manual: TIME (1-1000 ms), FEEDBACK, MOD SPEED (0.1-15 Hz) and INTENSITY (up to 2:1; the "
+                L"delay time sways, left and right in opposite directions, which makes the echo wide), HIGH CUT (8k/4k/2k) and LOW CUT "
+                L"(125/250/500 Hz) like the SDD-3000's filters, and LEVEL. REVERB: TYPE after the MPX500 banks (PLATE bright and dense, "
+                L"HALL large and clean, CHAMBER even, ROOM small), DECAY (0.3-8 s) and LEVEL. "
                 L"LEVEL at the bottom = off, so the sound is mono and dry like the SK30 itself. The solo synthesizer also goes through "
                 L"the effects (they sit after the SK30, as in the recording)." },
 
@@ -154,9 +156,11 @@ static const ManualPara kManualSwe[] = {
                 L"företräde. Solosynten går aldrig genom effekten." },
 
     { kManHead, L"EFFEKTER" },
-    { kManBody, L"Inspelningen spelades genom en Korg SDD-3000 (delay) och en Lexicon MPX500 (reverb), så TrueSymph har båda. DELAY: "
-                L"TIME (1-1000 ms), FEEDBACK (upprepningar, mörkare för varje varv som på SDD-3000), MOD (delaytiden svajar åt olika håll "
-                L"i vänster och höger, vilket gör ekot brett) och LEVEL. REVERB: en plattreverb med DECAY (0,3-8 s) och LEVEL. LEVEL i "
+    { kManBody, L"Inspelningen spelades genom en Korg SDD-3000 (delay) och en Lexicon MPX500 (reverb), så TrueSymph har båda. DELAY "
+                L"följer SDD-3000:s servicemanual: TIME (1-1000 ms), FEEDBACK, MOD SPEED (0,1-15 Hz) och INTENSITY (upp till 2:1; "
+                L"delaytiden svajar åt olika håll i vänster och höger, vilket gör ekot brett), HIGH CUT (8k/4k/2k) och LOW CUT "
+                L"(125/250/500 Hz) som SDD-3000:s filter, och LEVEL. REVERB: TYPE efter MPX500:s banker (PLATE ljus och tät, HALL stor "
+                L"och ren, CHAMBER jämn, ROOM liten), DECAY (0,3-8 s) och LEVEL. LEVEL i "
                 L"botten = av, då är ljudet torrt och mono som SK30 själv. Även solosynten går genom effekterna (de sitter efter SK30, "
                 L"som på inspelningen)." },
 
