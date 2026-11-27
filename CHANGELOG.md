@@ -1,5 +1,19 @@
 # Ändringslogg
 
+## 0.9.0 (2026-11-27)
+Genomgång mot SK30:s servicemanual:
+- BOOST-knapp under MASTER VOLUME, på som standard: SK30:s utgångssteg (MO = 3 × mixen, VR1, s. 67),
+  +9,5 dB. Sitter efter effekterna, så bara nivån ändras. En ton ligger nu runt -15..-11 dBFS RMS, som
+  andra syntar; limitern håller ackorden under -0,3 dBFS. Av = nivån från tidigare versioner.
+- Översta tangenten C6 (MIDI 96) spelade en oktav för lågt på stråkar och poly-synth. Nu spelar den
+  toppoktaven på 8'; 4' upprepar 8' (brytning), eftersom generatorn inte har oktaven över.
+- KEYBOARD SPLIT delar som standard mellan F#3 och G3 (▼ på panelritningen, s. 4), och MANUAL BASS når
+  upp till F#2 (klammern på panelen). Förut låg båda en oktav för lågt. SK30:s tangenter C1–C6 = MIDI 36–96.
+- VIBRATO DELAY: först ca 0,7 s utan vibrato, sedan inmatning under ca 2,5 s på max (s. 69); kortare
+  DELAY i samma proportioner.
+- Fotpedaler: CC11 = FOOT CONT MIXED VOLUME, CC65 = FOOT SW PORTAMENTO (nedtryckt = portamento på).
+  CC121 återställer dem.
+
 ## 0.8.4 (2026-11-27)
 - Fönstret 1390 × 676 px: lika stor marginal (16 px) runt om, även längst ner. Reglagen ligger
   minst 26 px från panelkanterna och med samma avstånd mellan grupperna. LFO/PORTA/GLIDE har fått

@@ -84,7 +84,7 @@ int main()
     sendMidi(e, 100, 0x90, 60, 100);
     sendMidi(e, 100, 0x90, 64, 100);
     const double pk = renderPeak(e, 100, 512);
-    check(pk > 0.01 && pk < 0.9, "ackord later, rimlig niva, vanster = hoger");
+    check(pk > 0.01 && pk <= 0.9661, "ackord later, rimlig niva (under -0,3 dBFS), vanster = hoger");
 
     sendMidi(e, 0, 0x80, 57, 0);
     sendMidi(e, 0, 0x80, 60, 0);

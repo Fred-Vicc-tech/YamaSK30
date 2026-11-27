@@ -24,6 +24,10 @@ static const ManualPara kManualEng[] = {
     { kManHead, L"OUTPUT AND PITCH" },
     { kManBody, L"MASTER VOLUME sets the total level. SOLO, ORGAN, STRING and POLY-SYNTH set the level of each section. "
                 L"SOLO starts at zero, so the solo synthesizer is silent until you turn it up." },
+    { kManBody, L"BOOST (under MASTER VOLUME, on by default) is the SK30's output stage: the service manual sets the main output to "
+                L"3 times the mix level (+9.5 dB). It comes after the effects, so it changes only the level, and puts TrueSymph on a par "
+                L"with other synths in Live. The limiter keeps big chords under -0.3 dBFS. Turn BOOST off for the quieter level of "
+                L"earlier versions." },
     { kManBody, L"TUNE moves everything (A4 415-466 Hz). POLY-SYNTH DETUNE detunes tone generator II (-20 to +27 cents) and is "
                 L"heard in MODE II. SOLO TUNE moves only the solo synthesizer (-500 to +700 cents)." },
 
@@ -42,7 +46,7 @@ static const ManualPara kManualEng[] = {
 
     { kManHead, L"VIBRATO" },
     { kManBody, L"VIBRATO moves the pitch of strings and poly-synth (SPEED 5-7 Hz, DEPTH up to 30 cents). DELAY (0-3.2 s) "
-                L"fades the vibrato in after you start playing." },
+                L"delays the vibrato as on the SK30: first about a fifth of the time without vibrato, then a gradual fade-in." },
 
     { kManHead, L"ORGAN" },
     { kManBody, L"ORGAN 1 = 16' 8' 5 1/3', ORGAN 2 = 16' 8' 4' 2' 1', ORGAN 3 = all nine footages. MANUAL uses the nine tone "
@@ -64,7 +68,9 @@ static const ManualPara kManualEng[] = {
 
     { kManHead, L"KEYBOARD SPLIT" },
     { kManBody, L"POLY-SYNTH | ORGAN puts strings and poly-synth below the split point and the organ above; ORGAN | POLY-SYNTH "
-                L"does the opposite. Each side has 7 voices. SPLIT AT sets the split point (default G2 in Live's note names)." },
+                L"does the opposite. Each side has 7 voices. SPLIT AT sets the split point: by default between F#3 and G3, at the SK30's "
+                L"marking. The SK30's keys C1-C6 are MIDI notes 36-96 (Yamaha and Live use the same note names, C3 = MIDI 60); MANUAL "
+                L"BASS reaches up to F#2 by default, as the bracket on the SK30 panel shows." },
 
     { kManHead, L"TREMOLO / ENSEMBLE" },
     { kManBody, L"ENSEMBLE is the SK30's three-BBD chorus (0.64 Hz and 6.4 Hz stepped LFOs, 120 degrees apart) that makes the "
@@ -93,6 +99,9 @@ static const ManualPara kManualEng[] = {
 
     { kManHead, L"ABOUT THE SOUND" },
     { kManBody, L"The SK30 is mono, so TrueSymph is mono too (left = right) until you turn on DELAY or REVERB." },
+    { kManBody, L"MIDI: sustain pedal (CC64) is the SK30's FOOT SW SUSTAIN. An expression pedal (CC11) is FOOT CONT MIXED VOLUME. "
+                L"A footswitch on CC65 is FOOT SW PORTAMENTO: pressed = portamento with PORTAMENTO TIME, released = no portamento "
+                L"(without a pedal the PORTAMENTO fader works as usual). Mod wheel (CC1) and aftertouch work as TOUCH." },
     { kManNote, L"Yamaha and SK30 are trademarks of Yamaha Corporation. TrueSymph is not affiliated with Yamaha." },
 };
 
@@ -107,6 +116,10 @@ static const ManualPara kManualSwe[] = {
     { kManHead, L"OUTPUT OCH PITCH" },
     { kManBody, L"MASTER VOLUME styr den totala nivån. SOLO, ORGAN, STRING och POLY-SYNTH styr varje sektion. SOLO står på noll "
                 L"från början, så solosynten är tyst tills du höjer den." },
+    { kManBody, L"BOOST (under MASTER VOLUME, på från början) är SK30:s utgångssteg: enligt servicemanualen justeras huvudutgången "
+                L"till 3 gånger mixens nivå (+9,5 dB). Den sitter efter effekterna, så den ändrar bara nivån, och gör att TrueSymph "
+                L"ligger i nivå med andra syntar i Live. Limitern håller stora ackord under -0,3 dBFS. Stäng av BOOST för den lägre "
+                L"nivån från tidigare versioner." },
     { kManBody, L"TUNE flyttar allt (A4 415-466 Hz). POLY-SYNTH DETUNE snedstämmer tongenerator II (-20 till +27 cent) och hörs "
                 L"i MODE II. SOLO TUNE flyttar bara solosynten (-500 till +700 cent)." },
 
@@ -125,7 +138,7 @@ static const ManualPara kManualSwe[] = {
 
     { kManHead, L"VIBRATO" },
     { kManBody, L"VIBRATO svajar tonhöjden för stråkar och poly-synth (SPEED 5-7 Hz, DEPTH upp till 30 cent). DELAY (0-3,2 s) "
-                L"tonar in vibratot efter att du börjat spela." },
+                L"fördröjer vibratot som på SK30: först ungefär en femtedel av tiden utan vibrato, sedan en mjuk inmatning." },
 
     { kManHead, L"ORGEL" },
     { kManBody, L"ORGAN 1 = 16' 8' 5 1/3', ORGAN 2 = 16' 8' 4' 2' 1', ORGAN 3 = alla nio fotlägen. MANUAL använder de nio tone "
@@ -147,7 +160,9 @@ static const ManualPara kManualSwe[] = {
 
     { kManHead, L"KEYBOARD SPLIT" },
     { kManBody, L"POLY-SYNTH | ORGAN lägger stråkar och poly-synth under delningspunkten och orgeln över; ORGAN | POLY-SYNTH gör "
-                L"tvärtom. Varje halva har 7 röster. SPLIT AT väljer delningspunkten (standard G2 med Lives tonnamn)." },
+                L"tvärtom. Varje halva har 7 röster. SPLIT AT väljer delningspunkten: från början mellan F#3 och G3, vid SK30:s "
+                L"markering. SK30:s tangenter C1-C6 är MIDI-toner 36-96 (Yamaha och Live använder samma tonnamn, C3 = MIDI 60); MANUAL "
+                L"BASS når från början upp till F#2, som klammern på SK30-panelen visar." },
 
     { kManHead, L"TREMOLO / ENSEMBLE" },
     { kManBody, L"ENSEMBLE är SK30:s chorus med tre delay-chip (trappstegs-LFO:er på 0,64 och 6,4 Hz, 120 grader isär) som gör "
@@ -176,6 +191,9 @@ static const ManualPara kManualSwe[] = {
 
     { kManHead, L"OM LJUDET" },
     { kManBody, L"SK30 är mono, så TrueSymph är också mono (vänster = höger) tills du sätter på DELAY eller REVERB." },
+    { kManBody, L"MIDI: sustainpedal (CC64) är SK30:s FOOT SW SUSTAIN. En expressionpedal (CC11) är FOOT CONT MIXED VOLUME. "
+                L"En fotomkopplare på CC65 är FOOT SW PORTAMENTO: nedtryckt = portamento med PORTAMENTO TIME, släppt = ingen "
+                L"portamento (utan pedal fungerar PORTAMENTO-reglaget som vanligt). Modhjul (CC1) och aftertouch fungerar som TOUCH." },
     { kManNote, L"Yamaha och SK30 är varumärken som tillhör Yamaha Corporation. TrueSymph har ingen koppling till Yamaha." },
 };
 

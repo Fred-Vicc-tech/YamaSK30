@@ -145,15 +145,28 @@ int main()
         check(peak(v) <= 1.0 && finite(v), "9 toner, allt pa max: ingen klippning");
     }
 
-    // 6. Normal nivå: ett 4-tonsackord ligger mellan -24 och -10 dBFS RMS
+    // 6. Normal nivå. BOOST av (SK30 utan utgångssteg): ett 4-tonsackord -24..-10 dBFS RMS.
+    //    BOOST på (standard): +9,5 dB, i nivå med andra syntar; limitern håller topparna.
     {
         Engine e; e.prepare(sr);
+        float pv[kNumParams]; for (int i = 0; i < kNumParams; ++i) pv[i] = defaultParam(i);
+        pv[kParamBoost] = 0.0f; e.setParams(pv); e.reset();
         const int ch[4] = { 57, 60, 64, 69 };
         for (int n : ch) e.handleMidi(0x90, n, 100);
         std::vector<double> v = render(e, 2.0, sr);
         const double db = 20.0 * std::log10(rms(v, (size_t)(0.5 * sr), v.size()));
-        check(db > -24.0 && db < -10.0, "standardljud: rimlig niva for ett ackord");
-        check(peak(v) < 0.7, "standardljud: topp under -3 dBFS");
+        check(db > -24.0 && db < -10.0, "standardljud (BOOST av): rimlig niva for ett ackord");
+        check(peak(v) < 0.7, "standardljud (BOOST av): topp under -3 dBFS");
+        Engine b; b.prepare(sr);
+        for (int n : ch) b.handleMidi(0x90, n, 100);
+        std::vector<double> w = render(b, 2.0, sr);
+        const double dbb = 20.0 * std::log10(rms(w, (size_t)(0.5 * sr), w.size()));
+        check(dbb > db + 8.0 && dbb < db + 10.0, "BOOST: ca +9,5 dB");
+        check(peak(w) <= Limiter::kCeiling + 1e-9, "BOOST: limitern haller toppen under -0,3 dBFS");
+        Engine one; one.prepare(sr); one.handleMidi(0x90, 48, 100);
+        std::vector<double> o = render(one, 1.5, sr);
+        const double r1 = 20.0 * std::log10(rms(o, (size_t)(0.75 * sr), o.size()));
+        check(r1 > -18.0 && r1 < -9.0, "BOOST: en ton i niva med andra syntar (-18..-9 dBFS RMS)");
     }
 
     // 7. Attack: SLOW ATTACK på/av
@@ -789,6 +802,53 @@ int main()
         for (int n = 48; n < 55; ++n) mx.handleMidi(0x90, n, 127);
         stereo(mx, 3.0, L, R);
         check(peak(L) <= 0.9661 && peak(R) <= 0.9661 && finite(L), "effekter pa max: under -0,3 dBFS");
+    }
+
+    // ===== 0.9.0: genomgång mot servicemanualen =====
+    // Översta tangenten C6 (MIDI 96) spelar en oktav över C5 (4' bryter tillbaka)
+    {
+        Engine e; e.prepare(sr);
+        check(std::fabs(e.noteFrequency(96) / e.noteFrequency(84) - 2.0) < 1e-9, "C6 (MIDI 96) en oktav over C5");
+        Engine a; a.prepare(sr); plain(a); a.handleMidi(0x90, 84, 100);
+        Engine b; b.prepare(sr); plain(b); b.handleMidi(0x90, 96, 100);
+        std::vector<double> va = render(a, 0.6, sr), vb = render(b, 0.6, sr);
+        const double fa = measurePitch(va, (size_t)(0.3 * sr), 4096, sr, a.noteFrequency(84));
+        const double fb = measurePitch(vb, (size_t)(0.3 * sr), 4096, sr, b.noteFrequency(96));
+        check(std::fabs(cents(fb, 2.0 * fa)) < 5.0, "C6 later en oktav hogre an C5");
+        check(finite(vb), "C6: inga ogiltiga tal");
+    }
+    // Delningspunkterna som på panelritningen (s. 4): F#3|G3 och MANUAL BASS t.o.m. F#2
+    {
+        check(splitNote(defaultParam(kParamSplitPoint)) == 67, "KEYBOARD SPLIT: delning mellan F#3 och G3");
+        check(splitNote(defaultParam(kParamBassPoint)) == 54, "MANUAL BASS: upp till F#2");
+    }
+    // VIBRATO DELAY: först ca 0,7 s utan vibrato, sedan inmatning (s. 69)
+    {
+        Engine e; e.prepare(sr); plain(e);
+        e.setVibDepthNorm(1.0); e.setVibDelayNorm(1.0); e.setVibSpeedNorm(0.0);
+        e.handleMidi(0x90, 69, 100);
+        std::vector<double> v = render(e, 3.5, sr);
+        const double f0 = e.noteFrequency(69);
+        const double c1 = cents(measurePitch(v, (size_t)(0.35 * sr), 8192, sr, 440.0), f0);
+        double cmax = 0.0;
+        for (double t = 2.6; t < 3.3; t += 0.05) cmax = std::fmax(cmax, std::fabs(cents(measurePitch(v, (size_t)(t * sr), 2048, sr, 440.0), f0)));
+        check(std::fabs(c1) < 2.0, "VIBRATO DELAY: helt stilla de forsta 0,7 s");
+        check(cmax > 10.0, "VIBRATO DELAY: vibratot kommer efter vantetiden");
+    }
+    // FOOT CONT (CC11) sänker volymen; FOOT SW PORTAMENTO (CC65) stänger av glidningen när pedalen släpps
+    {
+        Engine a; a.prepare(sr); a.handleMidi(0x90, 60, 100);
+        Engine b; b.prepare(sr); b.handleMidi(0xB0, 11, 64); b.handleMidi(0x90, 60, 100);
+        std::vector<double> va = render(a, 1.0, sr), vb = render(b, 1.0, sr);
+        const double d = 20.0 * std::log10(rms(vb, (size_t)(0.5 * sr), vb.size()) / rms(va, (size_t)(0.5 * sr), va.size()));
+        check(d < -10.0 && d > -14.0, "CC11 halvvags: ca -12 dB (kvadratisk kurva som en volympedal)");
+        Engine p; p.prepare(sr); soloOnly(p); p.setPortamentoNorm(1.0);
+        p.handleMidi(0xB0, 65, 0);                                    // pedal ansluten, släppt
+        p.handleMidi(0x90, 48, 100); render(p, 0.2, sr);
+        p.handleMidi(0x90, 72, 100);
+        std::vector<double> vp = render(p, 0.6, sr);
+        const double f = measurePitch(vp, (size_t)(0.3 * sr), 4096, sr, 523.25);
+        check(f > 500.0, "CC65 slappt: ingen portamento (tonen ar framme direkt)");
     }
 
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);

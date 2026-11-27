@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.8.4";
+const wchar_t* const kVersionText = L"v0.9.0";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -267,6 +267,8 @@ struct Editor
         groups.push_back({ 1188.0f, 1364.0f, kRowBY + 36.0f, L"EG" });
 
         // DECAY/SUSTAIN (orgel) och SLOW ATTACK/SUSTAIN (poly-synth): fyrkantiga knappar
+        // BOOST under MASTER VOLUME: SK30:s utgångssteg (+9,5 dB), på som standard
+        btns.push_back({ { 37.0f, kRowAY + 166.0f, 34.0f, 34.0f }, L"BOOST", kActToggle, kParamBoost, 0, 0, false });
         btns.push_back({ { 167.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"DECAY", kActToggle, kParamOrgDecay, 0, 0, false });
         btns.push_back({ { 167.0f, kRowBY + 124.0f, 34.0f, 34.0f }, L"SUSTAIN", kActToggle, kParamOrgSustain, 0, 0, false });
         btns.push_back({ { 822.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"SLOW\nATTACK", kActToggle, kParamSlowAttack, 0, 0, false });

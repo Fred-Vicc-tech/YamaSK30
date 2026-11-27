@@ -120,6 +120,7 @@ enum ParamIndex
     kParamDelayHighCut = 81, // DELAY HIGH CUT: OFF, 8k, 4k, 2k (-6 dB/okt)
     kParamDelayLowCut = 82,  // DELAY LOW CUT: OFF, 125, 250, 500 Hz (-3 dB/okt)
     kParamReverbType = 83,   // REVERB TYPE: PLATE, HALL, CHAMBER, ROOM (som MPX500:s banker)
+    kParamBoost = 84,        // BOOST: SK30:s utgångssteg (MO = 3 x mixen, VR1), +9,5 dB, på som standard
     kNumParams
 };
 
@@ -134,7 +135,8 @@ static const char* const kParamNames[kNumParams] = {
     "SoloVol", "SMode", "LfoSpd", "Porta", "Glide", "SFeet", "SWave", "SPW", "PWSrc", "SCutoff",
     "SReso", "SMod", "SEGDep", "VCA", "SAttack", "SDecay", "SSusLvl", "SRelease", "TchVib", "TchBri",
     "TchMod", "SoloTun", "Split", "SplitPt", "BassPt",
-    "DlyTime", "DlyFdbk", "DlyMod", "DlyLvl", "RevDcy", "RevLvl", "DlySpd", "DlyHiCt", "DlyLoCt", "RevType"
+    "DlyTime", "DlyFdbk", "DlyMod", "DlyLvl", "RevDcy", "RevLvl", "DlySpd", "DlyHiCt", "DlyLoCt", "RevType",
+    "Boost"
 };
 static const char* const kParamLabels[kNumParams] = {
     "dB", "", "", "", "", "", "s", "", "cent", "s", "Hz", "cent", "dB", "", "Hz",
@@ -145,7 +147,8 @@ static const char* const kParamLabels[kNumParams] = {
     "dB", "", "Hz", "s", "", "", "", "%", "", "Hz",
     "Q", "oct", "oct", "", "s", "s", "", "s", "", "",
     "", "cent", "", "", "",
-    "ms", "%", "", "dB", "s", "dB", "Hz", "", "", ""
+    "ms", "%", "", "dB", "s", "dB", "Hz", "", "", "",
+    ""
 };
 
 inline double clamp01(double v) { return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); }
@@ -320,8 +323,10 @@ inline float defaultParam(int index)
     case kParamTouchVib: case kParamTouchBrill: case kParamTouchMod: return 0.0f;
     case kParamSoloTune:    return (float)(500.0 / 1200.0);         // 0 cent
     case kParamSplit:       return 0.0f;                            // OFF
-    case kParamSplitPoint:  return (float)normFromSplitNote(55);    // F#/G (G2 i Live)
-    case kParamBassPoint:   return (float)normFromSplitNote(42);    // MANUAL BASS upp till F#1 (Live)
+    // SK30:s tangenter C1-C6 = MIDI 36-96 (Yamahas och Abletons namn: C3 = MIDI 60).
+    // Panelritningen (servicemanualen s. 4): ▼ vid F#3, MANUAL BASS-klammern upp till F#2.
+    case kParamSplitPoint:  return (float)normFromSplitNote(67);    // delning mellan F#3 och G3
+    case kParamBassPoint:   return (float)normFromSplitNote(54);    // MANUAL BASS upp till F#2
     case kParamDelayTime:   return (float)normFromDelayMs(380.0);
     case kParamDelayFeedback: return 0.3f;
     case kParamDelayMod:    return 0.1f;                            // svagt svaj (ca 2:1 = 1)
@@ -329,6 +334,7 @@ inline float defaultParam(int index)
     case kParamDelayHighCut:return (float)stepNorm(1, kNumHighCut);  // 8 kHz
     case kParamDelayLowCut: return 0.0f;                            // OFF
     case kParamReverbType:  return 0.0f;                            // PLATE
+    case kParamBoost:       return 1.0f;                            // på (nivå i klass med andra syntar)
     case kParamDelayLevel:  return 0.0f;                            // av (torrt som originalet)
     case kParamReverbDecay: return (float)normFromReverbSec(3.0);
     case kParamReverbLevel: return 0.0f;                            // av
@@ -346,7 +352,7 @@ inline void paramDisplayText(int index, double n, char* out, size_t max)
         break;
     }
     case kParamString1: case kParamString2: case kParamString3:
-    case kParamSlowAttack: case kParamSustain: case kParamEnsemble:
+    case kParamSlowAttack: case kParamSustain: case kParamEnsemble: case kParamBoost:
         std::snprintf(out, max, "%s", isOn(n) ? "ON" : "OFF"); break;
     case kParamSustainTime: std::snprintf(out, max, "%.2f", sustainTimeSec(n)); break;
     case kParamMode:        std::snprintf(out, max, "%s", isOn(n) ? "II" : "I"); break;
@@ -816,6 +822,7 @@ struct SoloSynth
 {
     double sr = 44100.0;
     // inställningar
+    bool portaFootUsed = false, portaFoot = false;     // FOOT SW PORTAMENTO (CC65)
     double lfoHz = 5.0, portaTime = 0.0, glide = 0.0, wave = 0.0, pw = 0.6, cutoffPos = 0.55, resoPos = 0.3;
     double modOct = 0.0, egDepthPos = 0.35, tuneCents = 0.0;
     int feet = 2, pwSource = 1, vcaMode = 2;
@@ -858,7 +865,8 @@ struct SoloSynth
     void noteChange(int midi, bool retrigger)
     {
         target = midi;
-        if (!hasNote || portaTime <= 0.005) pitch = target;   // första tonen hoppar direkt
+        const double pt = effectivePorta();
+        if (!hasNote || pt <= 0.005) pitch = target;   // första tonen hoppar direkt
         if (retrigger) {
             eg.trigger();
             glideOff = glide;                                  // GLIDE: tonen glider in från ovan/under
@@ -866,14 +874,16 @@ struct SoloSynth
         hasNote = true; gate = true;
     }
     void allReleased() { gate = false; eg.releaseGate(); }
+    double effectivePorta() const { return (portaFootUsed && !portaFoot) ? 0.0 : portaTime; }
 
     double next(double tuneRatio)
     {
         updateEg();
         // PORTAMENTO: analog RC-glidning (som i Fredriks inspelning: samma tid oavsett intervall).
         // portaTime = tiden tills tonen nästan är framme (ca 95 %), max 3 s.
-        if (portaTime > 0.005) {
-            const double coef = 1.0 - std::exp(-3.0 / (portaTime * sr));
+        const double pt = effectivePorta();
+        if (pt > 0.005) {
+            const double coef = 1.0 - std::exp(-3.0 / (pt * sr));
             pitch += (target - pitch) * coef;
         } else pitch = target;
         glideOff -= glideOff * glideCoef;
@@ -1267,6 +1277,7 @@ public:
         orgBrill.reset(); percEnv = 0.0;
         for (int i = 0; i < 3; ++i) { percLevel[i] = percTarget[i]; percHp[i].reset(); }
         orgVolSmoothed = targetOrgVolume(); masterSmoothed = targetMaster();
+        boostSm = boostTarget; exprTarget = exprSm = 1.0; solo.portaFootUsed = false;
         orgTe = (orgEnsemble || orgTremolo) ? 1.0 : 0.0;
         for (int v = 0; v < kAllVoices; ++v) voices[v] = Voice();
         for (int m = 0; m < 128; ++m) { held[m] = false; heldOrder[m] = 0; }
@@ -1444,6 +1455,7 @@ public:
         setDelaySpeedNorm(v[kParamDelaySpeed]);
         setDelayFiltersNorm(v[kParamDelayHighCut], v[kParamDelayLowCut]);
         setReverbTypeNorm(v[kParamReverbType]);
+        boostTarget = isOn(v[kParamBoost]) ? kBoostGain : 1.0;
     }
 
     // --- MIDI --------------------------------------------------------------
@@ -1457,6 +1469,12 @@ public:
         else if (type == 0xB0) {
             if (d1 == 64) { sustainPedal = d2 >= 64; if (!sustainPedal) releasePedalNotes(); }
             else if (d1 == 1) { modWheel = d2 / 127.0; solo.touch = std::fmax(modWheel, aftertouch); }
+            // FOOT CONT (MIXED VOLUME): expressionpedal, CC11
+            else if (d1 == 11) { const double x = d2 / 127.0; exprTarget = x * x; }
+            // FOOT SW PORTAMENTO: nedtryckt = portamento på (med PORTAMENTO TIME); släppt = av.
+            // Utan pedal (inget CC65 mottaget) gäller reglaget som vanligt.
+            else if (d1 == 65) { solo.portaFootUsed = true; solo.portaFoot = d2 >= 64; }
+            else if (d1 == 121) { exprTarget = 1.0; solo.portaFootUsed = false; }   // återställ kontroller
             else if (d1 == 120 || d1 == 123) allNotesOff(d1 == 120);
         }
     }
@@ -1478,6 +1496,7 @@ public:
         orgTe += paramSmooth * (((orgEnsemble || orgTremolo) ? 1.0 : 0.0) - orgTe);
         orgVolSmoothed += paramSmooth * (targetOrgVolume() - orgVolSmoothed);
         masterSmoothed += paramSmooth * (targetMaster() - masterSmoothed);
+        if (std::fabs(targetMaster() - masterSmoothed) < 1e-4) masterSmoothed = targetMaster();
         for (int f = 0; f < kNumFootages; ++f) { const double t = targetFootage(f); orgWeight[f] += paramSmooth * (t - orgWeight[f]); if (std::fabs(t - orgWeight[f]) < 1e-4) orgWeight[f] = t; }
         for (int i = 0; i < 3; ++i) percLevel[i] += paramSmooth * ((orgSel > 0 ? percTarget[i] : 0.0) - percLevel[i]);
         polyVolSmoothed += paramSmooth * (targetPolyVolume() - polyVolSmoothed);
@@ -1490,7 +1509,13 @@ public:
         double vibAmt = 0.0;
         if (vibDepth > 0.0) {
             double fade = 1.0;
-            if (vibDelay > 0.0) { fade = vibTime / vibDelay; fade = fade > 1.0 ? 1.0 : fade; fade = fade * fade * (3.0 - 2.0 * fade); }
+            // Servicemanualen s. 69: på max först ca 0,7 s utan vibrato, sedan inmatning under
+            // ca 2,5 s (3,2 s totalt). Samma proportioner för kortare DELAY.
+            if (vibDelay > 0.0) {
+                const double wait = vibDelay * (0.7 / 3.2);
+                fade = (vibTime - wait) / (vibDelay - wait);
+                fade = fade < 0.0 ? 0.0 : (fade > 1.0 ? 1.0 : fade);
+            }
             vibAmt = vibDepth * fade * std::sin(2.0 * kPi * vibPhase);
         }
         vibPhase += vibSpeed / sr; if (vibPhase >= 1.0) vibPhase -= 1.0;
@@ -1534,7 +1559,8 @@ public:
             const int pc = vo.pc;
             if (vo.toPoly) for (int g = 0; g < gens; ++g) {
                 for (int f = 0; f < 3; ++f) {
-                    const int k = vo.shift + f - 1;            // 16' = shift+1, 8' = shift, 4' = shift-1
+                    int k = vo.shift + f - 1;                  // 16' = shift+1, 8' = shift, 4' = shift-1
+                    if (k < 0) k = 0;                          // brytning för 4' på översta tangenten
                     u[2 - f] += vo.env * square(phase[g][pc], inc[g][pc], k);
                 }
             }
@@ -1635,7 +1661,8 @@ public:
 
         double out = dry + ensemble.process(teIn);
 
-        out = dcBlock.process(out) * masterSmoothed * kOutputMakeup;
+        exprSm += paramSmooth * (exprTarget - exprSm);
+        out = dcBlock.process(out) * masterSmoothed * kOutputMakeup * exprSm;
 
         // EFFEKTER: delay (SDD-3000-stil) -> reverb (plattreverb), som Fredriks kedja
         dlyLevelSm += paramSmooth * (dlyLevelTarget - dlyLevelSm);
@@ -1656,6 +1683,9 @@ public:
             l += rl * rg; r += rr * rg;
             revActive = (revLevelTarget > 0.0) ? (int)(sr * (revDecay + 1.0)) : revActive - 1;
         }
+        // BOOST: SK30:s utgångssteg (+9,5 dB) efter effekterna, så att bara nivån ändras
+        boostSm += paramSmooth * (boostTarget - boostSm);
+        l *= boostSm; r *= boostSm;
         limiter.processStereo(l, r);       // går aldrig över -0,3 dBFS
         outL = l; outR = r;
     }
@@ -1686,7 +1716,8 @@ private:
     static constexpr double kPercGain = 1.6;        // slagverket tydligt över fotlägena
     static constexpr double kSoloGain = 0.16;       // solosynten ungefär lika stark som ett stråkackord
     static constexpr double kReverbTrim = 0.398;    // -8 dB (0.8.2)
-    static constexpr double kOutputMakeup = 1.0;    // samma nivå som 0.7.0 (Fredrik föredrog det)
+    static constexpr double kOutputMakeup = 1.0;
+    static constexpr double kBoostGain = 3.0;       // MO = 3 x UOI (servicemanualen s. 67, VR1)    // samma nivå som 0.7.0 (Fredrik föredrog det)
     static constexpr double kStringGain = 0.15;     // ger ca -24 dBFS RMS för en ton och ca -16 dBFS för ett 4-tonsackord (STRING 1+2, MODE II)
 
     struct Voice
@@ -1741,9 +1772,10 @@ private:
 
     static int shiftFor(int midi)
     {
-        // Antal oktaver under toppoktaven (8'). Minst 1 så att 4' finns.
+        // Antal oktaver under toppoktaven (8'). Översta tangenten C6 (MIDI 96) spelar
+        // toppoktaven på 8'; dess 4' finns inte i generatorn och upprepar 8' (brytning).
         int s = (kTopOctaveMidi + (midi % 12) - midi) / 12;
-        if (s < 1) s = 1;
+        if (s < 0) s = 0;
         if (s > 12) s = 12;
         return s;
     }
@@ -1941,6 +1973,7 @@ private:
     double coefKey[5] = { -1, -1, -1, -1, -1 };
     double cOrgDecay = 0.0, cOrgRel = 0.0, cAttack = 0.0, cRelease = 0.0;
     double orgVolSmoothed = 1.0, masterSmoothed = 1.0, orgTe = 0.0;
+    double boostTarget = kBoostGain, boostSm = kBoostGain, exprTarget = 1.0, exprSm = 1.0;
     OrganToneFilter orgFilter[kNumFootages];
     OnePoleHP percHp[3];
     Biquad orgBrill;
