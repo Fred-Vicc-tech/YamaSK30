@@ -6,7 +6,7 @@ Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
 Efterliknar Yamaha SK30 (1979–80), byggt efter SK30:s servicemanual.
 Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, manual bass och keyboard split. Byggare: **2F Productions** (info@2f.se).
 
-## Status: 0.9.2 – TAPE-delay, AMBIENCE/NONLIN-reverb; effektreglage med användbar skala; genomgång mot servicemanualen: BOOST (+9,5 dB), översta tangenten, delningspunkter, vibratodelay, fotpedaler
+## Status: 0.9.5 – sex delaylägen och tio reverbtyper från 70/80-talet; TAPE-delay, AMBIENCE/NONLIN-reverb; effektreglage med användbar skala; genomgång mot servicemanualen: BOOST (+9,5 dB), översta tangenten, delningspunkter, vibratodelay, fotpedaler
 
 | Funktion | Status |
 |---|---|
@@ -146,9 +146,9 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | 80 | DlySpd | DELAY MOD SPEED | 0,1–15 Hz |
 | 81 | DlyHiCt | DELAY HIGH CUT | OFF, 8k, 4k, 2k (−6 dB/okt) |
 | 82 | DlyLoCt | DELAY LOW CUT | OFF, 125, 250, 500 Hz (−3 dB/okt) |
-| 83 | RevType | REVERB TYPE | PLATE, HALL, CHAMBER, ROOM (MPX500), AMBIENCE, NONLIN (RMX16) |
+| 83 | RevType | REVERB TYPE | PLATE, HALL, CHAMBER, ROOM (MPX500), AMBIENCE, NONLIN (RMX16), SPRING, PLATE 140 (EMT 140), HALL 224 (Lexicon 224), DIGITAL 250 (EMT 250) |
 | 84 | Boost | BOOST (SK30:s utgångssteg, efter effekterna) | på (+9,5 dB) / av |
-| 85 | DlyMode | DELAY-läge | DIGI (SDD-3000) / TAPE (Space Echo) |
+| 85 | DlyMode | DELAY-läge | DIGI (SDD-3000), TAPE, TAPE 3 HEADS (Space Echo), ECHOPLEX, ECHOREC, MEMORY MAN |
 
 Reglagen 18–24 gäller bara i POLY-SYNTH MANUAL, och tone levers bara i ORGAN MANUAL.
 

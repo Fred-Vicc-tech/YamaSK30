@@ -767,7 +767,7 @@ int main()
                 tail[ty] = rms(L, (size_t)(0.3 * sr), (size_t)(0.5 * sr));
             }
             bool all = true; for (int ty = 0; ty < kNumReverbTypes; ++ty) all = all && tail[ty] > 1e-5;
-            check(all, "REVERB TYPE: alla sex later");
+            check(all, "REVERB TYPE: alla tio later");
             check(std::fabs(tail[0] - tail[1]) > 1e-6 && std::fabs(tail[0] - tail[3]) > 1e-6, "REVERB TYPE: typerna skiljer sig");
         }
         // REVERB LEVEL på 0 dB höjer inte hela syntens volym mycket (högst 4 dB för ett hållet ackord)
@@ -893,13 +893,15 @@ int main()
         const double ambLate = rms(amb, (size_t)(0.7 * sr), (size_t)(0.9 * sr)), plLate = rms(pl, (size_t)(0.7 * sr), (size_t)(0.9 * sr));
         check(ambLate < plLate * 0.1, "AMBIENCE: kort svans jamfort med PLATE");
         check(finite(nl) && finite(amb), "AMBIENCE/NONLIN: inga ogiltiga tal");
-        check(std::fabs(convertOldReverbType((float)stepNorm(3, 4)) - (float)stepNorm(3, kNumReverbTypes)) < 1e-6, "gammal TYPE (ROOM) raknas om");
+        check(std::fabs(convertOldReverbType((float)stepNorm(3, 4)) - (float)stepNorm(3, kNumReverbTypes)) < 1e-6, "gammal TYPE (ROOM, 4 typer) raknas om");
+        check(std::fabs(convertOldReverbType((float)stepNorm(5, 6), 6) - (float)stepNorm(kRevNonLin, kNumReverbTypes)) < 1e-6, "gammal TYPE (NONLIN, 6 typer) raknas om");
+        check(std::fabs(convertSteps(1.0f, 2, kNumDelayModes) - (float)stepNorm(kDlyTape, kNumDelayModes)) < 1e-6, "gammalt DELAY-lage (TAPE) raknas om");
 
         // TAPE: ekona blir mörkare för varje varv (jämför eko 1 och eko 3 med DIGI)
         double ratio[2];
         for (int tp = 0; tp < 2; ++tp) {
             Engine e; e.prepare(sr); plain(e);
-            e.setDelayModeNorm(tp ? 1.0 : 0.0);
+            e.setDelayModeNorm(stepNorm(tp ? kDlyTape : kDlyDigi, kNumDelayModes));
             e.setDelayTimeNorm(normFromDelayMs(250.0)); e.setDelayFeedbackNorm(0.7); e.setDelayLevelNorm(1.0); e.setDelayModNorm(0.0);
             e.handleMidi(0x90, 72, 100); std::vector<double> L, R; stereo(e, 0.05, L, R); e.handleMidi(0x80, 72, 0);
             std::vector<double> L2; stereo(e, 1.2, L2, R); L.insert(L.end(), L2.begin(), L2.end());
@@ -908,6 +910,50 @@ int main()
             check(finite(L), tp ? "TAPE: inga ogiltiga tal" : "DIGI: inga ogiltiga tal");
         }
         check(ratio[1] < ratio[0] * 0.9, "TAPE: ekona morknar for varje varv");
+    }
+
+    // 0.9.5: fler 70-talsenheter. Varje delayläge ekar på rätt ställen; varje reverb låter och är giltigt.
+    {
+        auto stereo = [&](Engine& e, double sec, std::vector<double>& L, std::vector<double>& R) {
+            L.resize((size_t)(sec * sr)); R.resize(L.size());
+            for (size_t i = 0; i < L.size(); ++i) e.nextStereo(L[i], R[i]);
+        };
+        // kort tonstöt, delay 300 ms, ingen återmatning: var hörs ekona?
+        auto echoAt = [&](int mode, double t0, double t1) {
+            Engine e; e.prepare(sr); plain(e);
+            e.setDelayModeNorm(stepNorm(mode, kNumDelayModes));
+            e.setDelayTimeNorm(normFromDelayMs(300.0)); e.setDelayFeedbackNorm(0.0); e.setDelayLevelNorm(1.0); e.setDelayModNorm(0.0);
+            Engine dry; dry.prepare(sr); plain(dry);
+            e.handleMidi(0x90, 72, 100); dry.handleMidi(0x90, 72, 100);
+            std::vector<double> L, R, D, DR; stereo(e, 0.03, L, R); stereo(dry, 0.03, D, DR);
+            e.handleMidi(0x80, 72, 0); dry.handleMidi(0x80, 72, 0);
+            std::vector<double> L2, D2; stereo(e, 0.6, L2, R); stereo(dry, 0.6, D2, DR);
+            L.insert(L.end(), L2.begin(), L2.end()); D.insert(D.end(), D2.begin(), D2.end());
+            for (size_t i = 0; i < L.size(); ++i) L[i] -= D[i];              // bara ekot
+            check(finite(L), "DELAY-lage: inga ogiltiga tal");
+            return rms(L, (size_t)(t0 * sr), (size_t)(t1 * sr));
+        };
+        const double digi300 = echoAt(kDlyDigi, 0.29, 0.34), digi100 = echoAt(kDlyDigi, 0.09, 0.14);
+        check(digi300 > 20.0 * digi100, "DIGI: ett eko vid TIME");
+        const double t3a = echoAt(kDlyTape3, 0.09, 0.14), t3c = echoAt(kDlyTape3, 0.29, 0.34);
+        check(t3a > 1e-4 && t3c > 1e-4, "TAPE 3 HEADS: eko vid 1/3 och vid TIME");
+        const double era = echoAt(kDlyEchorec, 0.065, 0.11), erc = echoAt(kDlyEchorec, 0.215, 0.26);
+        check(era > 1e-4 && erc > 1e-4, "ECHOREC: fyra huvuden (eko vid 1/4 och 3/4)");
+        check(echoAt(kDlyEchoplex, 0.29, 0.36) > 1e-4, "ECHOPLEX: eko vid TIME");
+        check(echoAt(kDlyMemoryMan, 0.29, 0.36) > 1e-4, "MEMORY MAN: eko vid TIME");
+        // MEMORY MAN är mörkare än DIGI (BBD-bandbredd)
+        double cen[2];
+        for (int k = 0; k < 2; ++k) {
+            Engine e; e.prepare(sr); plain(e);
+            e.setDelayModeNorm(stepNorm(k ? kDlyMemoryMan : kDlyDigi, kNumDelayModes));
+            e.setDelayTimeNorm(normFromDelayMs(300.0)); e.setDelayFeedbackNorm(0.0); e.setDelayLevelNorm(1.0); e.setDelayModNorm(0.0);
+            Engine dry; dry.prepare(sr); plain(dry);
+            e.handleMidi(0x90, 72, 100); dry.handleMidi(0x90, 72, 100);
+            std::vector<double> L, R, D, DR; stereo(e, 0.6, L, R); stereo(dry, 0.6, D, DR);
+            for (size_t i = 0; i < L.size(); ++i) L[i] -= D[i];
+            cen[k] = centroid(L, (size_t)(0.4 * sr), 4096, sr);
+        }
+        check(cen[1] < cen[0] * 0.85, "MEMORY MAN: morkare eko an DIGI");
     }
 
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);

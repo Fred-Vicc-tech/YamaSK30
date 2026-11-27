@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.9.4";
+const wchar_t* const kVersionText = L"v0.9.5";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -575,15 +575,18 @@ void wideFromNarrow(const char* in, wchar_t* out, int max)
 }
 
 // Vilken effektenhet varje DELAY-läge och REVERB TYPE är modellerad efter
+const wchar_t* const kDelayStyles[kNumDelayModes] = {
+    L"DIGI - Korg SDD-3000 Style", L"TAPE - Roland Space Echo Style", L"TAPE 3 HEADS - Roland Space Echo Style",
+    L"ECHOPLEX - Maestro Echoplex Style", L"ECHOREC - Binson Echorec Style", L"MEMORY MAN - Electro-Harmonix Style" };
+const wchar_t* const kReverbStyles[kNumReverbTypes] = {
+    L"PLATE - Lexicon MPX500 Style", L"HALL - Lexicon MPX500 Style", L"CHAMBER - Lexicon MPX500 Style",
+    L"ROOM - Lexicon MPX500 Style", L"AMBIENCE - AMS RMX16 Style", L"NONLIN - AMS RMX16 Style",
+    L"SPRING - Accutronics Spring Style", L"PLATE 140 - EMT 140 Style", L"HALL 224 - Lexicon 224 Style",
+    L"DIGITAL 250 - EMT 250 Style" };
 const wchar_t* effectStyle(int param, float v)
 {
-    if (param == kParamDelayMode) return stepIndex(v, kNumDelayModes) ? L"TAPE - Roland Space Echo Style" : L"DIGI - Korg SDD-3000 Style";
-    if (param == kParamReverbType) {
-        static const wchar_t* const t[kNumReverbTypes] = {
-            L"PLATE - Lexicon MPX500 Style", L"HALL - Lexicon MPX500 Style", L"CHAMBER - Lexicon MPX500 Style",
-            L"ROOM - Lexicon MPX500 Style", L"AMBIENCE - AMS RMX16 Style", L"NONLIN - AMS RMX16 Style" };
-        return t[stepIndex(v, kNumReverbTypes)];
-    }
+    if (param == kParamDelayMode) return kDelayStyles[stepIndex(v, kNumDelayModes)];
+    if (param == kParamReverbType) return kReverbStyles[stepIndex(v, kNumReverbTypes)];
     return nullptr;
 }
 
@@ -1154,6 +1157,27 @@ void showPresetMenu(Editor* ed)
     else if (cmd >= 1000 && cmd - 1000 < (int)user.size()) loadUserPreset(ed, user[cmd - 1000], true);
 }
 
+// Effektväljarna: klick på rutan visar hela listan
+void showChoiceMenu(Editor* ed, int param, int steps, const wchar_t* const* names, const RectDef& below)
+{
+    HMENU menu = CreatePopupMenu();
+    if (!menu) return;
+    const int cur = stepIndex(ed->plugin->params[param].load(), steps);
+    for (int i = 0; i < steps; ++i) AppendMenuW(menu, MF_STRING | (i == cur ? MF_CHECKED : 0), 1 + i, names[i]);
+    POINT pt = { (LONG)below.x, (LONG)(below.y + below.h + 2.0f) };
+    ClientToScreen(ed->hwnd, &pt);
+    ed->menuOpen = true;
+    HWND root = GetAncestor(ed->hwnd, GA_ROOT);
+    if (root) SetForegroundWindow(root);
+    const int cmd = (int)TrackPopupMenu(menu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN | TPM_NONOTIFY | TPM_LEFTBUTTON,
+                                        pt.x, pt.y, 0, ed->hwnd, nullptr);
+    PostMessageW(ed->hwnd, WM_NULL, 0, 0);
+    ed->menuOpen = false;
+    ed->tracking = false;
+    DestroyMenu(menu);
+    if (cmd >= 1 && cmd <= steps) setParamOnce(ed, param, (float)stepNorm(cmd - 1, steps));
+}
+
 void pressButton(Editor* ed, const Btn& b)
 {
     Core* p = ed->plugin;
@@ -1209,9 +1233,12 @@ bool handleButtons(Editor* ed, int x, int y)
     if (ed->bassNext.hit(x, y)) { stepNote(ed, kParamBassPoint, +1); return true; }
     if (ed->splitPrev.hit(x, y)) { stepNote(ed, kParamSplitPoint, -1); return true; }
     if (ed->splitNext.hit(x, y)) { stepNote(ed, kParamSplitPoint, +1); return true; }
-    if (ed->dlyPrev.hit(x, y) || ed->dlyNext.hit(x, y) || ed->dlyBox().hit(x, y)) { stepChoice(ed, kParamDelayMode, kNumDelayModes, ed->dlyPrev.hit(x, y) ? -1 : +1); return true; }
-    if (ed->revPrev.hit(x, y) || ed->revBox().hit(x, y)) { stepChoice(ed, kParamReverbType, kNumReverbTypes, ed->revPrev.hit(x, y) ? -1 : +1); return true; }
+    if (ed->dlyPrev.hit(x, y)) { stepChoice(ed, kParamDelayMode, kNumDelayModes, -1); return true; }
+    if (ed->dlyNext.hit(x, y)) { stepChoice(ed, kParamDelayMode, kNumDelayModes, +1); return true; }
+    if (ed->dlyBox().hit(x, y)) { showChoiceMenu(ed, kParamDelayMode, kNumDelayModes, kDelayStyles, ed->dlyBox()); return true; }
+    if (ed->revPrev.hit(x, y)) { stepChoice(ed, kParamReverbType, kNumReverbTypes, -1); return true; }
     if (ed->revNext.hit(x, y)) { stepChoice(ed, kParamReverbType, kNumReverbTypes, +1); return true; }
+    if (ed->revBox().hit(x, y)) { showChoiceMenu(ed, kParamReverbType, kNumReverbTypes, kReverbStyles, ed->revBox()); return true; }
     return false;
 }
 

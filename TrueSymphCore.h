@@ -20,7 +20,7 @@
 namespace truesymph {
 
 const int kEditorWidth = 1430, kEditorHeight = 710;
-const uint32_t kStateVersion = 3;        // 2 = DELAY/REVERB LEVEL med ljudtaper (0.9.1), 3 = sex reverbtyper (0.9.2)
+const uint32_t kStateVersion = 4;        // 2 = LEVEL med ljudtaper (0.9.1), 3 = sex reverbtyper (0.9.2), 4 = tio reverbtyper och sex delaylägen (0.9.5)
 const int kMaxQueuedEvents = 1024;
 
 inline void copyString(char* dst, const char* src, size_t maxLen)
@@ -187,7 +187,8 @@ struct Core
         for (uint32_t i = 0; i < count && i < (uint32_t)kNumParams; ++i)
             std::memcpy(&vals[i], data + kChunkHeader + i * sizeof(float), sizeof(float));
         if (ver < 2 && count > (uint32_t)kParamReverbLevel) convertOldFxLevels(vals);   // projekt sparat före 0.9.1
-        if (ver < 3 && count > (uint32_t)kParamReverbType) vals[kParamReverbType] = convertOldReverbType(vals[kParamReverbType]);
+        if (ver < 4 && count > (uint32_t)kParamReverbType) vals[kParamReverbType] = convertOldReverbType(vals[kParamReverbType], ver < 3 ? 4 : 6);
+        if (ver < 4 && count > (uint32_t)kParamDelayMode) vals[kParamDelayMode] = convertSteps(vals[kParamDelayMode], 2, kNumDelayModes);
         for (int i = 0; i < kNumParams; ++i) setParam(i, vals[i]);
         return true;
     }

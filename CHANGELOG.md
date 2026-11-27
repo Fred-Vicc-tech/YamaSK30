@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.9.5 (2026-11-27)
+- DELAY: TAPE 3 HEADS (RE-201 med tre huvuden), ECHOPLEX (Maestro: varm, tiden glider), ECHOREC (Binson:
+  fyra huvuden, rytmiska mönster) och MEMORY MAN (Electro-Harmonix BBD: mörk, inbyggd chorus).
+- REVERB: SPRING (fjädertank), PLATE 140 (EMT 140), HALL 224 (Lexicon 224) och DIGITAL 250 (EMT 250).
+- Klick på väljarrutan visar hela listan; pilarna stegar. Nivåerna kalibrerade som de andra typerna.
+- Sparade projekt och presets behåller sitt delayläge och sin reverbtyp.
+
 ## 0.9.4 (2026-11-27)
 - EFFECTS: enheten väljs med två pilväljare längst ner (som presetväljaren): DELAY (DIGI - Korg SDD-3000
   Style / TAPE - Roland Space Echo Style) och REVERB (sex typer, MPX500 och RMX16). Klicka på pilarna eller

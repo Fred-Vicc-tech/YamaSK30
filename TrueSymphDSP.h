@@ -260,10 +260,14 @@ inline double reverbSec(double n)     { return 0.3 * std::pow(8.0 / 0.3, clamp01
 inline double delayModRatio(double n) { n = clamp01(n); return 1.0 + n * n; }
 inline double delaySpeedHz(double n)  { return 0.1 * std::pow(150.0, clamp01(n)); }        // 0,1..15 Hz
 inline double normFromDelaySpeed(double hz) { return std::log(hz / 0.1) / std::log(150.0); }
-const int kNumHighCut = 4, kNumLowCut = 4, kNumReverbTypes = 6, kNumDelayModes = 2;
-const int kRevAmbience = 4, kRevNonLin = 5;          // AMS RMX16-stil
-// TYPE sparad med 4 typer (före 0.9.2) -> samma typ bland 6
-inline float convertOldReverbType(float n) { return (float)stepNorm(stepIndex(n, 4), kNumReverbTypes); }
+const int kNumHighCut = 4, kNumLowCut = 4, kNumReverbTypes = 10, kNumDelayModes = 6;
+// REVERB TYPE: 0-3 Lexicon MPX500, 4-5 AMS RMX16, 6 fjäder, 7 EMT 140, 8 Lexicon 224, 9 EMT 250
+const int kRevAmbience = 4, kRevNonLin = 5, kRevSpring = 6, kRevEmt140 = 7, kRevLex224 = 8, kRevEmt250 = 9;
+// DELAY: 0 Korg SDD-3000, 1 Space Echo (ett huvud), 2 Space Echo (tre huvuden), 3 Echoplex, 4 Echorec, 5 Memory Man
+const int kDlyDigi = 0, kDlyTape = 1, kDlyTape3 = 2, kDlyEchoplex = 3, kDlyEchorec = 4, kDlyMemoryMan = 5;
+// Värden sparade med färre typer (äldre versioner) -> samma typ i den längre listan
+inline float convertSteps(float n, int fromSteps, int toSteps) { return (float)stepNorm(stepIndex(n, fromSteps), toSteps); }
+inline float convertOldReverbType(float n, int fromSteps = 4) { return convertSteps(n, fromSteps, kNumReverbTypes); }
 static const double kHighCutHz[kNumHighCut] = { 0.0, 8000.0, 4000.0, 2000.0 };
 static const double kLowCutHz[kNumLowCut] = { 0.0, 125.0, 250.0, 500.0 };
 inline double normFromReverbSec(double s) { return std::log(s / 0.3) / std::log(8.0 / 0.3); }
@@ -452,8 +456,8 @@ inline void paramDisplayText(int index, double n, char* out, size_t max)
     case kParamDelaySpeed:  std::snprintf(out, max, delaySpeedHz(n) < 10.0 ? "%.2f" : "%.1f", delaySpeedHz(n)); break;
     case kParamDelayHighCut: { static const char* const t[kNumHighCut] = { "OFF", "8k", "4k", "2k" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumHighCut)]); break; }
     case kParamDelayLowCut: { static const char* const t[kNumLowCut] = { "OFF", "125", "250", "500" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumLowCut)]); break; }
-    case kParamDelayMode:   std::snprintf(out, max, "%s", stepIndex(n, kNumDelayModes) ? "TAPE" : "DIGI"); break;
-    case kParamReverbType: { static const char* const t[kNumReverbTypes] = { "PLATE", "HALL", "CHAMBER", "ROOM", "AMBIENCE", "NONLIN" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumReverbTypes)]); break; }
+    case kParamDelayMode: { static const char* const t[kNumDelayModes] = { "DIGI", "TAPE", "TAPE 3 HEADS", "ECHOPLEX", "ECHOREC", "MEMORY MAN" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumDelayModes)]); break; }
+    case kParamReverbType: { static const char* const t[kNumReverbTypes] = { "PLATE", "HALL", "CHAMBER", "ROOM", "AMBIENCE", "NONLIN", "SPRING", "PLATE 140", "HALL 224", "DIGITAL 250" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumReverbTypes)]); break; }
     case kParamDelayLevel: case kParamReverbLevel: {
         const double db = index == kParamReverbLevel ? revLevelDb(n) : fxLevelDb(n);
         if (db <= -100.0) std::snprintf(out, max, "OFF"); else std::snprintf(out, max, "%.1f", db);
@@ -969,13 +973,42 @@ struct StereoDelay
     double sr = 44100.0;
     double timeSm = 0.38, lfo = 0.0;
     Biquad bandLP;                              // 17 kHz (effektens bandbredd)
-    // TAPE (Roland RE-201 Space Echo-stil): wow och flutter, bandmättning och ett
-    // mörkare och tunnare eko för varje varv (filter i återmatningen).
-    bool tape = false;
-    double wowPh = 0.0, flutPh = 0.0, wowDrift = 0.0, wowDriftT = 0.0;
+    // Lägen: DIGI (SDD-3000), TAPE och TAPE 3 HEADS (Roland RE-201 Space Echo), ECHOPLEX
+    // (Maestro, band), ECHOREC (Binson, magnettrumma med fyra huvuden), MEMORY MAN
+    // (Electro-Harmonix, analog BBD). Alla utom DIGI har filter i återmatningen, så att
+    // varje eko blir mörkare, och mättning; bandlägena svajar (wow och flutter).
+    struct ModeDef { int heads; double loopLP, loopHP, drive, wow, flutter, glideSec; const double* outAmp; };
+    int mode = 0;
+    bool tape = false;                          // något annat än DIGI
+    double wowPh = 0.0, flutPh = 0.0, wowDrift = 0.0, wowDriftT = 0.0, chorusPh = 0.0;
     uint32_t rng = 0x2F2F2F2Fu;
-    OnePoleLP tapeLP;                           // ca 3,2 kHz i slingan
-    OnePoleHP tapeHP;                           // ca 110 Hz i slingan
+    OnePoleLP tapeLP, tapeLP2;
+    OnePoleHP tapeHP;
+    double bbdLPHz = -1.0;
+    static ModeDef modeDef(int m)
+    {
+        static const double one[4] = { 1.0, 0, 0, 0 };
+        static const double re3[4] = { 0.62, 0.52, 0.46, 0 };            // RE-201: huvud 1+2+3
+        static const double rec[4] = { 0.50, 0.38, 0.44, 0.52 };         // Echorec: fyra huvuden, "swell"
+        static const ModeDef d[kNumDelayModes] = {
+            { 1, 0.0,    0.0,   0.0, 0.0,    0.0,    0.08, one },        // DIGI
+            { 1, 3200.0, 110.0, 2.2, 0.0022, 0.0006, 0.08, one },        // TAPE
+            { 3, 3200.0, 110.0, 2.2, 0.0022, 0.0006, 0.08, re3 },        // TAPE 3 HEADS
+            { 1, 2500.0,  80.0, 3.0, 0.0012, 0.0004, 0.60, one },        // ECHOPLEX: varm, glidande tid
+            { 4, 4200.0, 140.0, 1.6, 0.0004, 0.0008, 0.15, rec },        // ECHOREC: trumma, lite flutter
+            { 1, 0.0,     60.0, 1.5, 0.0,    0.0,    0.10, one },        // MEMORY MAN: BBD (LP efter tiden)
+        };
+        return d[m < 0 ? 0 : (m >= kNumDelayModes ? kNumDelayModes - 1 : m)];
+    }
+    void setMode(int m)
+    {
+        if (m == mode) return;
+        mode = m; tape = m != kDlyDigi;
+        const ModeDef md = modeDef(m);
+        if (md.loopLP > 0.0) { tapeLP.set(md.loopLP, sr); tapeLP2.set(md.loopLP * 1.6, sr); }
+        if (md.loopHP > 0.0) tapeHP.set(md.loopHP, sr);
+        bbdLPHz = -1.0;
+    }
     OnePoleLP highCut;
     OnePoleHP lowCut;
     int highCutIdx = -1, lowCutIdx = -1;
@@ -987,14 +1020,14 @@ struct StereoDelay
     {
         sr = rate;
         bandLP.lowpass(std::fmin(17000.0, sr * 0.45), 0.707, sr);
-        tapeLP.set(3200.0, sr); tapeHP.set(110.0, sr);
+        { const int m = mode; mode = -1; setMode(m); }
         highCutIdx = -1; lowCutIdx = -1;
         reset();
     }
     void reset()
     {
         std::memset(buf, 0, sizeof(float) * kSize); wp = 0; lfo = 0.0; bandLP.reset(); highCut.reset(); lowCut.reset();
-        tapeLP.reset(); tapeHP.reset(); wowPh = flutPh = wowDrift = wowDriftT = 0.0; rng = 0x2F2F2F2Fu;
+        tapeLP.reset(); tapeLP2.reset(); tapeHP.reset(); wowPh = flutPh = wowDrift = wowDriftT = chorusPh = 0.0; rng = 0x2F2F2F2Fu;
     }
     void setFilters(int hi, int lo)
     {
@@ -1012,33 +1045,52 @@ struct StereoDelay
     // x = torrt (mono). Ut: vått vänster/höger.
     void process(double x, double timeSec, double feedback, double ratio, double speedHz, double& l, double& r)
     {
-        timeSm += (timeSec - timeSm) * (1.0 - std::exp(-1.0 / (0.08 * sr)));   // mjuk tidsändring (som SDD:ns ratt)
+        const ModeDef md = modeDef(mode);
+        // mjuk tidsändring (som SDD:ns ratt); ECHOPLEX glider långsamt så att tonhöjden sveper
+        timeSm += (timeSec - timeSm) * (1.0 - std::exp(-1.0 / (md.glideSec * sr)));
         lfo += speedHz / sr; if (lfo >= 1.0) lfo -= 1.0;
         const double tri = lfo < 0.5 ? 4.0 * lfo - 1.0 : 3.0 - 4.0 * lfo;      // VCO: triangel
         // INTENSITY: tiden svajar mellan T/sqrt(r) och T*sqrt(r) (förhållande r:1)
         const double m = std::pow(ratio, 0.5 * tri);
         double d = timeSm * sr;
-        if (tape) {
-            // wow (ca 0,55 Hz, långsamt vandrande) och flutter (ca 6,5 Hz): tillsammans ca 0,3 %
+        if (md.wow > 0.0 || md.flutter > 0.0) {
+            // wow (ca 0,55 Hz, långsamt vandrande) och flutter (ca 6,5 Hz)
             wowPh += 0.55 / sr; if (wowPh >= 1.0) { wowPh -= 1.0; rng = rng * 1664525u + 1013904223u; wowDriftT = ((rng >> 8) / 16777216.0) - 0.5; }
             flutPh += 6.5 / sr; if (flutPh >= 1.0) flutPh -= 1.0;
             wowDrift += (wowDriftT - wowDrift) * (1.0 / (0.8 * sr));
-            d *= 1.0 + 0.0022 * std::sin(2.0 * kPi * wowPh) + 0.0012 * wowDrift + 0.0006 * std::sin(2.0 * kPi * flutPh);
+            d *= 1.0 + md.wow * std::sin(2.0 * kPi * wowPh) + 0.55 * md.wow * wowDrift + md.flutter * std::sin(2.0 * kPi * flutPh);
         }
-        double dl = d * m, dr = d / m;
-        if (dl < 1.0) dl = 1.0;
-        if (dr < 1.0) dr = 1.0;
-        if (dl > kSize - 4) dl = kSize - 4;
-        if (dr > kSize - 4) dr = kSize - 4;
-        const double yl = read(dl), yr = read(dr);
-        double fb = 0.5 * (yl + yr) * feedback;
+        if (mode == kDlyMemoryMan) {
+            // inbyggd chorus i BBD-linjen och bandbredd som sjunker med längre tid (lägre klocka)
+            chorusPh += 0.45 / sr; if (chorusPh >= 1.0) chorusPh -= 1.0;
+            d *= 1.0 + 0.0025 * std::sin(2.0 * kPi * chorusPh);
+            double f = 2600.0 * std::sqrt(0.3 / std::fmax(timeSm, 0.02));
+            f = f < 1200.0 ? 1200.0 : (f > 6000.0 ? 6000.0 : f);
+            if (std::fabs(f - bbdLPHz) > 20.0) { bbdLPHz = f; tapeLP.set(f, sr); tapeLP2.set(f * 1.3, sr); }
+        }
+        auto clampD = [](double x) { return x < 1.0 ? 1.0 : (x > kSize - 4 ? (double)(kSize - 4) : x); };
+        double yl = 0.0, yr = 0.0, fbSum = 0.0;
+        for (int h = 0; h < md.heads; ++h) {
+            // flera huvuden: jämnt fördelade upp till TIME (TIME = sista huvudet)
+            const double frac = (double)(h + 1) / md.heads;
+            const double hl = read(clampD(d * frac * m)), hr = read(clampD(d * frac / m));
+            yl += md.outAmp[h] * hl; yr += md.outAmp[h] * hr;
+            fbSum += 0.5 * (hl + hr) / md.heads;                  // återmatning: medel av huvudena (stabilt)
+        }
+        double fb = fbSum * feedback;
         double w;
-        if (tape) {
-            fb = tapeHP.process(tapeLP.process(fb));                             // varje eko mörkare och tunnare
-            w = std::tanh(2.2 * (x + fb)) / 2.2;                                  // bandmättning
+        if (mode == kDlyMemoryMan) {
+            // BBD: hela linjen är bandbegränsad (även första ekot), mättning i kompandern
+            if (md.loopHP > 0.0) fb = tapeHP.process(fb);
+            w = std::tanh(md.drive * (x + fb)) / md.drive;
+            w = tapeLP2.process(tapeLP.process(w));
+        } else if (tape) {
+            fb = tapeLP2.process(tapeLP.process(fb));             // varje eko mörkare...
+            if (md.loopHP > 0.0) fb = tapeHP.process(fb);         // ...och tunnare
+            w = std::tanh(md.drive * (x + fb)) / md.drive;          // bandmättning
             w = bandLP.process(w);
         } else {
-            fb = std::tanh(fb * 1.1) / 1.1;                                     // lätt mättning vid hög återmatning
+            fb = std::tanh(fb * 1.1) / 1.1;                         // lätt mättning vid hög återmatning
             w = bandLP.process(x + fb);
         }
         if (highCutIdx > 0) w = highCut.process(w);
@@ -1092,16 +1144,20 @@ struct PlateReverb
     //   HALL    större rum, ren efterklang, 25 ms fördröjning, mörkare diskant
     //   CHAMBER jämn och "dimensionslös", lite färgförändring, 12 ms
     //   ROOM    litet rum, 5 ms, mer dämpning
-    struct TypeDef { double size, predelayMs, damp, bandwidth, inDiff1, inDiff2, gain; };
+    struct TypeDef { double size, predelayMs, damp, bandwidth, inDiff1, inDiff2, gain, modScale, level; };
     static TypeDef typeDef(int t)
     {
         static const TypeDef d[kNumReverbTypes] = {
-            { 1.00,  2.0, 0.30, 0.80, 0.75, 0.625, 0.60 },
-            { 1.45, 25.0, 0.45, 0.65, 0.70, 0.55,  0.55 },
-            { 1.15, 12.0, 0.38, 0.72, 0.72, 0.60,  0.58 },
-            { 0.62,  5.0, 0.50, 0.70, 0.65, 0.55,  0.70 },
-            { 0.42,  3.0, 0.22, 0.90, 0.78, 0.66,  0.95 },   // AMBIENCE (RMX16): tät tidig rymd, kort svans, ljus
-            { 0.80,  0.0, 0.30, 0.85, 0.75, 0.625, 0.60 },   // NONLIN (RMX16): diffusorerna matar grinden nedan
+            { 1.00,  2.0, 0.30, 0.80, 0.75, 0.625, 0.60, 1.0, 1.0 },
+            { 1.45, 25.0, 0.45, 0.65, 0.70, 0.55,  0.55, 1.0, 1.0 },
+            { 1.15, 12.0, 0.38, 0.72, 0.72, 0.60,  0.58, 1.0, 1.0 },
+            { 0.62,  5.0, 0.50, 0.70, 0.65, 0.55,  0.70, 1.0, 1.0 },
+            { 0.42,  3.0, 0.22, 0.90, 0.78, 0.66,  0.95, 1.0, 1.0 },  // AMBIENCE (RMX16): tät tidig rymd, kort svans, ljus
+            { 0.80,  0.0, 0.30, 0.85, 0.75, 0.625, 0.60, 1.0, 1.0 },  // NONLIN (RMX16): diffusorerna matar grinden nedan
+            { 0.80,  0.0, 0.30, 0.85, 0.75, 0.625, 0.60, 1.0, 1.0 },  // SPRING: egen modell (fjädrar) nedan
+            { 1.10,  0.0, 0.42, 0.58, 0.80, 0.72,  0.58, 0.6, 1.50 },  // PLATE 140 (EMT 140): stålplatta, mjukare och mörkare
+            { 1.50, 20.0, 0.52, 0.52, 0.70, 0.58,  0.55, 2.4, 1.36 },  // HALL 224 (Lexicon 224): mörk, mjuk, svajande svans
+            { 1.30,  8.0, 0.34, 0.68, 0.74, 0.62,  0.58, 1.3, 1.46 },  // DIGITAL 250 (EMT 250): lyxig svans med lite gryn
         };
         return d[t < 0 ? 0 : (t >= kNumReverbTypes ? kNumReverbTypes - 1 : t)];
     }
@@ -1113,7 +1169,7 @@ struct PlateReverb
     double nlPosL[kNlTaps], nlPosR[kNlTaps], nlAmpL[kNlTaps], nlAmpR[kNlTaps];
     int nlTapL[kNlTaps], nlTapR[kNlTaps];
     double nlGate = -1.0;
-    ~PlateReverb() { delete[] nlBuf; }
+    ~PlateReverb() { delete[] nlBuf; delete[] spr[0].b; delete[] spr[1].b; }
     void setGate(double gateSec)
     {
         if (std::fabs(gateSec - nlGate) < 1e-4) return;
@@ -1125,6 +1181,14 @@ struct PlateReverb
             if (nlTapR[i] >= nlSize) nlTapR[i] = nlSize - 1;
         }
     }
+    // SPRING (fjäderreverb, Accutronics-typ): två fjädrar med olika längd. Varje fjäder är
+    // en återmatad fördröjning med en kedja av allpassfilter (spridning: diskanten kommer
+    // före basen, det typiska "boing"-ljudet), mörk och tunn som en riktig tank.
+    static const int kSpringAp = 36;
+    struct Spring { float* b = nullptr; int n = 0, p = 0, len = 1; double ap[kSpringAp] = {}; double lp = 0.0, lp2 = 0.0, hp = 0.0, hpx = 0.0, fb = 0.0; };
+    Spring spr[2];
+    // DIGITAL 250: lägre upplösning i utgången (EMT 250:s tidiga omvandlare) ger lite gryn
+    double grain = 0.0;
     int S(double n) const { return (int)(n * scale * size + 0.5); }
     void prepare(double rate)
     {
@@ -1151,6 +1215,11 @@ struct PlateReverb
             nlAmpR[i] = sgnR * env(nlPosR[i]) / std::sqrt((double)kNlTaps);
         }
         nlGate = -1.0;
+        const double sl[2] = { 0.0331, 0.0397 };              // fjäderlängder (s)
+        for (int k = 0; k < 2; ++k) {
+            delete[] spr[k].b; spr[k].len = (int)(sl[k] * sr); spr[k].n = spr[k].len + 4;
+            spr[k].b = new float[spr[k].n]; std::memset(spr[k].b, 0, sizeof(float) * spr[k].n); spr[k].p = 0;
+        }
         type = -1;
         setType(0);
         reset();
@@ -1165,7 +1234,7 @@ struct PlateReverb
         const int dl[4] = { 142, 107, 379, 277 };
         const double dg[4] = { td.inDiff1, td.inDiff1, td.inDiff2, td.inDiff2 };
         for (int i = 0; i < 4; ++i) { diff[i].l.setLen(S(dl[i])); diff[i].g = dg[i]; }
-        modBaseL = S(672); modBaseR = S(908); modExc = 16.0 * scale;
+        modBaseL = S(672); modBaseR = S(908); modExc = 16.0 * scale * td.modScale;
         d1L.setLen(S(4453)); d2L.setLen(S(3720)); d1R.setLen(S(4217)); d2R.setLen(S(3163));
         ap2L.l.setLen(S(1800)); ap2R.l.setLen(S(2656));
     }
@@ -1175,6 +1244,11 @@ struct PlateReverb
         apModL.clear(); apModR.clear(); d1L.clear(); d2L.clear(); d1R.clear(); d2R.clear(); ap2L.l.clear(); ap2R.l.clear();
         if (nlBuf) std::memset(nlBuf, 0, sizeof(float) * nlSize);
         nlWp = 0;
+        for (int k = 0; k < 2; ++k) {
+            if (spr[k].b) std::memset(spr[k].b, 0, sizeof(float) * spr[k].n);
+            spr[k].p = 0; for (int i = 0; i < kSpringAp; ++i) spr[k].ap[i] = 0.0;
+            spr[k].lp = spr[k].lp2 = spr[k].hp = spr[k].hpx = spr[k].fb = 0.0;
+        }
         dampL = dampR = inLP = fbL = fbR = lfo = 0.0;
     }
     float modAllPass(Line& l, int base, double exc, double ph, float x)
@@ -1195,7 +1269,26 @@ struct PlateReverb
     {
         if (type == kRevNonLin) return 2.55;
         if (type == kRevAmbience) return 1.1;
-        return std::sqrt(3.0 / decaySec);
+        if (type == kRevSpring) return kSpringLevel * std::sqrt(3.0 / springDecay(decaySec));
+        return typeDef(type).level * std::sqrt(3.0 / decaySec);
+    }
+    static constexpr double kSpringLevel = 1.0;
+    static double springDecay(double decaySec) { return decaySec > 5.0 ? 5.0 : decaySec; }   // fjädrar klingar sällan längre
+    double springProcess(Spring& sp, double x, double g, double lpA, double hpA)
+    {
+        // allpasskedjan (första ordningen, a = -0,62): ger frekvensberoende fördröjning
+        double v = x + sp.fb;
+        const double a = -0.62;
+        for (int i = 0; i < kSpringAp; ++i) { const double y = a * v + sp.ap[i]; sp.ap[i] = v - a * y; v = y; }
+        // fördröjningen (fjäderns gångtid)
+        const int rp = (sp.p - sp.len + sp.n) % sp.n;
+        const double d = sp.b[rp];
+        sp.b[sp.p] = (float)v; sp.p = (sp.p + 1) % sp.n;
+        // mörk och tunn: två lågpass och ett högpass, sedan återmatning
+        sp.lp += lpA * (d - sp.lp); sp.lp2 += lpA * (sp.lp - sp.lp2);
+        sp.hp = hpA * (sp.hp + sp.lp2 - sp.hpx); sp.hpx = sp.lp2;
+        sp.fb = sp.hp * g;
+        return sp.hp;
     }
     void process(double x, double decaySec, double& outL, double& outR)
     {
@@ -1213,6 +1306,15 @@ struct PlateReverb
             }
             nlWp = (nlWp + 1) & (nlSize - 1);
             outL = outGain * l; outR = outGain * r;
+            return;
+        }
+        if (type == kRevSpring) {
+            const double T = springDecay(decaySec);
+            const double lpA = 1.0 - std::exp(-2.0 * kPi * 4200.0 / sr), hpA = std::exp(-2.0 * kPi * 160.0 / sr);
+            const double in = std::tanh(1.5 * x) / 1.5;            // tankens drivsteg mättar lite
+            const double gl = std::pow(10.0, -3.0 * (spr[0].len / sr) / T), gr = std::pow(10.0, -3.0 * (spr[1].len / sr) / T);
+            const double a = springProcess(spr[0], in, gl, lpA, hpA), b = springProcess(spr[1], in, gr, lpA, hpA);
+            outL = 0.75 * a + 0.35 * b; outR = 0.35 * a + 0.75 * b;
             return;
         }
         if (type == kRevAmbience) decaySec = ambienceDecay(decaySec);
@@ -1247,6 +1349,13 @@ struct PlateReverb
                           - d1L.tap(S(1990)) - ap2L.l.tap(S(187)) - d2L.tap(S(1066)));
         outR = outGain * (d1L.tap(S(353)) + d1L.tap(S(3627)) - ap2L.l.tap(S(1228)) + d2L.tap(S(2673))
                           - d1R.tap(S(2111)) - ap2R.l.tap(S(335)) - d2R.tap(S(121)));
+        if (type == kRevEmt250) {
+            // ca 13 bitars upplösning med lite brus som spärr: ett lätt gryn i svansen
+            const double q = 1.0 / 4096.0;
+            grain = grain * 0.5 + 0.5 * (((lfo * 7919.0) - std::floor(lfo * 7919.0)) - 0.5);
+            outL = std::floor(outL / q + 0.5 + 0.3 * grain) * q;
+            outR = std::floor(outR / q + 0.5 - 0.3 * grain) * q;
+        }
     }
 };
 
@@ -1484,7 +1593,7 @@ public:
     void setDelaySpeedNorm(double n)  { dlySpeed = delaySpeedHz(n); }
     void setDelayFiltersNorm(double hi, double lo) { delay.setFilters(stepIndex(hi, kNumHighCut), stepIndex(lo, kNumLowCut)); }
     void setReverbTypeNorm(double n)  { reverb.setType(stepIndex(n, kNumReverbTypes)); }
-    void setDelayModeNorm(double n)   { delay.tape = stepIndex(n, kNumDelayModes) == 1; }
+    void setDelayModeNorm(double n)   { delay.setMode(stepIndex(n, kNumDelayModes)); }
     void setBassPointNorm(double n)   { const int b = splitNote(n); if (b != bassPoint) { bassPoint = b; updateSolo(false); } }
 
     // Alla parametrar på en gång (normaliserade 0..1, index enligt ParamIndex)

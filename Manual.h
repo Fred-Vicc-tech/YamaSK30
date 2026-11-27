@@ -79,17 +79,25 @@ static const ManualPara kManualEng[] = {
                 L"has priority. The solo synthesizer never goes through the effect." },
 
     { kManHead, L"EFFECTS" },
-    { kManBody, L"DELAY is modelled on the Korg SDD-3000 (DIGI) and the Roland RE-201 Space Echo (TAPE); REVERB on the Lexicon MPX500 "
-                L"(PLATE, HALL, CHAMBER, ROOM) and the AMS RMX16 (AMBIENCE, NONLIN). The effects work like an effect send: the dry "
+    { kManBody, L"Choose the effect units with the two selectors at the bottom of EFFECTS: the arrows step through the list, a click "
+                L"on the box shows the whole list. DELAY: DIGI (Korg SDD-3000), TAPE and TAPE 3 HEADS (Roland RE-201 Space Echo), "
+                L"ECHOPLEX (Maestro Echoplex), ECHOREC (Binson Echorec) and MEMORY MAN (Electro-Harmonix). REVERB: PLATE, HALL, "
+                L"CHAMBER, ROOM (Lexicon MPX500), AMBIENCE, NONLIN (AMS RMX16), SPRING (Accutronics spring), PLATE 140 (EMT 140), "
+                L"HALL 224 (Lexicon 224) and DIGITAL 250 (EMT 250). The effects work like an effect send: the dry "
                 L"sound passes at full level and LEVEL sets how much effect is added. DELAY follows the SDD-3000 service manual: TIME "
                 L"(1-1000 ms), FEEDBACK, MOD SPEED (0.1-15 Hz) and INTENSITY (up to 2:1; the delay time sways, left and right in "
                 L"opposite directions, which makes the echo wide), HIGH CUT (8k/4k/2k) and LOW CUT (125/250/500 Hz) like the "
-                L"SDD-3000's filters, and LEVEL (middle = -10 dB, top = as loud as the dry sound). REVERB: TYPE after the MPX500 banks "
-                L"(PLATE bright and dense, HALL large and clean, CHAMBER even, ROOM small), DECAY (0.3-8 s) and LEVEL (middle = -2 dB, "
+                L"SDD-3000's filters, and LEVEL (middle = -10 dB, top = as loud as the dry sound). REVERB: "
+                L"DECAY (0.3-8 s) and LEVEL (middle = -2 dB, "
                 L"top = +8 dB for a very wet sound; the reverb goes after the delay). LEVEL at the bottom = off, so the sound is mono "
                 L"and dry like the SK30 itself. The solo synthesizer also goes through the effects." },
-    { kManBody, L"The switch at the start of DELAY selects DIGI (clean SDD-3000 echo) or TAPE: the tape echo sways slightly (wow and "
-                L"flutter), saturates when pushed, and every repeat is darker and thinner than the one before. "
+    { kManBody, L"DIGI is a clean echo. The tape units sway slightly (wow and flutter), saturate when pushed, and every repeat is darker "
+                L"and thinner than the one before. TAPE 3 HEADS plays three heads at once (1/3, 2/3 and all of TIME); ECHOREC plays four "
+                L"heads (1/4 ... 1/1 of TIME) for rhythmic, swelling patterns; ECHOPLEX is warmer, and moving TIME glides the pitch. "
+                L"MEMORY MAN is an analog bucket-brigade echo: dark (darker the longer TIME is) with a gentle built-in chorus. "
+                L"PLATE, HALL, CHAMBER and ROOM: PLATE bright and dense, HALL large and clean, CHAMBER even, ROOM small. "
+                L"SPRING is the bouncy, metallic spring tank. PLATE 140 is a real steel plate, softer and darker. HALL 224 is a dark, "
+                L"smooth hall with a slowly moving tail. DIGITAL 250 is an early digital studio reverb with a little grain. "
                 L"REVERB TYPE AMBIENCE is a short, dense sense of space with almost no tail (DECAY sets its length, about a fifth of the "
                 L"value shown). NONLIN is the gated 80s reverb: an even burst that stops abruptly; DECAY sets the gate time (one tenth "
                 L"of the value shown, 0.06-0.8 s)." },
@@ -178,17 +186,25 @@ static const ManualPara kManualSwe[] = {
                 L"företräde. Solosynten går aldrig genom effekten." },
 
     { kManHead, L"EFFEKTER" },
-    { kManBody, L"DELAY är modellerad efter Korg SDD-3000 (DIGI) och Roland RE-201 Space Echo (TAPE); REVERB efter Lexicon MPX500 "
-                L"(PLATE, HALL, CHAMBER, ROOM) och AMS RMX16 (AMBIENCE, NONLIN). Effekterna fungerar som en effect send: det "
+    { kManBody, L"Välj effektenheter med de två väljarna längst ner i EFFECTS: pilarna stegar genom listan, ett klick på rutan visar "
+                L"hela listan. DELAY: DIGI (Korg SDD-3000), TAPE och TAPE 3 HEADS (Roland RE-201 Space Echo), ECHOPLEX (Maestro "
+                L"Echoplex), ECHOREC (Binson Echorec) och MEMORY MAN (Electro-Harmonix). REVERB: PLATE, HALL, CHAMBER, ROOM (Lexicon "
+                L"MPX500), AMBIENCE, NONLIN (AMS RMX16), SPRING (Accutronics-fjäder), PLATE 140 (EMT 140), HALL 224 (Lexicon 224) och "
+                L"DIGITAL 250 (EMT 250). Effekterna fungerar som en effect send: det "
                 L"torra ljudet går igenom i full nivå och LEVEL bestämmer hur mycket effekt som läggs till. DELAY följer SDD-3000:s "
                 L"servicemanual: TIME (1-1000 ms), FEEDBACK, MOD SPEED (0,1-15 Hz) och INTENSITY (upp till 2:1; delaytiden svajar åt "
                 L"olika håll i vänster och höger, vilket gör ekot brett), HIGH CUT (8k/4k/2k) och LOW CUT (125/250/500 Hz) som "
-                L"SDD-3000:s filter, och LEVEL (mitten = -10 dB, toppen = lika starkt som torrt). REVERB: TYPE efter MPX500:s banker "
-                L"(PLATE ljus och tät, HALL stor och ren, CHAMBER jämn, ROOM liten), DECAY (0,3-8 s) och LEVEL (mitten = -2 dB, "
+                L"SDD-3000:s filter, och LEVEL (mitten = -10 dB, toppen = lika starkt som torrt). REVERB: "
+                L"DECAY (0,3-8 s) och LEVEL (mitten = -2 dB, "
                 L"toppen = +8 dB för mycket klang; reverbet sitter efter delayen). LEVEL i botten = av, då är ljudet torrt och mono "
                 L"som SK30 själv. Även solosynten går genom effekterna." },
-    { kManBody, L"Omkopplaren först i DELAY väljer DIGI (rent SDD-3000-eko) eller TAPE: bandekot svajar lite (wow och flutter), "
-                L"mättas när det drivs och varje upprepning blir mörkare och tunnare än den förra. "
+    { kManBody, L"DIGI är ett rent eko. Bandenheterna svajar lite (wow och flutter), mättas när de drivs och varje upprepning blir "
+                L"mörkare och tunnare än den förra. TAPE 3 HEADS spelar tre huvuden samtidigt (1/3, 2/3 och hela TIME); ECHOREC "
+                L"spelar fyra huvuden (1/4 ... 1/1 av TIME) för rytmiska, svällande mönster; ECHOPLEX är varmare, och när TIME ändras "
+                L"glider tonhöjden. MEMORY MAN är ett analogt BBD-eko: mörkt (mörkare ju längre TIME) med en mjuk inbyggd chorus. "
+                L"PLATE, HALL, CHAMBER och ROOM: PLATE ljus och tät, HALL stor och ren, CHAMBER jämn, ROOM liten. "
+                L"SPRING är den studsiga, metalliska fjädertanken. PLATE 140 är en äkta stålplatta, mjukare och mörkare. HALL 224 är "
+                L"en mörk, mjuk hall med en långsamt svajande svans. DIGITAL 250 är en tidig digital studioreverb med lite gryn. "
                 L"REVERB TYPE AMBIENCE är en kort, tät rymdkänsla nästan utan svans (DECAY styr längden, ungefär en femtedel av "
                 L"visat värde). NONLIN är 80-talets grindade reverb: en jämn skur som tar tvärt slut; DECAY styr grindtiden (en "
                 L"tiondel av visat värde, 0,06-0,8 s)." },

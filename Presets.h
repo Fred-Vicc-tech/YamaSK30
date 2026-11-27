@@ -158,7 +158,7 @@ inline std::string presetToText(const std::string& name, const float* v)
 {
     std::string t = kPresetHeader;
     t += "\r\nName=" + cleanPresetName(name) + "\r\n";
-    t += "FxScale=3\r\n";                 // 2: LEVEL med ljudtaper (0.9.1), 3: sex reverbtyper (0.9.2)
+    t += "FxScale=4\r\n";                 // 2: LEVEL med ljudtaper (0.9.1), 3: sex reverbtyper, 4: tio typer och sex delaylägen (0.9.5)
     char buf[64];
     for (int i = 0; i < kNumParams; ++i) {
         std::snprintf(buf, sizeof buf, "%s=%.6f\r\n", kParamNames[i], (double)v[i]);
@@ -214,7 +214,8 @@ inline bool presetFromText(const std::string& text, float* v, std::string* name)
         }
     }
     if (fxScale < 2) convertOldFxLevels(v);   // sparad före 0.9.1: gamla linjära skalan
-    if (fxScale < 3) v[kParamReverbType] = convertOldReverbType(v[kParamReverbType]);   // före 0.9.2: fyra typer
+    if (fxScale < 4) v[kParamReverbType] = convertOldReverbType(v[kParamReverbType], fxScale < 3 ? 4 : 6);
+    if (fxScale < 4) v[kParamDelayMode] = convertSteps(v[kParamDelayMode], 2, kNumDelayModes);
     return true;
 }
 
