@@ -4,7 +4,7 @@ Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
 Efterliknar Yamaha SK30 (1979–80), byggt efter SK30:s servicemanual.
 Målet är att alla delar ska finnas med: stråkar, poly-synth, orgel, solosynt och ensemble. Byggare: **2F Productions** (info@2f.se).
 
-## Status: etapp 2 – poly-synth + tremolo
+## Status: etapp 3 – orgel
 
 | Funktion | Status |
 |---|---|
@@ -24,9 +24,16 @@ Målet är att alla delar ska finnas med: stråkar, poly-synth, orgel, solosynt 
 | VCF (lågpass/bandpass, resonans Q 0,5–10, EG DEPTH 0–10 oktaver) | Klar, automatiskt testad |
 | Envelope ADSR (0,003–3 s / 0,03–30 s / 0–10 / 0,03–30 s) | Klar, automatiskt testad |
 | POLY-SYNTH TREMOLO, TREMOLO SPEED (0,64 / 6,4 Hz) | Klar, automatiskt testad |
-| 14 fabriksljud i Lives presetlista | Klar, automatiskt testad |
-| Etapp 2 i Live | **Ej testat ännu** |
-| Orgel (fotlägen, perkussion, ORGAN 1/2/3) | Etapp 3 |
+| Etapp 2 i Live | Användaren testar |
+| ORGAN: CANCEL / 1 / 2 / 3 / MANUAL (blandningar enligt CPB-kortet) | Klar, automatiskt testad |
+| Nio tone levers 16'–1' med OG1:s tonfilter, lånade (liksvävande) mutationer, brytning i toppen | Klar, automatiskt testad |
+| Egen tongenerator (2 MHz), ingen vibrato/detune, som originalet | Klar, automatiskt testad |
+| ORGAN DECAY / SUSTAIN (0,03–1,6 s), ORGAN BRILLIANCE ±7 dB | Klar, automatiskt testad |
+| PERCUSSIVE 2nd / 3rd / 5th med DECAY TIME | Klar, automatiskt testad |
+| ORGAN TREMOLO / ORGAN ENSEMBLE (samma TE-kort, ensemble har prioritet) | Klar, automatiskt testad |
+| MASTER VOLUME; STRING VOLUME gäller nu bara stråkarna | Klar, automatiskt testad |
+| 22 fabriksljud i Lives presetlista | Klar, automatiskt testad |
+| Etapp 3 i Live | **Ej testat ännu** |
 | Solosynt, MANUAL BASS, KEYBOARD SPLIT | Etapp 4 |
 | Eget fönster (kompakt SK30-panel) | Etapp 5 |
 
@@ -71,7 +78,20 @@ Målet är att alla delar ska finnas med: stråkar, poly-synth, orgel, solosynt 
 | 25 | PolyTrm | POLY-SYNTH TREMOLO | av/på |
 | 26 | TrmSpd | TREMOLO SPEED | av 0,64 Hz / på 6,4 Hz |
 
-Reglagen 18–24 gäller bara i MANUAL. POLY-SYNTH 1/2/3 har egna fasta värden.
+| 27 | OrgSel | ORGAN-knapparna | CANCEL, 1, 2, 3, MANUAL |
+| 28 | OrgVol | ORGAN VOLUME | −inf…+6 dB |
+| 29 | OrgDcy | DECAY-knappen | av/på (tonen klingar av medan den hålls) |
+| 30 | OrgSus | SUSTAIN-knappen | av/på |
+| 31 | OrgTime | DECAY/SUSTAIN-reglaget | 0,03–1,6 s |
+| 32 | OrgBril | ORGAN BRILLIANCE | −7…+7 dB |
+| 33 | PercDcy | PERCUSSIVE DECAY TIME | kort–lång |
+| 34–36 | Perc2, Perc3, Perc5 | PERCUSSIVE 2nd / 3rd / 5th | 0–10 |
+| 37–45 | Org16 … Org1 | tone levers 16', 8', 5 1/3', 4', 2 2/3', 2', 1 3/5', 1 1/3', 1' | 0–10 |
+| 46 | OrgTrm | ORGAN TREMOLO | av/på |
+| 47 | OrgEns | ORGAN ENSEMBLE | av/på |
+| 48 | Master | MASTER VOLUME | −inf…+6 dB |
+
+Reglagen 18–24 gäller bara i POLY-SYNTH MANUAL, och tone levers bara i ORGAN MANUAL. POLY-SYNTH 1/2/3 har egna fasta värden.
 ENSEMBLE och TREMOLO gäller både stråkar och poly-synth, precis som på SK30.
 
 ## Hur ljudet är byggt (från servicemanualen)
@@ -100,6 +120,13 @@ ENSEMBLE och TREMOLO gäller både stråkar och poly-synth, precis som på SK30.
   | 3 | 15k | 2,2k | 22k | 6,8k | 18k | 27k | 4,7k |
 
   Alla tre använder 16'-sågtanden.
+- **Orgel (OG1 + CPB):** egen tongenerator med masterklocka 2 MHz (ingen vibrato eller
+  detune, precis som originalet). Nio fotlägen; mutationerna lånas från andra tangenter
+  och är därför liksvävande. Högsta fotlägena bryts tillbaka i toppoktaven (C8–B8).
+  Varje fotläge har OG1:s tonfilter (4,7k / 1,5k-shunt / Sallen-Key 33k), som gör
+  fyrkanterna mjuka i diskanten. ORGAN 1 = 16' 8' 5 1/3', ORGAN 2 = 16' 8' 4' 2' 1',
+  ORGAN 3 = alla nio. Slagverket (2nd = 4', 3rd = 2 2/3', 5th = 1 3/5') har en
+  gemensam envelope (15 µF genom 2,7k + DECAY TIME) som startar om vid varje ny tangent.
 - **Tremolo (TE-kortet):** när ENSEMBLE är av och TREMOLO på styr klockchippet
   både volymen (VCA) och delay-chippen med en LFO på 0,64 eller 6,4 Hz.
 - **Ensemble (TE-kortet):** tre MN3009 parallellt. Varje linje svajas av en

@@ -405,6 +405,120 @@ int main()
         }
     }
 
+
+    // ===== Etapp 3: orgel =====
+    auto organOnly = [&](Engine& e) {
+        plain(e);
+        e.setStringNorm(1, 0.0);
+        e.setOrgSustainNorm(0.0);
+        for (int i = 0; i < kNumFootages; ++i) e.setFootageNorm(i, 0.0);
+    };
+    auto dft = [&](const std::vector<double>& v, size_t a, size_t n, double f) {
+        double re = 0.0, im = 0.0;
+        for (size_t i = 0; i < n; ++i) { const double w = 0.5 - 0.5 * std::cos(2 * kPi * i / (n - 1)); re += w * v[a + i] * std::cos(2 * kPi * f * (a + i) / sr); im += w * v[a + i] * std::sin(2 * kPi * f * (a + i) / sr); }
+        return std::sqrt(re * re + im * im) / n;
+    };
+
+    // 25. ORGAN CANCEL tyst, 1/2/3 låter, ORGAN 3 ljusast
+    {
+        double lv[4], cen[4];
+        for (int sel = 0; sel < 4; ++sel) {
+            Engine e; e.prepare(sr); organOnly(e);
+            e.setOrgSelNorm(stepNorm(sel, kNumOrgSel));
+            e.handleMidi(0x90, 57, 100);
+            std::vector<double> v = render(e, 0.8, sr);
+            lv[sel] = 20.0 * std::log10(rms(v, (size_t)(0.3 * sr), v.size()) + 1e-12);
+            cen[sel] = centroid(v, (size_t)(0.3 * sr), 4096, sr);
+        }
+        check(lv[0] < -100.0, "ORGAN CANCEL: tyst");
+        check(lv[1] > -40.0 && lv[2] > -40.0 && lv[3] > -40.0, "ORGAN 1/2/3 later");
+        check(cen[3] > cen[1] * 1.3, "ORGAN 3 (alla fotlagen) ljusare an ORGAN 1");
+    }
+
+    // 26. Fotlägen: 1' = tre oktaver upp, 5 1/3' = liksvävande kvint (lånad ton)
+    {
+        Engine e; e.prepare(sr); organOnly(e);
+        e.setOrgSelNorm(1.0); e.setFootageNorm(8, 1.0);           // bara 1'
+        e.handleMidi(0x90, 57, 100);
+        std::vector<double> v = render(e, 1.0, sr);
+        const double f1 = measurePitch(v, (size_t)(0.3 * sr), 16384, sr, 1760.0);
+        check(std::fabs(cents(f1, 1760.0)) < 2.0, "1' = tre oktaver over 8' (A3 -> 1760 Hz)");
+
+        Engine m; m.prepare(sr); organOnly(m);
+        m.setOrgSelNorm(1.0); m.setFootageNorm(2, 1.0);           // bara 5 1/3'
+        m.handleMidi(0x90, 57, 100);
+        std::vector<double> w = render(m, 1.0, sr);
+        const double f5 = measurePitch(w, (size_t)(0.3 * sr), 16384, sr, 329.63);
+        check(std::fabs(cents(f5, 329.63)) < 2.0 && std::fabs(cents(f5, 330.0)) > 0.5, "5 1/3' = liksvavande kvint (E4 329,6 Hz, inte ren 330 Hz)");
+    }
+
+    // 27. Brytning: översta tonen med 1' hamnar i toppoktaven, inga ogiltiga tal
+    {
+        Engine e; e.prepare(sr); organOnly(e);
+        e.setOrgSelNorm(stepNorm(3, kNumOrgSel));                 // ORGAN 3
+        e.handleMidi(0x90, 96, 100); e.handleMidi(0x90, 108, 100);
+        std::vector<double> v = render(e, 0.5, sr);
+        check(finite(v) && peak(v) < 0.9 && rms(v, (size_t)(0.2 * sr), v.size()) > 1e-4, "hoga toner med alla fotlagen (brytning) later rent");
+    }
+
+    // 28. DECAY: tonen klingar av medan tangenten hålls; SUSTAIN: lång utklingning
+    {
+        Engine e; e.prepare(sr); organOnly(e);
+        e.setOrgSelNorm(stepNorm(1, kNumOrgSel));
+        e.setOrgDecayNorm(1.0); e.setOrgTimeNorm(0.3);
+        e.handleMidi(0x90, 57, 100);
+        std::vector<double> v = render(e, 2.0, sr);
+        check(rms(v, (size_t)(1.5 * sr), (size_t)(2.0 * sr)) < 0.3 * rms(v, (size_t)(0.01 * sr), (size_t)(0.1 * sr)), "ORGAN DECAY: tonen klingar av");
+
+        Engine s2; s2.prepare(sr); organOnly(s2);
+        s2.setOrgSelNorm(stepNorm(1, kNumOrgSel)); s2.setOrgSustainNorm(1.0); s2.setOrgTimeNorm(1.0);
+        s2.handleMidi(0x90, 57, 100);
+        std::vector<double> a = render(s2, 0.3, sr);
+        s2.handleMidi(0x80, 57, 0);
+        std::vector<double> b = render(s2, 0.5, sr);
+        check(rms(b, (size_t)(0.3 * sr), (size_t)(0.4 * sr)) > 0.1 * rms(a, (size_t)(0.2 * sr), (size_t)(0.3 * sr)), "ORGAN SUSTAIN: lang utklingning");
+
+        Engine s3; s3.prepare(sr); organOnly(s3);
+        s3.setOrgSelNorm(stepNorm(1, kNumOrgSel));
+        s3.handleMidi(0x90, 57, 100);
+        render(s3, 0.3, sr);
+        s3.handleMidi(0x80, 57, 0);
+        std::vector<double> c = render(s3, 0.2, sr);
+        check(rms(c, (size_t)(0.1 * sr), (size_t)(0.2 * sr)) < 1e-4, "ORGAN utan SUSTAIN: tyst direkt");
+    }
+
+    // 29. PERCUSSIVE 3rd: kort anslag på 2 2/3' som klingar av
+    {
+        Engine e; e.prepare(sr); organOnly(e);
+        e.setOrgSelNorm(1.0);                                     // bara slagverket
+        e.setPercNorm(1, 1.0); e.setPercDecayNorm(0.3);
+        e.handleMidi(0x90, 57, 100);
+        std::vector<double> v = render(e, 2.0, sr);
+        const double early = dft(v, (size_t)(0.02 * sr), 2048, 660.0);   // 2 2/3' av A3 = E5 (ca 659 Hz)
+        const double late = dft(v, (size_t)(1.5 * sr), 2048, 659.26);
+        const double early2 = dft(v, (size_t)(0.02 * sr), 2048, 659.26);
+        check(std::fmax(early, early2) > 5.0 * late, "PERCUSSIVE 3rd: anslag som klingar av");
+    }
+
+    // 30. ORGAN ENSEMBLE påverkar orgeln, MASTER -inf tystar allt, STRING VOLUME påverkar bara stråkarna
+    {
+        Engine a; a.prepare(sr); organOnly(a); a.setOrgSelNorm(stepNorm(1, kNumOrgSel));
+        Engine b; b.prepare(sr); organOnly(b); b.setOrgSelNorm(stepNorm(1, kNumOrgSel)); b.setOrgEnsembleNorm(1.0);
+        a.handleMidi(0x90, 57, 100); b.handleMidi(0x90, 57, 100);
+        std::vector<double> va = render(a, 1.0, sr), vb = render(b, 1.0, sr);
+        double diff = 0.0; for (size_t i = 0; i < va.size(); ++i) diff = std::fmax(diff, std::fabs(va[i] - vb[i]));
+        check(diff > 0.01, "ORGAN ENSEMBLE paverkar orgeln");
+
+        Engine m; m.prepare(sr); m.setMasterNorm(0.0); m.setOrgSelNorm(1.0);
+        m.handleMidi(0x90, 57, 100);
+        std::vector<double> mv = render(m, 0.5, sr);
+        check(rms(mv, (size_t)(0.2 * sr), mv.size()) < 1e-6, "MASTER -inf: tyst");
+
+        Engine p2; p2.prepare(sr); plain(p2); p2.setVolumeNorm(0.0); p2.setPolySelNorm(stepNorm(1, kNumPolySel));
+        p2.handleMidi(0x90, 57, 100);
+        check(rms(render(p2, 0.5, sr), (size_t)(0.2 * sr), (size_t)(0.5 * sr)) > 1e-3, "STRING VOLUME -inf: poly-synthen hors anda");
+    }
+
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);
     return failures ? 1 : 0;
 }

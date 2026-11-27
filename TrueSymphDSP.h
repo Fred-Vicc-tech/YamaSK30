@@ -60,6 +60,29 @@ enum ParamIndex
     kParamRelease = 24,   // RELEASE TIME 0,03..30 s
     kParamPolyTremolo = 25,  // POLY-SYNTH TREMOLO av/på
     kParamTremoloSpeed = 26, // TREMOLO SPEED: av 0,64 Hz / på 6,4 Hz
+    // --- etapp 3: orgel ---
+    kParamOrgSel = 27,    // ORGAN: CANCEL, 1, 2, 3, MANUAL
+    kParamOrgVol = 28,    // ORGAN VOLUME (-inf..+6 dB)
+    kParamOrgDecay = 29,  // DECAY-knappen av/på
+    kParamOrgSustain = 30,// SUSTAIN-knappen av/på
+    kParamOrgTime = 31,   // DECAY/SUSTAIN-reglaget 0,03..1,6 s
+    kParamOrgBrill = 32,  // ORGAN BRILLIANCE -7..+7 dB
+    kParamPercDecay = 33, // PERCUSSIVE DECAY TIME
+    kParamPerc2 = 34,     // PERCUSSIVE 2nd (4')
+    kParamPerc3 = 35,     // PERCUSSIVE 3rd (2 2/3')
+    kParamPerc5 = 36,     // PERCUSSIVE 5th (1 3/5')
+    kParamOrg16 = 37,     // fotlägen (tone levers) 16' .. 1'
+    kParamOrg8 = 38,
+    kParamOrg513 = 39,
+    kParamOrg4 = 40,
+    kParamOrg223 = 41,
+    kParamOrg2 = 42,
+    kParamOrg135 = 43,
+    kParamOrg113 = 44,
+    kParamOrg1 = 45,
+    kParamOrgTremolo = 46,   // ORGAN TREMOLO av/på
+    kParamOrgEnsemble = 47,  // ORGAN ENSEMBLE av/på
+    kParamMaster = 48,       // MASTER VOLUME
     kNumParams
 };
 
@@ -67,11 +90,17 @@ static const char* const kParamNames[kNumParams] = {
     "Volume", "Str 1", "Str 2", "Str 3", "SlowAtk", "Sustain", "SusTime",
     "Mode", "Detune", "VibDly", "VibSpd", "VibDep", "Brill", "Ensembl", "Tune",
     "PolySel", "PolyVol", "Feet", "Cutoff", "Reso", "EGDepth", "Attack", "Decay",
-    "SusLvl", "Release", "PolyTrm", "TrmSpd"
+    "SusLvl", "Release", "PolyTrm", "TrmSpd",
+    "OrgSel", "OrgVol", "OrgDcy", "OrgSus", "OrgTime", "OrgBril", "PercDcy", "Perc2", "Perc3", "Perc5",
+    "Org16", "Org8", "Org513", "Org4", "Org223", "Org2", "Org135", "Org113", "Org1",
+    "OrgTrm", "OrgEns", "Master"
 };
 static const char* const kParamLabels[kNumParams] = {
     "dB", "", "", "", "", "", "s", "", "cent", "s", "Hz", "cent", "dB", "", "Hz",
-    "", "dB", "", "Hz", "Q", "oct", "s", "s", "", "s", "", ""
+    "", "dB", "", "Hz", "Q", "oct", "s", "s", "", "s", "", "",
+    "", "dB", "", "", "s", "dB", "s", "", "", "",
+    "", "", "", "", "", "", "", "", "",
+    "", "", "dB"
 };
 
 inline double clamp01(double v) { return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); }
@@ -110,6 +139,33 @@ static const double kPolyPresetR[3][7] = {
     { 15.0, 2.2, 22.0, 6.8, 18.0, 27.0, 4.7 },    // POLY-SYNTH 3 (Tr10, D25-D31)
 };
 
+// Orgel
+const int kNumOrgSel = 5;                        // CANCEL, 1, 2, 3, MANUAL
+const int kNumFootages = 9;                      // 16', 8', 5 1/3', 4', 2 2/3', 2', 1 3/5', 1 1/3', 1'
+// Fotlägenas avstånd i halvtoner från 8' (5 1/3', 2 2/3', 1 3/5', 1 1/3' lånas från andra
+// tangenter, alltså liksvävande stämda, som i alla divide-down-orglar)
+static const int kFootageSemis[kNumFootages] = { -12, 0, 7, 12, 19, 24, 28, 31, 36 };
+// ORGAN 1/2/3 (CPB 9/9): fotlägen som blandas med lika stora motstånd (22k)
+static const int kOrganPreset[3][kNumFootages] = {
+    { 1, 1, 1, 0, 0, 0, 0, 0, 0 },               // ORGAN 1: 16' 8' 5 1/3'
+    { 1, 1, 0, 1, 0, 1, 0, 0, 1 },               // ORGAN 2: 16' 8' 4' 2' 1'
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1 },               // ORGAN 3: alla
+};
+// Shuntmotstånden vid ingången (1k från OG1 mot 3,9k / 3,3k / 2,7k)
+static const double kFootageShunt[kNumFootages] = { 1.0, 1.0, 3.9 / 4.9, 3.3 / 4.3, 2.7 / 3.7, 2.7 / 3.7, 2.7 / 3.7, 2.7 / 3.7, 2.7 / 3.7 };
+inline double orgTimeSec(double n)   { return 0.03 * std::pow(1.6 / 0.03, clamp01(n)); }
+inline double orgBrillDb(double n)   { return -7.0 + 14.0 * clamp01(n); }
+// Slagverkets kondensator 15µF laddas ur genom 2,7k + DECAY TIME (A25k): tidskonstant 0,04..0,42 s
+inline double percTau(double n)      { return 0.0405 * std::pow(0.4155 / 0.0405, clamp01(n)); }
+// Tone lever (C-kurva): 0 = av, 10 = fullt. Ca 27 dB omfång, mjukt ner mot noll.
+inline double leverGain(double n)
+{
+    n = clamp01(n);
+    if (n <= 0.0) return 0.0;
+    const double g = std::pow(10.0, -27.0 * (1.0 - n) / 20.0);
+    return n < 0.1 ? g * n * 10.0 : g;
+}
+
 inline double normFromVolumeDb(double db) { return (db + 48.0) / 54.0; }
 inline double normFromTune(double hz)     { return (hz - 415.0) / 51.0; }
 inline double normFromDetune(double c)    { return (c + 20.0) / 47.0; }
@@ -144,6 +200,21 @@ inline float defaultParam(int index)
     case kParamRelease:     return 0.40f;
     case kParamPolyTremolo: return 0.0f;
     case kParamTremoloSpeed:return 1.0f;                            // 6,4 Hz
+    case kParamOrgSel:      return 0.0f;                            // CANCEL
+    case kParamOrgVol:      return (float)normFromVolumeDb(0.0);
+    case kParamOrgDecay:    return 0.0f;
+    case kParamOrgSustain:  return 1.0f;
+    case kParamOrgTime:     return (float)(std::log(0.3 / 0.03) / std::log(1.6 / 0.03)); // 0,3 s
+    case kParamOrgBrill:    return 0.5f;
+    case kParamPercDecay:   return 0.5f;
+    case kParamPerc2: case kParamPerc3: case kParamPerc5: return 0.0f;
+    case kParamOrg16:       return 0.8f;
+    case kParamOrg8:        return 0.8f;
+    case kParamOrg4:        return 0.6f;
+    case kParamOrg513: case kParamOrg223: case kParamOrg2: case kParamOrg135: case kParamOrg113: case kParamOrg1: return 0.0f;
+    case kParamOrgTremolo:  return 0.0f;
+    case kParamOrgEnsemble: return 0.0f;
+    case kParamMaster:      return (float)normFromVolumeDb(0.0);
     default:                return 0.0f;
     }
 }
@@ -195,6 +266,25 @@ inline void paramDisplayText(int index, double n, char* out, size_t max)
     case kParamSustainLevel:std::snprintf(out, max, "%.1f", 10.0 * clamp01(n)); break;
     case kParamPolyTremolo: std::snprintf(out, max, "%s", isOn(n) ? "ON" : "OFF"); break;
     case kParamTremoloSpeed:std::snprintf(out, max, "%s", isOn(n) ? "6.4Hz" : "0.64Hz"); break;
+    case kParamOrgVol: case kParamMaster: {
+        const double db = volumeDb(n);
+        if (db <= -100.0) std::snprintf(out, max, "-inf");
+        else std::snprintf(out, max, "%.1f", db);
+        break;
+    }
+    case kParamOrgSel: {
+        static const char* const t[kNumOrgSel] = { "CANCEL", "1", "2", "3", "MANUAL" };
+        std::snprintf(out, max, "%s", t[stepIndex(n, kNumOrgSel)]); break;
+    }
+    case kParamOrgDecay: case kParamOrgSustain: case kParamOrgTremolo: case kParamOrgEnsemble:
+        std::snprintf(out, max, "%s", isOn(n) ? "ON" : "OFF"); break;
+    case kParamOrgTime:     std::snprintf(out, max, "%.2f", orgTimeSec(n)); break;
+    case kParamOrgBrill:    std::snprintf(out, max, "%+.1f", orgBrillDb(n)); break;
+    case kParamPercDecay:   std::snprintf(out, max, "%.2f", percTau(n) * 2.3); break;   // tid till -20 dB
+    case kParamPerc2: case kParamPerc3: case kParamPerc5:
+    case kParamOrg16: case kParamOrg8: case kParamOrg513: case kParamOrg4: case kParamOrg223:
+    case kParamOrg2: case kParamOrg135: case kParamOrg113: case kParamOrg1:
+        std::snprintf(out, max, "%.1f", 10.0 * clamp01(n)); break;
     default:                std::snprintf(out, max, "%.2f", n); break;
     }
 }
@@ -305,6 +395,63 @@ struct RCLadder
     }
 };
 
+// Orgelns tonfilter (OG1, ett per fotläge):
+//   in -4,7k- n1 [C1 mot jord, 1,5k + Cs mot jord] -33k- a -33k- b (= ut)
+//   Cf från a till utgången, Cg från b mot jord (Sallen-Key, följare).
+// Gör fyrkanterna mjukare (flöjt-liknande) i diskanten. Trapetsmetoden, 4x4.
+struct OrganToneFilter
+{
+    double M[4][4];
+    double G[4];
+    double x[4] = { 0, 0, 0, 0 };
+    double uPrev = 0.0;
+
+    void set(double C1, double Cs, double Cf, double Cg, double sr)
+    {
+        const double R0 = 4.7e3, Rs = 1.5e3, Ra = 33e3, Rb = 33e3;
+        // x = [v1, vcs, vCf (= va - vb), vb]; va = x2 + x3
+        double A[4][4] = {
+            { (-1.0 / R0 - 1.0 / Rs - 1.0 / Ra) / C1, (1.0 / Rs) / C1, (1.0 / Ra) / C1, (1.0 / Ra) / C1 },
+            { 1.0 / (Rs * Cs), -1.0 / (Rs * Cs), 0.0, 0.0 },
+            { (1.0 / Ra) / Cf, 0.0, (-1.0 / Ra - 1.0 / Rb) / Cf, (-1.0 / Ra) / Cf },
+            { 0.0, 0.0, 1.0 / (Rb * Cg), 0.0 },
+        };
+        const double B[4] = { 1.0 / (R0 * C1), 0.0, 0.0, 0.0 };
+        const double h = 0.5 / sr;
+        double P[4][8];                                   // [I - A h | I]
+        for (int i = 0; i < 4; ++i) for (int j = 0; j < 4; ++j) { P[i][j] = (i == j ? 1.0 : 0.0) - A[i][j] * h; P[i][j + 4] = (i == j ? 1.0 : 0.0); }
+        for (int c = 0; c < 4; ++c) {                     // Gauss-Jordan
+            int piv = c;
+            for (int r = c + 1; r < 4; ++r) if (std::fabs(P[r][c]) > std::fabs(P[piv][c])) piv = r;
+            if (piv != c) for (int j = 0; j < 8; ++j) { const double t = P[c][j]; P[c][j] = P[piv][j]; P[piv][j] = t; }
+            const double d = P[c][c];
+            for (int j = 0; j < 8; ++j) P[c][j] /= d;
+            for (int r = 0; r < 4; ++r) if (r != c) { const double f = P[r][c]; for (int j = 0; j < 8; ++j) P[r][j] -= f * P[c][j]; }
+        }
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                double acc = 0.0;
+                for (int k = 0; k < 4; ++k) acc += P[i][k + 4] * ((k == j ? 1.0 : 0.0) + A[k][j] * h);
+                M[i][j] = acc;
+            }
+            double g = 0.0;
+            for (int k = 0; k < 4; ++k) g += P[i][k + 4] * B[k] * h;
+            G[i] = g;
+        }
+        reset();
+    }
+    void reset() { x[0] = x[1] = x[2] = x[3] = 0.0; uPrev = 0.0; }
+    double process(double u)
+    {
+        const double s = u + uPrev;
+        double n[4];
+        for (int i = 0; i < 4; ++i) n[i] = M[i][0] * x[0] + M[i][1] * x[1] + M[i][2] * x[2] + M[i][3] * x[3] + G[i] * s;
+        x[0] = n[0]; x[1] = n[1]; x[2] = n[2]; x[3] = n[3];
+        uPrev = u;
+        return x[3];                                       // likströmsförstärkning 1
+    }
+};
+
 // Spänningsstyrt filter (IG00156 på CPC-kortet): tvåpoligt state variable-filter
 // med lågpass- och bandpassutgång. TPT-struktur (stabil vid snabb modulation),
 // med mjuk mättning som i ett analogt filter.
@@ -375,7 +522,7 @@ struct Ensemble
     double slowPhase = 0.0, fastPhase = 0.0;
     double slowInc = 0.0, fastInc = 0.0;
     OnePoleLP lfoSmooth[3];                     // RC-utjämning av trappstegen
-    Biquad preLP1, preLP2, postLP[3];
+    Biquad preLP1, postLP[3];
     uint32_t noise = 0x12345678u;
     double noiseEnv = 0.0;      // bruset följer signalen (tyst när inget spelas)
 
@@ -407,7 +554,6 @@ struct Ensemble
         modeSmooth = 1.0 - std::exp(-1.0 / (0.05 * sr));
         for (int i = 0; i < 3; ++i) { lfoSmooth[i].set(60.0, sr); postLP[i].lowpass(std::fmin(5400.0, sr * 0.45), 0.707, sr); }
         preLP1.lowpass(std::fmin(6600.0, sr * 0.45), 0.707, sr);
-        preLP2.lowpass(std::fmin(9000.0, sr * 0.45), 0.6, sr);
         reset();
     }
     void reset()
@@ -417,7 +563,7 @@ struct Ensemble
         noiseEnv = 0.0;
         slowPhase = 0.0; fastPhase = 0.0; tremPhase = 0.0;
         modeMix = tremoloMode ? 1.0 : 0.0;
-        preLP1.reset(); preLP2.reset();
+        preLP1.reset();
         for (int i = 0; i < 3; ++i) { postLP[i].reset(); lfoSmooth[i].reset(lfoValue(i)); }
     }
 
@@ -462,7 +608,7 @@ struct Ensemble
     double process(double x)
     {
         // Filtret före chippen (anti-vikning)
-        double in = preLP2.process(preLP1.process(x));
+        double in = preLP1.process(x);
         // Chippen tål ca ±5 V: mjuk mättning långt över normal nivå
         in = in / (1.0 + std::fabs(in) * 0.08);
         buf[writePos] = (float)in;
@@ -515,8 +661,26 @@ public:
         dcBlock.set(5.0, sr);
         paramSmooth = 1.0 - std::exp(-1.0 / (0.02 * sr));
         stealCoef = 1.0 - std::exp(-3.0 / (0.003 * sr));
+        for (int i = 0; i < 5; ++i) coefKey[i] = -1.0;     // ny samplingsfrekvens: räkna om koefficienterna
         posSmooth = 1.0 - std::exp(-1.0 / (0.03 * sr));   // 10µF på styrledningarna: mjuka byten
         updatePolyEnv();
+        // Orgelns tonfilter (OG1): C1 mot jord, Cs i serie med 1,5k, Sallen-Key Cf / Cg
+        static const double kOF[kNumFootages][4] = {
+            { 0.056e-6, 0.12e-6,  0.012e-6,  1800e-12 },  // 16'
+            { 0.033e-6, 0.068e-6, 0.0068e-6, 820e-12 },   // 8'
+            { 0.027e-6, 0.056e-6, 0.0056e-6, 680e-12 },   // 5 1/3'
+            { 0.068e-6, 0.033e-6, 0.0033e-6, 390e-12 },   // 4'
+            { 0.056e-6, 0.027e-6, 0.0027e-6, 330e-12 },   // 2 2/3'
+            { 0.033e-6, 0.015e-6, 0.0015e-6, 220e-12 },   // 2'
+            { 0.033e-6, 0.015e-6, 0.0015e-6, 220e-12 },   // 1 3/5'
+            { 0.033e-6, 0.015e-6, 0.0015e-6, 220e-12 },   // 1 1/3'
+            { 0.033e-6, 0.015e-6, 0.0015e-6, 220e-12 },   // 1'
+        };
+        for (int f = 0; f < kNumFootages; ++f) orgFilter[f].set(kOF[f][0], kOF[f][1], kOF[f][2], kOF[f][3], sr);
+        orgBrill.highShelf(std::fmin(3000.0, sr * 0.4), orgBrillDbV, 0.7, sr);
+        percCoef = 1.0 - std::exp(-1.0 / (percTau(0.5) * sr));
+        orgAttackCoef = 1.0 - std::exp(-1.0 / (0.0007 * sr));     // klickdämpning (ca 2 ms)
+        for (int i = 0; i < 3; ++i) percHp[i].set(i == 0 ? 72.0 : (i == 1 ? 106.0 : 234.0), sr);
         updateBrilliance(true);
         reset();
     }
@@ -524,6 +688,12 @@ public:
     void reset()
     {
         for (int g = 0; g < 2; ++g) for (int p = 0; p < 12; ++p) phase[g][p] = (p * 0.0731 + g * 0.37) * 64.0; // fri löpning, olika startfas
+        for (int p = 0; p < 12; ++p) orgPhase[p] = (p * 0.1173 + 0.21) * 64.0;
+        for (int f = 0; f < kNumFootages; ++f) { orgFilter[f].reset(); orgWeight[f] = targetFootage(f); }
+        orgBrill.reset(); percEnv = 0.0;
+        for (int i = 0; i < 3; ++i) { percLevel[i] = percTarget[i]; percHp[i].reset(); }
+        orgVolSmoothed = targetOrgVolume(); masterSmoothed = targetMaster();
+        orgTe = (orgEnsemble || orgTremolo) ? 1.0 : 0.0;
         for (int v = 0; v < kVoices; ++v) voices[v] = Voice();
         for (int i = 0; i < 3; ++i) { hpIn[i].reset(); hpLadder[i].reset(); ladder[i].reset(); }
         hp4to8.reset(); hp8to16.reset(); hpOut4.reset();
@@ -534,7 +704,7 @@ public:
         volSmoothed = targetVolume();
         for (int i = 0; i < 3; ++i) strLevel[i] = strTarget[i];
         ensMix = (ensembleOn || polyTremolo) ? 1.0 : 0.0;
-        ensemble.tremoloMode = !ensembleOn && polyTremolo;
+        ensemble.tremoloMode = !(ensembleOn || orgEnsemble) && (polyTremolo || orgTremolo);
         svf.reset(); polyEnv.reset(); prevAnyGate = false;
         polyVolSmoothed = targetPolyVolume();
         curCut = polyPos(0); curReso = polyPos(1); curDepth = polyPos(2);
@@ -570,6 +740,20 @@ public:
     void setPolyTremoloNorm(double n) { polyTremolo = isOn(n); }
     void setTremoloSpeedNorm(double n){ ensemble.tremoloFast = isOn(n); }
 
+    // Orgel
+    void setOrgSelNorm(double n)      { orgSel = stepIndex(n, kNumOrgSel); }
+    void setOrgVolNorm(double n)      { orgVolNorm = n; }
+    void setOrgDecayNorm(double n)    { orgDecay = isOn(n); }
+    void setOrgSustainNorm(double n)  { orgSustain = isOn(n); }
+    void setOrgTimeNorm(double n)     { orgTime = orgTimeSec(n); }
+    void setOrgBrillNorm(double n)    { const double d = orgBrillDb(n); if (d != orgBrillDbV) { orgBrillDbV = d; orgBrill.highShelf(std::fmin(3000.0, sr * 0.4), orgBrillDbV, 0.7, sr); } }
+    void setPercDecayNorm(double n)   { percCoef = 1.0 - std::exp(-1.0 / (percTau(n) * sr)); }
+    void setPercNorm(int i, double n) { if (i >= 0 && i < 3) percTarget[i] = leverGain(n); }
+    void setFootageNorm(int i, double n) { if (i >= 0 && i < kNumFootages) leverTarget[i] = leverGain(n); }
+    void setOrgTremoloNorm(double n)  { orgTremolo = isOn(n); }
+    void setOrgEnsembleNorm(double n) { orgEnsemble = isOn(n); }
+    void setMasterNorm(double n)      { masterNorm = n; }
+
     // --- MIDI --------------------------------------------------------------
     void handleMidi(uint8_t status, uint8_t d1, uint8_t d2)
     {
@@ -588,9 +772,15 @@ public:
         // Parametrar som glider (klickfritt)
         volSmoothed += paramSmooth * (targetVolume() - volSmoothed);
         for (int i = 0; i < 3; ++i) strLevel[i] += paramSmooth * (strTarget[i] - strLevel[i]);
-        const bool teOn = ensembleOn || polyTremolo;          // TREMOLO/ENSEMBLE (ensemble har prioritet)
-        ensemble.tremoloMode = !ensembleOn && polyTremolo;
+        // TREMOLO/ENSEMBLE: ett gemensamt TE-kort. Ensemble har prioritet (ENSEMBLE priority).
+        const bool teOn = ensembleOn || polyTremolo;          // stråkar + poly-synth går genom TE
+        ensemble.tremoloMode = !(ensembleOn || orgEnsemble) && (polyTremolo || orgTremolo);
         ensMix += paramSmooth * ((teOn ? 1.0 : 0.0) - ensMix);
+        orgTe += paramSmooth * (((orgEnsemble || orgTremolo) ? 1.0 : 0.0) - orgTe);
+        orgVolSmoothed += paramSmooth * (targetOrgVolume() - orgVolSmoothed);
+        masterSmoothed += paramSmooth * (targetMaster() - masterSmoothed);
+        for (int f = 0; f < kNumFootages; ++f) orgWeight[f] += paramSmooth * (targetFootage(f) - orgWeight[f]);
+        for (int i = 0; i < 3; ++i) percLevel[i] += paramSmooth * ((orgSel > 0 ? percTarget[i] : 0.0) - percLevel[i]);
         polyVolSmoothed += paramSmooth * (targetPolyVolume() - polyVolSmoothed);
         polyLevel += paramSmooth * ((polySel > 0 ? 1.0 : 0.0) - polyLevel);
         curCut += posSmooth * (polyPos(0) - curCut);
@@ -605,7 +795,8 @@ public:
             vibAmt = vibDepth * fade * std::sin(2.0 * kPi * vibPhase);
         }
         vibPhase += vibSpeed / sr; if (vibPhase >= 1.0) vibPhase -= 1.0;
-        if (anyGate()) vibTime += 1.0 / sr;
+        const bool anyG = anyGate();
+        if (anyG) vibTime += 1.0 / sr;
 
         const double clkRatio = (tune / 440.0) * std::pow(2.0, vibAmt / 1200.0);
         const double clk[2] = { kMasterClock * clkRatio, kMasterClock * clkRatio * std::pow(2.0, detune / 1200.0) };
@@ -614,13 +805,32 @@ public:
         double inc[2][12];
         for (int g = 0; g < 2; ++g) for (int p = 0; p < 12; ++p) inc[g][p] = clk[g] / divider[p] / sr; // toppoktavsperioder per sampel
 
-        // Summera tangenterna per fotläge (U16, U8, U4)
+        // Orgelns tongenerator (OG1): egen masterklocka 2 MHz, ingen vibrato, ingen detune
+        double orgInc[12];
+        const double orgClk = kOrganClock * (tune / 440.0);
+        for (int p = 0; p < 12; ++p) orgInc[p] = orgClk / orgDivider[p] / sr;
+        const bool organOn = orgSel > 0 || orgVolSmoothed * orgLevelAny() > 1e-5;
+        // Envelope-koefficienter räknas bara om när inställningarna ändras
+        if (coefKey[0] != orgTime || coefKey[1] != (orgSustain ? 1.0 : 0.0) || coefKey[2] != (slowAttack ? 1.0 : 0.0)
+            || coefKey[3] != (sustainOn ? 1.0 : 0.0) || coefKey[4] != sustainTime) {
+            coefKey[0] = orgTime; coefKey[1] = orgSustain ? 1.0 : 0.0; coefKey[2] = slowAttack ? 1.0 : 0.0;
+            coefKey[3] = sustainOn ? 1.0 : 0.0; coefKey[4] = sustainTime;
+            cOrgDecay = 1.0 - std::exp(-4.6 / (orgTime * sr));
+            cOrgRel = 1.0 - std::exp(-4.6 / ((orgSustain ? orgTime : 0.01) * sr));
+            cAttack = attackCoef(); cRelease = releaseCoef();
+        }
+        const double orgDecayCoef = cOrgDecay, orgRelCoef = cOrgRel;
+
+        // Summera tangenterna per fotläge (U16, U8, U4) och orgelns nio fotlägen
         double u[3] = { 0.0, 0.0, 0.0 };
+        double ob[kNumFootages] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         const int gens = modeII ? 2 : 1;
         for (int v = 0; v < kVoices; ++v) {
             Voice& vo = voices[v];
-            vo.advanceEnvelope(attackCoef(), releaseCoef(), stealCoef);
-            if (vo.env < 1e-6 && !vo.gate && !vo.stealing) { vo.active = false; }
+            vo.advanceEnvelope(cAttack, cRelease, stealCoef);
+            if (organOn) vo.advanceOrgan(orgAttackCoef, orgDecay ? orgDecayCoef : 0.0, orgRelCoef, stealCoef);
+            else { vo.orgEnv = 0.0; vo.orgPeak = false; }
+            if (vo.env < 1e-6 && vo.orgEnv < 1e-6 && !vo.gate && !vo.stealing) { vo.active = false; }
             if (!vo.active) continue;
             const int pc = vo.pc;
             for (int g = 0; g < gens; ++g) {
@@ -629,15 +839,26 @@ public:
                     u[2 - f] += vo.env * square(phase[g][pc], inc[g][pc], k);
                 }
             }
-            if (vo.stealing && vo.env < 1e-3) {
+            if (organOn && vo.orgEnv > 1e-6) {
+                for (int f = 0; f < kNumFootages; ++f) {
+                    const int m = vo.note + kFootageSemis[f];
+                    const int mp = m % 12;
+                    int sh = (kOrganTopMidi + mp - m) / 12;    // oktaver under orgelns toppoktav
+                    if (sh < 0) sh = 0;                        // brytning: högsta fotlägen upprepar toppoktaven
+                    if (sh > 12) sh = 12;
+                    ob[f] += vo.orgEnv * square(orgPhase[mp], orgInc[mp], sh);
+                }
+            }
+            if (vo.stealing && vo.env < 1e-3 && vo.orgEnv < 1e-3) {
                 if (vo.pendingNote) vo.startPending();
-                else { vo.stealing = false; vo.active = false; vo.env = 0.0; }
+                else { vo.stealing = false; vo.active = false; vo.env = 0.0; vo.orgEnv = 0.0; }
             }
         }
         for (int g = 0; g < 2; ++g) for (int p = 0; p < 12; ++p) {
             phase[g][p] += inc[g][p];
             if (phase[g][p] >= kWrap) phase[g][p] -= kWrap;
         }
+        for (int p = 0; p < 12; ++p) { orgPhase[p] += orgInc[p]; if (orgPhase[p] >= kWrap) orgPhase[p] -= kWrap; }
 
         // Trappstegs-sågtand (PG: IC20) och kopplingskondensatorer
         const double sq16 = hpIn[0].process(u[0]);
@@ -652,11 +873,10 @@ public:
         s += strLevel[0] * (1.0 / 4.7) * ladder[0].process(hpLadder[0].process(saw16));
         s += strLevel[1] * (1.0 / 6.8) * ladder[1].process(hpLadder[1].process(saw8));
         s += strLevel[2] * (1.0 / 6.8) * ladder[2].process(hpLadder[2].process(saw4));
-        s *= kStringGain;
+        s *= kStringGain * volSmoothed;                     // STRING VOLUME
 
         // POLY-SYNTH (CPC): tonväljare -> VCF (LP/BP) med envelope -> blandas med stråkarna.
         // Ingen VCA: volymen kommer från tangenternas keyer, precis som för stråkarna.
-        const bool anyG = anyGate();
         if (prevAnyGate && !anyG) polyEnv.releaseGate();
         prevAnyGate = anyG;
         const double env = polyEnv.next();
@@ -688,11 +908,30 @@ public:
         // BRILLIANCE (CPC)
         s = brill.process(s);
 
-        // ENSEMBLE (TE). Ensemblen körs alltid så att av/på blir klickfritt.
-        const double wet = ensemble.process(s);
-        double out = s + ensMix * (wet - s);
+        // ORGEL (OG1 -> CPB): tonfilter per fotläge, ORGAN 1/2/3 eller tone levers,
+        // slagverk (PERCUSSIVE 2nd/3rd/5th) och orgelns BRILLIANCE.
+        double org = 0.0;
+        if (organOn) {
+            double filt[kNumFootages];
+            for (int f = 0; f < kNumFootages; ++f) filt[f] = orgFilter[f].process(ob[f]) * kFootageShunt[f];
+            for (int f = 0; f < kNumFootages; ++f) org += orgWeight[f] * filt[f];
+            percEnv -= percEnv * percCoef;
+            const double perc = percLevel[0] * percHp[0].process(filt[3]) + percLevel[1] * percHp[1].process(filt[4])
+                              + percLevel[2] * percHp[2].process(filt[6]);
+            org += perc * percEnv * kPercGain;
+            org = orgBrill.process(org) * kOrganGain * orgVolSmoothed;
+        } else {
+            for (int f = 0; f < kNumFootages; ++f) orgFilter[f].reset();
+            orgBrill.reset();
+        }
 
-        out = dcBlock.process(out) * volSmoothed;
+        // ENSEMBLE / TREMOLO (TE). Körs alltid så att av/på blir klickfritt.
+        // Varje sektion går antingen direkt eller genom TE-kortet (FET-grindarna på CPA).
+        const double teIn = s * ensMix + org * orgTe;
+        const double dry = s * (1.0 - ensMix) + org * (1.0 - orgTe);
+        double out = dry + ensemble.process(teIn);
+
+        out = dcBlock.process(out) * masterSmoothed;
         // Säkerhet: mjuk begränsning nära 0 dBFS
         if (out > 0.9) out = 0.9 + 0.1 * std::tanh((out - 0.9) * 10.0);
         else if (out < -0.9) out = -0.9 + 0.1 * std::tanh((out + 0.9) * 10.0);
@@ -716,6 +955,10 @@ public:
 private:
     static constexpr double kMasterClock = 1.0e6;   // 1 MHz (ΦUL1/ΦUL2)
     static constexpr double kPolyGain = 0.05;       // poly-synth ungefär lika stark som stråkarna
+    static constexpr double kOrganClock = 2.0e6;    // orgelns masterklocka (OG1: 2 MHz tvåfas)
+    static constexpr int kOrganTopMidi = 108;       // orgelns toppoktav C8-B8
+    static constexpr double kOrganGain = 0.05;      // orgeln ungefär lika stark som stråkarna
+    static constexpr double kPercGain = 1.6;        // slagverket tydligt över fotlägena
     static constexpr double kStringGain = 0.15;     // ger ca -24 dBFS RMS för en ton och ca -16 dBFS för ett 4-tonsackord (STRING 1+2, MODE II)
 
     struct Voice
@@ -725,7 +968,19 @@ private:
         int note = -1, pc = 0, shift = 0;
         int pendNote = -1, pendPc = 0, pendShift = 0;
         double env = 0.0;
+        double orgEnv = 0.0;
+        bool orgPeak = false;   // orgelns attack klar (för DECAY)
         uint32_t age = 0;
+
+        void advanceOrgan(double aCoef, double decCoef, double rCoef, double sCoef)
+        {
+            if (stealing) orgEnv -= orgEnv * sCoef;
+            else if (gate) {
+                if (!orgPeak) { orgEnv += (1.02 - orgEnv) * aCoef; if (orgEnv >= 1.0) { orgEnv = 1.0; orgPeak = true; } }
+                else if (decCoef > 0.0) orgEnv -= orgEnv * decCoef;   // DECAY: tonen klingar av medan tangenten hålls
+            }
+            else orgEnv -= orgEnv * rCoef;
+        }
 
         void advanceEnvelope(double aCoef, double rCoef, double sCoef)
         {
@@ -737,7 +992,7 @@ private:
         {
             stealing = false; pendingNote = false;
             note = pendNote; pc = pendPc; shift = pendShift;
-            gate = true; active = true; env = 0.0;
+            gate = true; active = true; env = 0.0; orgEnv = 0.0; orgPeak = false;
         }
     };
 
@@ -750,6 +1005,8 @@ private:
         for (int p = 0; p < 12; ++p) {
             const double f = 440.0 * std::pow(2.0, (kTopOctaveMidi + p - 69) / 12.0);
             divider[p] = std::floor(kMasterClock / f + 0.5);
+            const double fo = 440.0 * std::pow(2.0, (kOrganTopMidi + p - 69) / 12.0);
+            orgDivider[p] = std::floor(kOrganClock / fo + 0.5);
         }
     }
 
@@ -765,8 +1022,9 @@ private:
     // Fyrkant (±1) delad med 2^k ur toppoktavens fasräknare, med PolyBLEP.
     static double square(double ph, double incTop, int k)
     {
+        const int64_t ip = (int64_t)ph;                     // ph >= 0 och < 2^20
         const double d = (double)(1 << k);
-        double t = std::fmod(ph, d) / d;
+        double t = ((double)(ip & ((1 << k) - 1)) + (ph - (double)ip)) / d;
         const double dt = incTop / d;
         double v = t < 0.5 ? 1.0 : -1.0;
         v += polyBlep(t, dt);
@@ -805,6 +1063,7 @@ private:
         if (midi < 12 || midi > 120) return;
         if (!anyGate()) vibTime = 0.0;             // vibratots fördröjning startar om
         polyEnv.trigger();                         // PTR: varje ny tangent startar poly-synthens envelope
+        percEnv = 1.0;                             // LTR: slagverkets envelope startar om
         const int pc = midi % 12, shift = shiftFor(midi);
         ++ageCounter;
         // Samma ton klingar redan ut: spela den igen i samma röst (som orgeln)
@@ -812,6 +1071,7 @@ private:
             Voice& vo = voices[v];
             if (vo.active && !vo.stealing && vo.note == midi) {
                 vo.gate = true; vo.held = true; vo.pedalHeld = false; vo.age = ageCounter;
+                vo.orgPeak = false;
                 return;
             }
         }
@@ -893,6 +1153,34 @@ private:
     bool prevAnyGate = false;
     SVF svf;
     ADSR polyEnv;
+
+    // Orgel
+    int orgSel = 0;
+    bool orgDecay = false, orgSustain = true, orgTremolo = false, orgEnsemble = false;
+    double orgTime = 0.3, orgBrillDbV = 0.0, orgVolNorm = defaultParam(kParamOrgVol), masterNorm = defaultParam(kParamMaster);
+    double orgDivider[12];
+    double orgPhase[12];
+    double leverTarget[kNumFootages] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    double orgWeight[kNumFootages] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    double percTarget[3] = { 0, 0, 0 }, percLevel[3] = { 0, 0, 0 };
+    double percEnv = 0.0, percCoef = 0.001, orgAttackCoef = 0.1;
+    double coefKey[5] = { -1, -1, -1, -1, -1 };
+    double cOrgDecay = 0.0, cOrgRel = 0.0, cAttack = 0.0, cRelease = 0.0;
+    double orgVolSmoothed = 1.0, masterSmoothed = 1.0, orgTe = 0.0;
+    OrganToneFilter orgFilter[kNumFootages];
+    OnePoleHP percHp[3];
+    Biquad orgBrill;
+
+    // Blandningsvikt för fotläge f: ORGAN 1/2/3 (22k, förstärkning 18k/22k) eller tone lever
+    double targetFootage(int f) const
+    {
+        if (orgSel >= 1 && orgSel <= 3) return kOrganPreset[orgSel - 1][f] ? 18.0 / 22.0 : 0.0;
+        if (orgSel == 4) return leverTarget[f] * 18.0 / 22.0;
+        return 0.0;
+    }
+    double orgLevelAny() const { double a = 0.0; for (int f = 0; f < kNumFootages; ++f) a += orgWeight[f]; for (int i = 0; i < 3; ++i) a += percLevel[i]; return a; }
+    double targetOrgVolume() const { const double db = volumeDb(orgVolNorm); return db <= -100.0 ? 0.0 : std::pow(10.0, db / 20.0); }
+    double targetMaster() const { const double db = volumeDb(masterNorm); return db <= -100.0 ? 0.0 : std::pow(10.0, db / 20.0); }
 
     // Läge för styrledning i (0 CUTOFF, 1 RESONANCE, 2 EG DEPTH, 3 ATTACK, 4 DECAY, 5 SUSTAIN, 6 RELEASE)
     double polyPos(int i) const

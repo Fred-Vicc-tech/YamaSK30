@@ -1,5 +1,13 @@
 # Ändringslogg
 
+## 0.3.0 – etapp 3 (2026-11-27)
+- Orgel enligt OG1/CPB: ORGAN CANCEL/1/2/3/MANUAL, nio tone levers med OG1:s tonfilter,
+  egen 2 MHz-generator, DECAY/SUSTAIN, ORGAN BRILLIANCE, PERCUSSIVE 2nd/3rd/5th, ORGAN TREMOLO/ENSEMBLE.
+- MASTER VOLUME (ny parameter 48). STRING VOLUME gäller nu bara stråkarna.
+- Ensemblens extra lågpass (som inte fanns i schemat) borttaget: lite mer diskant.
+- Snabbare ljudmotor (ca hälften så mycket processorkraft).
+- 22 fabriksljud.
+
 ## 0.2.0 – etapp 2 (2026-11-27)
 - Poly-synth enligt CPC-kortet: POLY-SYNTH CANCEL/1/2/3/MANUAL, FEET (6 lägen inkl. BP8'),
   VCF med resonans och EG DEPTH, ADSR. POLY-SYNTH 1/2/3 har värden ur motståndsnäten.

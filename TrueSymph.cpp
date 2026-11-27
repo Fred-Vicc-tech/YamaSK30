@@ -21,7 +21,7 @@ namespace {
 
 // Samma ID som när pluginet hette YamaSK30, så att sparade Live-projekt fortsätter fungera.
 const VstInt32 kUniqueId = ('Y' << 24) | ('S' << 16) | ('3' << 8) | '0';
-const VstInt32 kVersion = 200;            // 0.2.0 (etapp 2: poly-synth + tremolo)
+const VstInt32 kVersion = 300;            // 0.3.0 (etapp 3: orgel)
 const int kMaxQueuedEvents = 1024;
 
 void copyString(char* dst, const char* src, size_t maxLen)
@@ -36,13 +36,15 @@ void copyString(char* dst, const char* src, size_t maxLen)
 // standardvärdena och ändrar bara de parametrar som räknas upp.
 // ---------------------------------------------------------------------------
 struct PresetValue { int index; float value; };
-struct FactoryPreset { const char* name; PresetValue v[16]; int count; };
+struct FactoryPreset { const char* name; PresetValue v[20]; int count; };
 
 inline float SUS(double s) { return (float)(std::log(s / 0.03) / std::log(1.6 / 0.03)); }
 inline float VOL(double db) { return (float)normFromVolumeDb(db); }
 inline float DET(double c) { return (float)normFromDetune(c); }
 inline float SEL(int i) { return (float)stepNorm(i, kNumPolySel); }
 inline float FEET(int i) { return (float)stepNorm(i, kNumFeet); }
+inline float OSEL(int i) { return (float)stepNorm(i, kNumOrgSel); }
+inline float LEV(double v) { return (float)(v / 10.0); }   // tone lever 0..10
 
 const FactoryPreset kPresets[] = {
     { "Dream Strings",   { }, 0 },
@@ -69,6 +71,23 @@ const FactoryPreset kPresets[] = {
                            {kParamDecay, 0.45f}, {kParamSustainLevel, 0.45f}, {kParamRelease, 0.3f}, {kParamSlowAttack, 0},
                            {kParamSustainTime, SUS(0.3)}, {kParamEnsemble, 0} }, 14 },
     { "Tremolo Strings", { {kParamEnsemble, 0}, {kParamPolyTremolo, 1}, {kParamTremoloSpeed, 1} }, 3 },
+    { "Organ 1",         { {kParamString1, 0}, {kParamString2, 0}, {kParamOrgSel, OSEL(1)} }, 3 },
+    { "Organ 2",         { {kParamString1, 0}, {kParamString2, 0}, {kParamOrgSel, OSEL(2)} }, 3 },
+    { "Organ 3 Full",    { {kParamString1, 0}, {kParamString2, 0}, {kParamOrgSel, OSEL(3)}, {kParamOrgVol, VOL(-4)} }, 4 },
+    { "Jazz Percussion", { {kParamString1, 0}, {kParamString2, 0}, {kParamOrgSel, OSEL(4)},
+                           {kParamOrg16, LEV(8)}, {kParamOrg8, LEV(8)}, {kParamOrg4, LEV(0)}, {kParamPerc3, LEV(8)},
+                           {kParamPercDecay, 0.35f}, {kParamOrgSustain, 0}, {kParamOrgTremolo, 1}, {kParamTremoloSpeed, 0} , {kParamOrgVol, VOL(4)} }, 12 },
+    { "Rotor Organ",     { {kParamString1, 0}, {kParamString2, 0}, {kParamOrgSel, OSEL(4)},
+                           {kParamOrg16, LEV(8)}, {kParamOrg8, LEV(8)}, {kParamOrg513, LEV(6)}, {kParamOrg4, LEV(5)},
+                           {kParamOrg2, LEV(4)}, {kParamOrgTremolo, 1}, {kParamTremoloSpeed, 1}, {kParamOrgSustain, 0} , {kParamOrgVol, VOL(4)} }, 12 },
+    { "Ensemble Organ",  { {kParamString1, 0}, {kParamString2, 0}, {kParamOrgSel, OSEL(4)},
+                           {kParamOrg8, LEV(8)}, {kParamOrg4, LEV(6)}, {kParamOrg2, LEV(4)}, {kParamOrg16, LEV(5)},
+                           {kParamOrgEnsemble, 1}, {kParamOrgTime, 0.75f} , {kParamOrgVol, VOL(4)} }, 10 },
+    { "Organ Piano",     { {kParamString1, 0}, {kParamString2, 0}, {kParamOrgSel, OSEL(4)},
+                           {kParamOrg16, LEV(6)}, {kParamOrg8, LEV(9)}, {kParamOrg4, LEV(7)}, {kParamOrg2, LEV(4)},
+                           {kParamOrgDecay, 1}, {kParamOrgTime, 0.8f}, {kParamOrgSustain, 1}, {kParamOrgBrill, 0.7f} , {kParamOrgVol, VOL(6)} }, 12 },
+    { "Strings + Organ", { {kParamOrgSel, OSEL(4)}, {kParamOrg16, LEV(6)}, {kParamOrg8, LEV(7)}, {kParamOrg4, LEV(4)},
+                           {kParamOrgVol, VOL(-4)}, {kParamOrgEnsemble, 1} }, 6 },
     { "Slow Rotor Pad",  { {kParamString3, 1}, {kParamEnsemble, 0}, {kParamPolyTremolo, 1}, {kParamTremoloSpeed, 0},
                            {kParamSustainTime, SUS(1.4)}, {kParamVolume, VOL(-3)} }, 6 },
 };
@@ -169,6 +188,18 @@ void processBlock(Plugin* p, float** outputs, VstInt32 n, bool accumulate)
     e.setReleaseNorm(p->params[kParamRelease].load());
     e.setPolyTremoloNorm(p->params[kParamPolyTremolo].load());
     e.setTremoloSpeedNorm(p->params[kParamTremoloSpeed].load());
+    e.setOrgSelNorm(p->params[kParamOrgSel].load());
+    e.setOrgVolNorm(p->params[kParamOrgVol].load());
+    e.setOrgDecayNorm(p->params[kParamOrgDecay].load());
+    e.setOrgSustainNorm(p->params[kParamOrgSustain].load());
+    e.setOrgTimeNorm(p->params[kParamOrgTime].load());
+    e.setOrgBrillNorm(p->params[kParamOrgBrill].load());
+    e.setPercDecayNorm(p->params[kParamPercDecay].load());
+    for (int i = 0; i < 3; ++i) e.setPercNorm(i, p->params[kParamPerc2 + i].load());
+    for (int i = 0; i < kNumFootages; ++i) e.setFootageNorm(i, p->params[kParamOrg16 + i].load());
+    e.setOrgTremoloNorm(p->params[kParamOrgTremolo].load());
+    e.setOrgEnsembleNorm(p->params[kParamOrgEnsemble].load());
+    e.setMasterNorm(p->params[kParamMaster].load());
 
     float* left = outputs[0];
     float* right = outputs[1];
