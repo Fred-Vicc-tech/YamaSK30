@@ -83,6 +83,32 @@ enum ParamIndex
     kParamOrgTremolo = 46,   // ORGAN TREMOLO av/på
     kParamOrgEnsemble = 47,  // ORGAN ENSEMBLE av/på
     kParamMaster = 48,       // MASTER VOLUME
+    // --- etapp 4: solosynt, manual bass, keyboard split ---
+    kParamSoloVol = 49,      // SOLO VOLUME (-inf..+6 dB)
+    kParamSoloMode = 50,     // MODE: NORMAL (högsta tonen), BASS (lägsta tonen), MANUAL BASS
+    kParamLfoSpeed = 51,     // LFO SPEED 0,1..100 Hz
+    kParamPortamento = 52,   // PORTAMENTO 0..3 s (C3-C6)
+    kParamGlide = 53,        // GLIDE DEPTH - .. + (70 ms)
+    kParamSoloFeet = 54,     // VCO FEET: 4', 5 1/3', 8', 16', 32', 64'
+    kParamSoloWave = 55,     // WAVE: sågtand -> fyrkant (blandbar)
+    kParamSoloPw = 56,       // PW 50..85 %
+    kParamPwSource = 57,     // PW-källa: LFO, MANUAL, EG
+    kParamSoloCutoff = 58,   // VCF CUTOFF FREQ
+    kParamSoloReso = 59,     // VCF RESONANCE
+    kParamSoloMod = 60,      // VCF MODULATION (LFO, 0..3 oktaver)
+    kParamSoloEgDepth = 61,  // VCF EG DEPTH (0..10 oktaver)
+    kParamVcaMode = 62,      // VCA: HOLD, GATE, EG
+    kParamSoloAttack = 63,   // EG ATTACK 0,003..3 s
+    kParamSoloDecay = 64,    // EG DECAY 0,03..30 s
+    kParamSoloSustain = 65,  // EG SUSTAIN 0..10
+    kParamSoloRelease = 66,  // EG RELEASE 0,03..30 s
+    kParamTouchVib = 67,     // TOUCH VIBRATO (±120 cent)
+    kParamTouchBrill = 68,   // TOUCH BRILLIANCE (+5 oktaver)
+    kParamTouchMod = 69,     // TOUCH MODULATION (6 oktaver)
+    kParamSoloTune = 70,     // SOLO TUNE -500..+700 cent
+    kParamSplit = 71,        // KEYBOARD SPLIT: OFF, POLY-SYNTH▼ORGAN, ORGAN▼POLY-SYNTH
+    kParamSplitPoint = 72,   // delningspunkt (tangent)
+    kParamBassPoint = 73,    // MANUAL BASS: översta basstangent
     kNumParams
 };
 
@@ -93,14 +119,20 @@ static const char* const kParamNames[kNumParams] = {
     "SusLvl", "Release", "PolyTrm", "TrmSpd",
     "OrgSel", "OrgVol", "OrgDcy", "OrgSus", "OrgTime", "OrgBril", "PercDcy", "Perc2", "Perc3", "Perc5",
     "Org16", "Org8", "Org513", "Org4", "Org223", "Org2", "Org135", "Org113", "Org1",
-    "OrgTrm", "OrgEns", "Master"
+    "OrgTrm", "OrgEns", "Master",
+    "SoloVol", "SMode", "LfoSpd", "Porta", "Glide", "SFeet", "SWave", "SPW", "PWSrc", "SCutoff",
+    "SReso", "SMod", "SEGDep", "VCA", "SAttack", "SDecay", "SSusLvl", "SRelease", "TchVib", "TchBri",
+    "TchMod", "SoloTun", "Split", "SplitPt", "BassPt"
 };
 static const char* const kParamLabels[kNumParams] = {
     "dB", "", "", "", "", "", "s", "", "cent", "s", "Hz", "cent", "dB", "", "Hz",
     "", "dB", "", "Hz", "Q", "oct", "s", "s", "", "s", "", "",
     "", "dB", "", "", "s", "dB", "s", "", "", "",
     "", "", "", "", "", "", "", "", "",
-    "", "", "dB"
+    "", "", "dB",
+    "dB", "", "Hz", "s", "", "", "", "%", "", "Hz",
+    "Q", "oct", "oct", "", "s", "s", "", "s", "", "",
+    "", "cent", "", "", ""
 };
 
 inline double clamp01(double v) { return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); }
@@ -166,6 +198,26 @@ inline double leverGain(double n)
     return n < 0.1 ? g * n * 10.0 : g;
 }
 
+// Solosynt
+const int kNumSoloModes = 3;                     // NORMAL, BASS, MANUAL BASS
+const int kNumSoloFeet = 6;                      // 4', 5 1/3', 8', 16', 32', 64'
+static const int kSoloFeetSemis[kNumSoloFeet] = { 12, 7, 0, -12, -24, -36 };
+const int kNumPwSources = 3;                     // LFO, MANUAL, EG
+const int kNumVcaModes = 3;                      // HOLD, GATE, EG
+const int kNumSplit = 3;                         // OFF, POLY▼ORGAN, ORGAN▼POLY
+inline double lfoSpeedHz(double n)   { return 0.1 * std::pow(1000.0, clamp01(n)); }
+inline double portaSec(double n)     { n = clamp01(n); return 3.0 * n * n; }      // tid för tre oktaver
+inline double glideSemis(double n)   { return 12.0 * (2.0 * clamp01(n) - 1.0); }  // mitten = av
+inline double soloPw(double n)       { return 0.50 + 0.35 * clamp01(n); }
+inline double soloTuneCents(double n){ return -500.0 + 1200.0 * clamp01(n); }
+inline int splitNote(double n)       { return 36 + (int)(clamp01(n) * 48.0 + 0.5); }  // MIDI 36..84
+inline double normFromSplitNote(int m) { return (m - 36) / 48.0; }
+inline void noteName(int m, char* out, size_t max)
+{
+    static const char* const nm[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+    std::snprintf(out, max, "%s%d", nm[((m % 12) + 12) % 12], m / 12 - 2);   // Abletons namn: MIDI 60 = C3
+}
+
 inline double normFromVolumeDb(double db) { return (db + 48.0) / 54.0; }
 inline double normFromTune(double hz)     { return (hz - 415.0) / 51.0; }
 inline double normFromDetune(double c)    { return (c + 20.0) / 47.0; }
@@ -215,6 +267,29 @@ inline float defaultParam(int index)
     case kParamOrgTremolo:  return 0.0f;
     case kParamOrgEnsemble: return 0.0f;
     case kParamMaster:      return (float)normFromVolumeDb(0.0);
+    case kParamSoloVol:     return 0.0f;                            // solosynten tyst tills den skruvas upp
+    case kParamSoloMode:    return 0.0f;                            // NORMAL
+    case kParamLfoSpeed:    return (float)(std::log(5.0 / 0.1) / std::log(1000.0)); // 5 Hz
+    case kParamPortamento:  return 0.0f;
+    case kParamGlide:       return 0.5f;                            // av
+    case kParamSoloFeet:    return (float)stepNorm(2, kNumSoloFeet);// 8'
+    case kParamSoloWave:    return 0.0f;                            // sågtand
+    case kParamSoloPw:      return 0.3f;
+    case kParamPwSource:    return (float)stepNorm(1, kNumPwSources); // MANUAL
+    case kParamSoloCutoff:  return 0.55f;
+    case kParamSoloReso:    return 0.3f;
+    case kParamSoloMod:     return 0.0f;
+    case kParamSoloEgDepth: return 0.35f;
+    case kParamVcaMode:     return (float)stepNorm(2, kNumVcaModes); // EG
+    case kParamSoloAttack:  return 0.15f;
+    case kParamSoloDecay:   return 0.35f;
+    case kParamSoloSustain: return 0.6f;
+    case kParamSoloRelease: return 0.3f;
+    case kParamTouchVib: case kParamTouchBrill: case kParamTouchMod: return 0.0f;
+    case kParamSoloTune:    return (float)(500.0 / 1200.0);         // 0 cent
+    case kParamSplit:       return 0.0f;                            // OFF
+    case kParamSplitPoint:  return (float)normFromSplitNote(55);    // F#/G (G2 i Live)
+    case kParamBassPoint:   return (float)normFromSplitNote(42);    // MANUAL BASS upp till F#1 (Live)
     default:                return 0.0f;
     }
 }
@@ -266,7 +341,48 @@ inline void paramDisplayText(int index, double n, char* out, size_t max)
     case kParamSustainLevel:std::snprintf(out, max, "%.1f", 10.0 * clamp01(n)); break;
     case kParamPolyTremolo: std::snprintf(out, max, "%s", isOn(n) ? "ON" : "OFF"); break;
     case kParamTremoloSpeed:std::snprintf(out, max, "%s", isOn(n) ? "6.4Hz" : "0.64Hz"); break;
-    case kParamOrgVol: case kParamMaster: {
+    case kParamSoloMode: {
+        static const char* const t[kNumSoloModes] = { "NORMAL", "BASS", "MAN BASS" };
+        std::snprintf(out, max, "%s", t[stepIndex(n, kNumSoloModes)]); break;
+    }
+    case kParamLfoSpeed:    std::snprintf(out, max, lfoSpeedHz(n) < 10.0 ? "%.2f" : "%.1f", lfoSpeedHz(n)); break;
+    case kParamPortamento:  std::snprintf(out, max, "%.2f", portaSec(n)); break;
+    case kParamGlide:       std::snprintf(out, max, "%+.1f", glideSemis(n)); break;
+    case kParamSoloFeet: {
+        static const char* const t[kNumSoloFeet] = { "4'", "5 1/3'", "8'", "16'", "32'", "64'" };
+        std::snprintf(out, max, "%s", t[stepIndex(n, kNumSoloFeet)]); break;
+    }
+    case kParamSoloWave:    std::snprintf(out, max, "%.0f%%", 100.0 * clamp01(n)); break;
+    case kParamSoloPw:      std::snprintf(out, max, "%.0f", 100.0 * soloPw(n)); break;
+    case kParamPwSource: {
+        static const char* const t[kNumPwSources] = { "LFO", "MANUAL", "EG" };
+        std::snprintf(out, max, "%s", t[stepIndex(n, kNumPwSources)]); break;
+    }
+    case kParamSoloCutoff: {
+        const double f = cutoffHz(n);
+        if (f >= 1000.0) std::snprintf(out, max, "%.1fk", f / 1000.0); else std::snprintf(out, max, "%.0f", f);
+        break;
+    }
+    case kParamSoloReso:    std::snprintf(out, max, "%.1f", resonanceQ(n)); break;
+    case kParamSoloMod:     std::snprintf(out, max, "%.1f", 3.0 * clamp01(n)); break;
+    case kParamSoloEgDepth: std::snprintf(out, max, "%.1f", egDepthOct(n)); break;
+    case kParamVcaMode: {
+        static const char* const t[kNumVcaModes] = { "HOLD", "GATE", "EG" };
+        std::snprintf(out, max, "%s", t[stepIndex(n, kNumVcaModes)]); break;
+    }
+    case kParamSoloAttack:  std::snprintf(out, max, attackSec(n) < 1.0 ? "%.3f" : "%.2f", attackSec(n)); break;
+    case kParamSoloDecay:   std::snprintf(out, max, decaySec(n) < 1.0 ? "%.3f" : "%.2f", decaySec(n)); break;
+    case kParamSoloRelease: std::snprintf(out, max, releaseSec(n) < 1.0 ? "%.3f" : "%.2f", releaseSec(n)); break;
+    case kParamSoloSustain: std::snprintf(out, max, "%.1f", 10.0 * clamp01(n)); break;
+    case kParamTouchVib: case kParamTouchBrill: case kParamTouchMod:
+        std::snprintf(out, max, "%s", isOn(n) ? "ON" : "OFF"); break;
+    case kParamSoloTune:    std::snprintf(out, max, "%+.0f", soloTuneCents(n)); break;
+    case kParamSplit: {
+        static const char* const t[kNumSplit] = { "OFF", "POLY|ORG", "ORG|POLY" };
+        std::snprintf(out, max, "%s", t[stepIndex(n, kNumSplit)]); break;
+    }
+    case kParamSplitPoint: case kParamBassPoint: noteName(splitNote(n), out, max); break;
+    case kParamOrgVol: case kParamMaster: case kParamSoloVol: {
         const double db = volumeDb(n);
         if (db <= -100.0) std::snprintf(out, max, "-inf");
         else std::snprintf(out, max, "%.1f", db);
@@ -636,12 +752,135 @@ struct Ensemble
 };
 
 // ---------------------------------------------------------------------------
+// Solosynten (CPB 7/9): en analog VCO (IG00153) med fotlägesväljare, vågform
+// sågtand -> fyrkant, PW 50-85 % (LFO / MANUAL / EG), VCF (IG00156) med
+// tangentföljning, VCA (HOLD / GATE / EG), ADSR, LFO 0,1-100 Hz, PORTAMENTO,
+// GLIDE och TOUCH (tangenttryck: här aftertouch eller modulationshjulet).
+// ---------------------------------------------------------------------------
+struct SoloSynth
+{
+    double sr = 44100.0;
+    // inställningar
+    double lfoHz = 5.0, portaTime = 0.0, glide = 0.0, wave = 0.0, pw = 0.6, cutoffPos = 0.55, resoPos = 0.3;
+    double modOct = 0.0, egDepthPos = 0.35, tuneCents = 0.0;
+    int feet = 2, pwSource = 1, vcaMode = 2;
+    bool touchVib = false, touchBrill = false, touchMod = false;
+    // tillstånd
+    double pitch = 60.0, target = 60.0, glideOff = 0.0;
+    bool hasNote = false, gate = false;
+    double vcoPhase = 0.0, lfoPhase = 0.0, touch = 0.0, touchSmoothed = 0.0, vcaGate = 0.0;
+    double drift = 0.0; uint32_t rnd = 0x9E3779B9u;
+    ADSR eg;
+    SVF vcf;
+    OnePoleLP driftLP, gateLP;
+    double glideCoef = 0.0, touchCoef = 0.0;
+    double egKey[4] = { -1, -1, -1, -1 };
+    double attackPos = 0.15, decayPos = 0.35, susPos = 0.6, releasePos = 0.3;
+
+    void prepare(double rate)
+    {
+        sr = rate;
+        driftLP.set(0.3, sr);
+        gateLP.set(300.0, sr);                     // VCA i GATE-läge: mjuk kant (ca 0,5 ms)
+        glideCoef = 1.0 - std::exp(-1.0 / (0.025 * sr));   // GLIDE: ca 70 ms
+        touchCoef = 1.0 - std::exp(-1.0 / (0.02 * sr));
+        egKey[0] = -1.0;
+        reset();
+    }
+    void reset()
+    {
+        eg.reset(); vcf.reset(); vcoPhase = 0.0; lfoPhase = 0.0; hasNote = false; gate = false;
+        glideOff = 0.0; vcaGate = 0.0; gateLP.reset(); driftLP.reset(); touchSmoothed = touch;
+    }
+    void updateEg()
+    {
+        if (egKey[0] == attackPos && egKey[1] == decayPos && egKey[2] == susPos && egKey[3] == releasePos) return;
+        egKey[0] = attackPos; egKey[1] = decayPos; egKey[2] = susPos; egKey[3] = releasePos;
+        eg.set(attackSec(attackPos), decaySec(decayPos), susPos, releaseSec(releasePos), sr);
+    }
+
+    // Ny ton (eller byte av ton). retrigger = ny tangent tryckt.
+    void noteChange(int midi, bool retrigger)
+    {
+        target = midi;
+        if (!hasNote || portaTime <= 0.005) pitch = target;   // första tonen hoppar direkt
+        if (retrigger) {
+            eg.trigger();
+            glideOff = glide;                                  // GLIDE: tonen glider in från ovan/under
+        }
+        hasNote = true; gate = true;
+    }
+    void allReleased() { gate = false; eg.releaseGate(); }
+
+    double next(double tuneRatio)
+    {
+        updateEg();
+        // PORTAMENTO: konstant hastighet, portaTime = tid för tre oktaver (C3-C6)
+        if (portaTime > 0.005) {
+            const double step = 36.0 / (portaTime * sr);
+            if (pitch < target) { pitch += step; if (pitch > target) pitch = target; }
+            else if (pitch > target) { pitch -= step; if (pitch < target) pitch = target; }
+        } else pitch = target;
+        glideOff -= glideOff * glideCoef;
+
+        // LFO (triangel)
+        lfoPhase += lfoHz / sr; if (lfoPhase >= 1.0) lfoPhase -= 1.0;
+        const double lfo = lfoPhase < 0.5 ? 4.0 * lfoPhase - 1.0 : 3.0 - 4.0 * lfoPhase;
+        touchSmoothed += touchCoef * (touch - touchSmoothed);
+        const double env = eg.next();
+
+        // Analog VCO: lite långsam drift (ca ±1,5 cent)
+        rnd = rnd * 1664525u + 1013904223u;
+        drift = driftLP.process(((int32_t)rnd) * (1.0 / 2147483648.0) * 40.0);
+        double semis = pitch + kSoloFeetSemis[feet] + glideOff + tuneCents / 100.0 + drift * 0.015;
+        if (touchVib) semis += 1.2 * touchSmoothed * lfo;    // TOUCH VIBRATO: upp till ±120 cent
+        const double f = 440.0 * tuneRatio * std::pow(2.0, (semis - 69.0) / 12.0);
+        double dt = f / sr; if (dt > 0.45) dt = 0.45;
+
+        // Sågtand och puls med PolyBLEP
+        vcoPhase += dt; if (vcoPhase >= 1.0) vcoPhase -= 1.0;
+        double saw = 2.0 * vcoPhase - 1.0 - polyBlep(vcoPhase, dt);
+        double pwv = pw;
+        if (pwSource == 0) pwv = 0.5 + (pw - 0.5) * (0.5 + 0.5 * lfo);
+        else if (pwSource == 2) pwv = 0.5 + (pw - 0.5) * env;
+        double pulse = vcoPhase < pwv ? 1.0 : -1.0;
+        pulse += polyBlep(vcoPhase, dt);
+        double t2 = vcoPhase - pwv; if (t2 < 0.0) t2 += 1.0;
+        pulse -= polyBlep(t2, dt);
+        pulse -= 2.0 * pwv - 1.0;                              // ingen likström
+        const double osc = saw * (1.0 - wave) + pulse * wave * 0.8;
+
+        // VCF med tangentföljning (KV), EG, LFO och TOUCH
+        double oct = egDepthOct(egDepthPos) * env + modOct * lfo + (pitch - 60.0) / 12.0;
+        if (touchBrill) oct += 5.0 * touchSmoothed;
+        if (touchMod) oct += 6.0 * touchSmoothed * lfo * 0.5;
+        double fc = cutoffHz(cutoffPos) * std::pow(2.0, oct);
+        const double fmax = sr * 0.45;
+        if (fc > fmax) fc = fmax;
+        if (fc < 10.0) fc = 10.0;
+        double lp, bp;
+        vcf.process(osc * 0.8, std::tan(kPi * fc / sr), 1.0 / resonanceQ(resoPos), lp, bp);
+
+        // VCA
+        double amp;
+        if (vcaMode == 0) amp = 1.0;                           // HOLD: alltid öppen (drönare)
+        else if (vcaMode == 1) amp = gateLP.process(gate ? 1.0 : 0.0);
+        else amp = env;
+        if (vcaMode != 1) gateLP.process(gate ? 1.0 : 0.0);
+        if (!hasNote) amp = 0.0;                               // ingen ton spelad ännu
+        return lp * amp;
+    }
+    bool isSounding() const { return hasNote && (gate || eg.stage != ADSR::Idle || vcaMode == 0); }
+};
+
+// ---------------------------------------------------------------------------
 // Motorn
 // ---------------------------------------------------------------------------
 class Engine
 {
 public:
-    static const int kVoices = 7;           // SK30: 7 toner (BASS OFF)
+    static const int kVoices = 7;           // SK30: 7 toner per sektion (BASS OFF)
+    static const int kAllVoices = 14;       // KEYBOARD SPLIT: 7 + 7
     static const int kTopOctaveMidi = 96;   // tongeneratorns översta oktav: C7 (4' för SK30:s översta tangent C6)
     static const int kWrap = 1 << 20;       // fasräknaren räknar toppoktavsperioder modulo 2^20
 
@@ -658,6 +897,7 @@ public:
         ladder[1].set(12e3, 18e-9, 12e3, par3(5.6e3, 47e3, 7.3e3), 18e-9, sr);   // /\8
         ladder[2].set(12e3, 18e-9, 12e3, par3(5.6e3, 47e3, 7.3e3), 18e-9, sr);   // /\4
         ensemble.prepare(sr);
+        solo.prepare(sr);
         dcBlock.set(5.0, sr);
         paramSmooth = 1.0 - std::exp(-1.0 / (0.02 * sr));
         stealCoef = 1.0 - std::exp(-3.0 / (0.003 * sr));
@@ -694,7 +934,9 @@ public:
         for (int i = 0; i < 3; ++i) { percLevel[i] = percTarget[i]; percHp[i].reset(); }
         orgVolSmoothed = targetOrgVolume(); masterSmoothed = targetMaster();
         orgTe = (orgEnsemble || orgTremolo) ? 1.0 : 0.0;
-        for (int v = 0; v < kVoices; ++v) voices[v] = Voice();
+        for (int v = 0; v < kAllVoices; ++v) voices[v] = Voice();
+        for (int m = 0; m < 128; ++m) { held[m] = false; heldOrder[m] = 0; }
+        solo.reset(); soloVolSmoothed = targetSoloVolume(); soloNote = -1;
         for (int i = 0; i < 3; ++i) { hpIn[i].reset(); hpLadder[i].reset(); ladder[i].reset(); }
         hp4to8.reset(); hp8to16.reset(); hpOut4.reset();
         brill.reset(); ensemble.reset(); dcBlock.reset();
@@ -754,14 +996,44 @@ public:
     void setOrgEnsembleNorm(double n) { orgEnsemble = isOn(n); }
     void setMasterNorm(double n)      { masterNorm = n; }
 
+    // Solosynt, manual bass och split
+    void setSoloVolNorm(double n)     { soloVolNorm = clamp01(n); }
+    void setSoloModeNorm(double n)    { const int m = stepIndex(n, kNumSoloModes); if (m != soloMode) { soloMode = m; updateSolo(false); } }
+    void setLfoSpeedNorm(double n)    { solo.lfoHz = lfoSpeedHz(n); }
+    void setPortamentoNorm(double n)  { solo.portaTime = portaSec(n); }
+    void setGlideNorm(double n)       { solo.glide = glideSemis(n); }
+    void setSoloFeetNorm(double n)    { solo.feet = stepIndex(n, kNumSoloFeet); }
+    void setSoloWaveNorm(double n)    { solo.wave = clamp01(n); }
+    void setSoloPwNorm(double n)      { solo.pw = soloPw(n); }
+    void setPwSourceNorm(double n)    { solo.pwSource = stepIndex(n, kNumPwSources); }
+    void setSoloCutoffNorm(double n)  { solo.cutoffPos = clamp01(n); }
+    void setSoloResoNorm(double n)    { solo.resoPos = clamp01(n); }
+    void setSoloModNorm(double n)     { solo.modOct = 3.0 * clamp01(n); }
+    void setSoloEgDepthNorm(double n) { solo.egDepthPos = clamp01(n); }
+    void setVcaModeNorm(double n)     { solo.vcaMode = stepIndex(n, kNumVcaModes); }
+    void setSoloAttackNorm(double n)  { solo.attackPos = clamp01(n); }
+    void setSoloDecayNorm(double n)   { solo.decayPos = clamp01(n); }
+    void setSoloSustainNorm(double n) { solo.susPos = clamp01(n); }
+    void setSoloReleaseNorm(double n) { solo.releasePos = clamp01(n); }
+    void setTouchVibNorm(double n)    { solo.touchVib = isOn(n); }
+    void setTouchBrillNorm(double n)  { solo.touchBrill = isOn(n); }
+    void setTouchModNorm(double n)    { solo.touchMod = isOn(n); }
+    void setSoloTuneNorm(double n)    { solo.tuneCents = soloTuneCents(n); }
+    void setSplitNorm(double n)       { split = stepIndex(n, kNumSplit); }
+    void setSplitPointNorm(double n)  { splitPoint = splitNote(n); }
+    void setBassPointNorm(double n)   { const int b = splitNote(n); if (b != bassPoint) { bassPoint = b; updateSolo(false); } }
+
     // --- MIDI --------------------------------------------------------------
     void handleMidi(uint8_t status, uint8_t d1, uint8_t d2)
     {
         const uint8_t type = status & 0xF0;
         if (type == 0x90 && d2 > 0) noteOn(d1);
         else if (type == 0x80 || (type == 0x90 && d2 == 0)) noteOff(d1);
+        else if (type == 0xD0) { aftertouch = d1 / 127.0; solo.touch = std::fmax(modWheel, aftertouch); }   // TOUCH
+        else if (type == 0xA0) { if (d1 == soloNote) { aftertouch = d2 / 127.0; solo.touch = std::fmax(modWheel, aftertouch); } }
         else if (type == 0xB0) {
             if (d1 == 64) { sustainPedal = d2 >= 64; if (!sustainPedal) releasePedalNotes(); }
+            else if (d1 == 1) { modWheel = d2 / 127.0; solo.touch = std::fmax(modWheel, aftertouch); }
             else if (d1 == 120 || d1 == 123) allNotesOff(d1 == 120);
         }
     }
@@ -771,7 +1043,7 @@ public:
     {
         // Parametrar som glider (klickfritt)
         volSmoothed += paramSmooth * (targetVolume() - volSmoothed);
-        for (int i = 0; i < 3; ++i) strLevel[i] += paramSmooth * (strTarget[i] - strLevel[i]);
+        for (int i = 0; i < 3; ++i) { strLevel[i] += paramSmooth * (strTarget[i] - strLevel[i]); if (std::fabs(strTarget[i] - strLevel[i]) < 1e-4) strLevel[i] = strTarget[i]; }
         // TREMOLO/ENSEMBLE: ett gemensamt TE-kort. Ensemble har prioritet (ENSEMBLE priority).
         const bool teOn = ensembleOn || polyTremolo;          // stråkar + poly-synth går genom TE
         ensemble.tremoloMode = !(ensembleOn || orgEnsemble) && (polyTremolo || orgTremolo);
@@ -779,7 +1051,7 @@ public:
         orgTe += paramSmooth * (((orgEnsemble || orgTremolo) ? 1.0 : 0.0) - orgTe);
         orgVolSmoothed += paramSmooth * (targetOrgVolume() - orgVolSmoothed);
         masterSmoothed += paramSmooth * (targetMaster() - masterSmoothed);
-        for (int f = 0; f < kNumFootages; ++f) orgWeight[f] += paramSmooth * (targetFootage(f) - orgWeight[f]);
+        for (int f = 0; f < kNumFootages; ++f) { const double t = targetFootage(f); orgWeight[f] += paramSmooth * (t - orgWeight[f]); if (std::fabs(t - orgWeight[f]) < 1e-4) orgWeight[f] = t; }
         for (int i = 0; i < 3; ++i) percLevel[i] += paramSmooth * ((orgSel > 0 ? percTarget[i] : 0.0) - percLevel[i]);
         polyVolSmoothed += paramSmooth * (targetPolyVolume() - polyVolSmoothed);
         polyLevel += paramSmooth * ((polySel > 0 ? 1.0 : 0.0) - polyLevel);
@@ -795,7 +1067,7 @@ public:
             vibAmt = vibDepth * fade * std::sin(2.0 * kPi * vibPhase);
         }
         vibPhase += vibSpeed / sr; if (vibPhase >= 1.0) vibPhase -= 1.0;
-        const bool anyG = anyGate();
+        const bool anyG = anyPolyGate();
         if (anyG) vibTime += 1.0 / sr;
 
         const double clkRatio = (tune / 440.0) * std::pow(2.0, vibAmt / 1200.0);
@@ -825,7 +1097,7 @@ public:
         double u[3] = { 0.0, 0.0, 0.0 };
         double ob[kNumFootages] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         const int gens = modeII ? 2 : 1;
-        for (int v = 0; v < kVoices; ++v) {
+        for (int v = 0; v < kAllVoices; ++v) {
             Voice& vo = voices[v];
             vo.advanceEnvelope(cAttack, cRelease, stealCoef);
             if (organOn) vo.advanceOrgan(orgAttackCoef, orgDecay ? orgDecayCoef : 0.0, orgRelCoef, stealCoef);
@@ -833,13 +1105,13 @@ public:
             if (vo.env < 1e-6 && vo.orgEnv < 1e-6 && !vo.gate && !vo.stealing) { vo.active = false; }
             if (!vo.active) continue;
             const int pc = vo.pc;
-            for (int g = 0; g < gens; ++g) {
+            if (vo.toPoly) for (int g = 0; g < gens; ++g) {
                 for (int f = 0; f < 3; ++f) {
                     const int k = vo.shift + f - 1;            // 16' = shift+1, 8' = shift, 4' = shift-1
                     u[2 - f] += vo.env * square(phase[g][pc], inc[g][pc], k);
                 }
             }
-            if (organOn && vo.orgEnv > 1e-6) {
+            if (organOn && vo.toOrg && vo.orgEnv > 1e-6) {
                 for (int f = 0; f < kNumFootages; ++f) {
                     const int m = vo.note + kFootageSemis[f];
                     const int mp = m % 12;
@@ -928,7 +1200,12 @@ public:
         // ENSEMBLE / TREMOLO (TE). Körs alltid så att av/på blir klickfritt.
         // Varje sektion går antingen direkt eller genom TE-kortet (FET-grindarna på CPA).
         const double teIn = s * ensMix + org * orgTe;
-        const double dry = s * (1.0 - ensMix) + org * (1.0 - orgTe);
+        double dry = s * (1.0 - ensMix) + org * (1.0 - orgTe);
+
+        // SOLO SYNTHESIZER: egen utgång, går inte genom TE-kortet
+        soloVolSmoothed += paramSmooth * (targetSoloVolume() - soloVolSmoothed);
+        if (soloVolSmoothed > 1e-6 || soloVolNorm > 0.0) dry += solo.next(tune / 440.0) * kSoloGain * soloVolSmoothed;
+
         double out = dry + ensemble.process(teIn);
 
         out = dcBlock.process(out) * masterSmoothed;
@@ -939,8 +1216,9 @@ public:
     }
 
     // För tester / gränssnitt
-    int activeVoices() const { int n = 0; for (int v = 0; v < kVoices; ++v) if (voices[v].active) ++n; return n; }
-    bool isSounding() const { return activeVoices() > 0; }
+    int activeVoices() const { int n = 0; for (int v = 0; v < kAllVoices; ++v) if (voices[v].active) ++n; return n; }
+    int soloCurrentNote() const { return soloNote; }
+    bool isSounding() const { return activeVoices() > 0 || (soloVolNorm > 0.0 && solo.isSounding()); }
     double dividerFor(int pc) const { return divider[pc]; }
     // Frekvensen tangenten (8') får utan vibrato (för tester).
     double noteFrequency(int midi, int gen = 0) const
@@ -959,6 +1237,7 @@ private:
     static constexpr int kOrganTopMidi = 108;       // orgelns toppoktav C8-B8
     static constexpr double kOrganGain = 0.05;      // orgeln ungefär lika stark som stråkarna
     static constexpr double kPercGain = 1.6;        // slagverket tydligt över fotlägena
+    static constexpr double kSoloGain = 0.32;       // solosynten ungefär lika stark som ett stråkackord
     static constexpr double kStringGain = 0.15;     // ger ca -24 dBFS RMS för en ton och ca -16 dBFS för ett 4-tonsackord (STRING 1+2, MODE II)
 
     struct Voice
@@ -967,6 +1246,7 @@ private:
         bool stealing = false, pendingNote = false;
         int note = -1, pc = 0, shift = 0;
         int pendNote = -1, pendPc = 0, pendShift = 0;
+        bool toPoly = true, toOrg = true, pendPoly = true, pendOrg = true;
         double env = 0.0;
         double orgEnv = 0.0;
         bool orgPeak = false;   // orgelns attack klar (för DECAY)
@@ -991,7 +1271,7 @@ private:
         void startPending()
         {
             stealing = false; pendingNote = false;
-            note = pendNote; pc = pendPc; shift = pendShift;
+            note = pendNote; pc = pendPc; shift = pendShift; toPoly = pendPoly; toOrg = pendOrg;
             gate = true; active = true; env = 0.0; orgEnv = 0.0; orgPeak = false;
         }
     };
@@ -1056,49 +1336,81 @@ private:
         brill.highShelf(std::fmin(3000.0, sr * 0.4), brillDb, 0.7, sr);
     }
 
-    bool anyGate() const { for (int v = 0; v < kVoices; ++v) if (voices[v].gate) return true; return false; }
+    bool anyGate() const { for (int v = 0; v < kAllVoices; ++v) if (voices[v].gate) return true; return false; }
+    bool anyPolyGate() const { for (int v = 0; v < kAllVoices; ++v) if (voices[v].gate && voices[v].toPoly) return true; return false; }
+
+    // Solosyntens ton: högsta (NORMAL) eller lägsta (BASS, MANUAL BASS) av de nedtryckta tangenterna
+    void updateSolo(bool newKey)
+    {
+        int pick = -1;
+        const bool manBass = soloMode == 2;
+        if (soloMode == 0) { for (int m = 127; m >= 0; --m) if (held[m] && !(manualBassZone(m))) { pick = m; break; } }
+        else { for (int m = 0; m < 128; ++m) if (held[m] && (!manBass || m <= bassPoint)) { pick = m; break; } }
+        if (pick < 0) { if (soloNote >= 0) solo.allReleased(); soloNote = -1; return; }
+        if (pick != soloNote) {
+            // Ny tangent som blir solotonen: ny attack. Tillbaka till en hållen ton: legato.
+            solo.noteChange(pick, newKey || soloNote < 0);
+            soloNote = pick;
+        }
+    }
+    bool manualBassZone(int m) const { return soloMode == 2 && m <= bassPoint; }
 
     void noteOn(int midi)
     {
         if (midi < 12 || midi > 120) return;
-        if (!anyGate()) vibTime = 0.0;             // vibratots fördröjning startar om
-        polyEnv.trigger();                         // PTR: varje ny tangent startar poly-synthens envelope
-        percEnv = 1.0;                             // LTR: slagverkets envelope startar om
+        held[midi] = true; heldOrder[midi] = ++ageCounter;
+        updateSolo(true);
+        if (manualBassZone(midi)) return;          // MANUAL BASS: tangenten spelar bara solosynten
+
+        // KEYBOARD SPLIT: vilken sektion (och vilka 7 röster) tangenten styr
+        bool toPoly = true, toOrg = true; int base = 0;
+        if (split == 1) { if (midi < splitPoint) { toOrg = false; } else { toPoly = false; base = kVoices; } }
+        else if (split == 2) { if (midi < splitPoint) { toPoly = false; base = kVoices; } else { toOrg = false; } }
+
+        if (toPoly) {
+            if (!anyPolyGate()) vibTime = 0.0;     // vibratots fördröjning startar om
+            polyEnv.trigger();                     // PTR: varje ny tangent startar poly-synthens envelope
+        }
+        if (toOrg) percEnv = 1.0;                  // LTR: slagverkets envelope startar om
         const int pc = midi % 12, shift = shiftFor(midi);
-        ++ageCounter;
         // Samma ton klingar redan ut: spela den igen i samma röst (som orgeln)
-        for (int v = 0; v < kVoices; ++v) {
+        for (int v = base; v < base + kVoices; ++v) {
             Voice& vo = voices[v];
             if (vo.active && !vo.stealing && vo.note == midi) {
                 vo.gate = true; vo.held = true; vo.pedalHeld = false; vo.age = ageCounter;
-                vo.orgPeak = false;
+                vo.orgPeak = false; vo.toPoly = toPoly; vo.toOrg = toOrg;
                 return;
             }
         }
         int pick = -1;
-        for (int v = 0; v < kVoices; ++v) if (!voices[v].active) { pick = v; break; }
+        for (int v = base; v < base + kVoices; ++v) if (!voices[v].active) { pick = v; break; }
         if (pick < 0) { // äldsta som klingar ut, annars äldsta
             uint32_t best = 0xFFFFFFFFu;
-            for (int v = 0; v < kVoices; ++v) if (!voices[v].gate && voices[v].age < best) { best = voices[v].age; pick = v; }
-            if (pick < 0) for (int v = 0; v < kVoices; ++v) if (voices[v].age < best) { best = voices[v].age; pick = v; }
+            for (int v = base; v < base + kVoices; ++v) if (!voices[v].gate && voices[v].age < best) { best = voices[v].age; pick = v; }
+            if (pick < 0) for (int v = base; v < base + kVoices; ++v) if (voices[v].age < best) { best = voices[v].age; pick = v; }
         }
         Voice& vo = voices[pick];
-        if (vo.active && vo.env > 1e-3) {
+        if (vo.active && (vo.env > 1e-3 || vo.orgEnv > 1e-3)) {
             // Snabb nedtoning (3 ms) innan rösten tar den nya tonen: inget klick
             vo.stealing = true; vo.pendingNote = true;
             vo.pendNote = midi; vo.pendPc = pc; vo.pendShift = shift;
             vo.gate = false; vo.held = true; vo.pedalHeld = false; vo.age = ageCounter;
             vo.note = midi; // räknas som den nya tonen (för note off)
+            vo.pendPoly = toPoly; vo.pendOrg = toOrg;
         } else {
             vo = Voice();
             vo.active = true; vo.gate = true; vo.held = true;
             vo.note = midi; vo.pc = pc; vo.shift = shift; vo.age = ageCounter;
+            vo.toPoly = toPoly; vo.toOrg = toOrg;
         }
     }
 
     void noteOff(int midi)
     {
-        for (int v = 0; v < kVoices; ++v) {
+        if (midi < 0 || midi > 127) return;
+        held[midi] = false;
+        updateSolo(false);
+        for (int v = 0; v < kAllVoices; ++v) {
             Voice& vo = voices[v];
             if (!vo.active || vo.note != midi || !vo.held) continue;
             vo.held = false;
@@ -1110,12 +1422,16 @@ private:
 
     void releasePedalNotes()
     {
-        for (int v = 0; v < kVoices; ++v) if (voices[v].pedalHeld) { voices[v].pedalHeld = false; voices[v].gate = false; }
+        for (int v = 0; v < kAllVoices; ++v) if (voices[v].pedalHeld) { voices[v].pedalHeld = false; voices[v].gate = false; }
     }
 
     void allNotesOff(bool hard)
     {
-        for (int v = 0; v < kVoices; ++v) {
+        for (int m = 0; m < 128; ++m) held[m] = false;
+        if (soloNote >= 0) solo.allReleased();
+        soloNote = -1;
+        if (hard) solo.reset();
+        for (int v = 0; v < kAllVoices; ++v) {
             voices[v].gate = false; voices[v].held = false; voices[v].pedalHeld = false;
             voices[v].pendingNote = false; voices[v].stealing = false;
             if (hard) { voices[v].env = 0.0; voices[v].active = false; }
@@ -1126,9 +1442,18 @@ private:
     double sr = 44100.0;
     double divider[12];
     double phase[2][12];
-    Voice voices[kVoices];
+    Voice voices[kAllVoices];
+    bool held[128];
+    uint32_t heldOrder[128];
+
+    // Solosynt och split
+    SoloSynth solo;
+    int soloNote = -1, soloMode = 0, split = 0, splitPoint = 55, bassPoint = 42;
+    double soloVolNorm = 0.0, soloVolSmoothed = 0.0;
+    double targetSoloVolume() const { const double db = volumeDb(soloVolNorm); return db <= -100.0 ? 0.0 : std::pow(10.0, db / 20.0); }
     uint32_t ageCounter = 0;
     bool sustainPedal = false;
+    double modWheel = 0.0, aftertouch = 0.0;
 
     // Parametrar
     double volNorm = defaultParam(kParamVolume);

@@ -2,9 +2,9 @@
 
 Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
 Efterliknar Yamaha SK30 (1979–80), byggt efter SK30:s servicemanual.
-Målet är att alla delar ska finnas med: stråkar, poly-synth, orgel, solosynt och ensemble. Byggare: **2F Productions** (info@2f.se).
+Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, manual bass och keyboard split. Byggare: **2F Productions** (info@2f.se).
 
-## Status: etapp 3 – orgel
+## Status: etapp 4 – solosynt, manual bass, keyboard split
 
 | Funktion | Status |
 |---|---|
@@ -32,9 +32,15 @@ Målet är att alla delar ska finnas med: stråkar, poly-synth, orgel, solosynt 
 | PERCUSSIVE 2nd / 3rd / 5th med DECAY TIME | Klar, automatiskt testad |
 | ORGAN TREMOLO / ORGAN ENSEMBLE (samma TE-kort, ensemble har prioritet) | Klar, automatiskt testad |
 | MASTER VOLUME; STRING VOLUME gäller nu bara stråkarna | Klar, automatiskt testad |
-| 22 fabriksljud i Lives presetlista | Klar, automatiskt testad |
-| Etapp 3 i Live | **Ej testat ännu** |
-| Solosynt, MANUAL BASS, KEYBOARD SPLIT | Etapp 4 |
+| Etapp 3 i Live | Användaren testar |
+| SOLO SYNTHESIZER: VCO (FEET 4'–64', WAVE, PW 50–85 % via LFO/MANUAL/EG) | Klar, automatiskt testad |
+| Solo-VCF med tangentföljning, MODULATION, EG DEPTH; VCA HOLD/GATE/EG; ADSR | Klar, automatiskt testad |
+| LFO 0,1–100 Hz, PORTAMENTO (0–3 s per tre oktaver), GLIDE (±1 oktav, 70 ms), SOLO TUNE | Klar, automatiskt testad |
+| TOUCH VIBRATO / BRILLIANCE / MODULATION (aftertouch eller modulationshjul) | Klar, automatiskt testad |
+| MODE NORMAL (högsta tonen), BASS (lägsta tonen), MANUAL BASS (egna bastangenter) | Klar, automatiskt testad |
+| KEYBOARD SPLIT POLY-SYNTH▼ORGAN / ORGAN▼POLY-SYNTH, 7 + 7 röster | Klar, automatiskt testad |
+| 28 fabriksljud i Lives presetlista | Klar, automatiskt testad |
+| Etapp 4 i Live | **Ej testat ännu** |
 | Eget fönster (kompakt SK30-panel) | Etapp 5 |
 
 ## Installera och testa
@@ -91,7 +97,38 @@ Målet är att alla delar ska finnas med: stråkar, poly-synth, orgel, solosynt 
 | 47 | OrgEns | ORGAN ENSEMBLE | av/på |
 | 48 | Master | MASTER VOLUME | −inf…+6 dB |
 
-Reglagen 18–24 gäller bara i POLY-SYNTH MANUAL, och tone levers bara i ORGAN MANUAL. POLY-SYNTH 1/2/3 har egna fasta värden.
+| 49 | SoloVol | SOLO VOLUME | −inf…+6 dB (standard −inf = solosynten tyst) |
+| 50 | SMode | MODE | NORMAL, BASS, MAN BASS |
+| 51 | LfoSpd | LFO SPEED | 0,1–100 Hz |
+| 52 | Porta | PORTAMENTO | 0–3 s (tid för tre oktaver) |
+| 53 | Glide | GLIDE DEPTH | −12…+12 halvtoner (mitten = av) |
+| 54 | SFeet | VCO FEET | 4', 5 1/3', 8', 16', 32', 64' |
+| 55 | SWave | WAVE | sågtand → fyrkant |
+| 56 | SPW | PW | 50–85 % |
+| 57 | PWSrc | PW-väljaren | LFO, MANUAL, EG |
+| 58 | SCutoff | VCF CUTOFF FREQ | 20 Hz–20 kHz |
+| 59 | SReso | VCF RESONANCE | Q 0,5–10 |
+| 60 | SMod | VCF MODULATION | 0–3 oktaver (LFO) |
+| 61 | SEGDep | VCF EG DEPTH | 0–10 oktaver |
+| 62 | VCA | VCA-väljaren | HOLD, GATE, EG |
+| 63–66 | SAttack, SDecay, SSusLvl, SRelease | EG | som poly-synthen |
+| 67–69 | TchVib, TchBri, TchMod | TOUCH VIBRATO / BRILLIANCE / MODULATION | av/på |
+| 70 | SoloTun | SOLO TUNE | −500…+700 cent |
+| 71 | Split | KEYBOARD SPLIT | OFF, POLY\|ORG, ORG\|POLY |
+| 72 | SplitPt | delningspunkt | C1–C5 (Live), standard G2 |
+| 73 | BassPt | översta MANUAL BASS-tangent | C1–C5 (Live), standard F#1 |
+
+Reglagen 18–24 gäller bara i POLY-SYNTH MANUAL, och tone levers bara i ORGAN MANUAL.
+
+**TOUCH:** SK30 känner av hur hårt tangenten trycks ner (en ljussensor). I pluginet
+styrs TOUCH av aftertouch från klaviaturen, eller av modulationshjulet (CC1) om
+klaviaturen saknar aftertouch.
+
+**MANUAL BASS:** tangenterna upp till BassPt spelar bara solosynten (lägsta tonen
+har företräde) och styr inte stråkar, poly-synth eller orgel.
+
+**KEYBOARD SPLIT:** POLY|ORG = stråkar och poly-synth under delningspunkten, orgel
+över. ORG|POLY = tvärtom. Varje halva har 7 röster. POLY-SYNTH 1/2/3 har egna fasta värden.
 ENSEMBLE och TREMOLO gäller både stråkar och poly-synth, precis som på SK30.
 
 ## Hur ljudet är byggt (från servicemanualen)
@@ -127,6 +164,11 @@ ENSEMBLE och TREMOLO gäller både stråkar och poly-synth, precis som på SK30.
   fyrkanterna mjuka i diskanten. ORGAN 1 = 16' 8' 5 1/3', ORGAN 2 = 16' 8' 4' 2' 1',
   ORGAN 3 = alla nio. Slagverket (2nd = 4', 3rd = 2 2/3', 5th = 1 3/5') har en
   gemensam envelope (15 µF genom 2,7k + DECAY TIME) som startar om vid varje ny tangent.
+- **Solosynt (CPB 7/9):** en analog VCO (lite långsam drift) med fotlägen 4'–64',
+  sågtand som blandas mot fyrkant, PW 50–85 %. VCF med tangentföljning (KV), samma
+  filtertyp som poly-synthen. Högsta tonen har företräde (NORMAL), lägsta i BASS och
+  MANUAL BASS. Ny tangent ger ny attack, tillbaka till en hållen ton ger legato.
+  Solosynten har egen utgång och går inte genom ensemble/tremolo.
 - **Tremolo (TE-kortet):** när ENSEMBLE är av och TREMOLO på styr klockchippet
   både volymen (VCA) och delay-chippen med en LFO på 0,64 eller 6,4 Hz.
 - **Ensemble (TE-kortet):** tre MN3009 parallellt. Varje linje svajas av en

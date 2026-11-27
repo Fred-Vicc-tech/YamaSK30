@@ -21,7 +21,7 @@ namespace {
 
 // Samma ID som när pluginet hette YamaSK30, så att sparade Live-projekt fortsätter fungera.
 const VstInt32 kUniqueId = ('Y' << 24) | ('S' << 16) | ('3' << 8) | '0';
-const VstInt32 kVersion = 300;            // 0.3.0 (etapp 3: orgel)
+const VstInt32 kVersion = 400;            // 0.4.0 (etapp 4: solosynt, manual bass, split)
 const int kMaxQueuedEvents = 1024;
 
 void copyString(char* dst, const char* src, size_t maxLen)
@@ -45,6 +45,11 @@ inline float SEL(int i) { return (float)stepNorm(i, kNumPolySel); }
 inline float FEET(int i) { return (float)stepNorm(i, kNumFeet); }
 inline float OSEL(int i) { return (float)stepNorm(i, kNumOrgSel); }
 inline float LEV(double v) { return (float)(v / 10.0); }   // tone lever 0..10
+inline float SMODE(int i) { return (float)stepNorm(i, kNumSoloModes); }
+inline float SFEET(int i) { return (float)stepNorm(i, kNumSoloFeet); }
+inline float VCA(int i) { return (float)stepNorm(i, kNumVcaModes); }
+inline float PWS(int i) { return (float)stepNorm(i, kNumPwSources); }
+inline float SPLIT(int i) { return (float)stepNorm(i, kNumSplit); }
 
 const FactoryPreset kPresets[] = {
     { "Dream Strings",   { }, 0 },
@@ -87,6 +92,22 @@ const FactoryPreset kPresets[] = {
                            {kParamOrg16, LEV(6)}, {kParamOrg8, LEV(9)}, {kParamOrg4, LEV(7)}, {kParamOrg2, LEV(4)},
                            {kParamOrgDecay, 1}, {kParamOrgTime, 0.8f}, {kParamOrgSustain, 1}, {kParamOrgBrill, 0.7f} , {kParamOrgVol, VOL(6)} }, 12 },
     { "Strings + Organ", { {kParamOrgSel, OSEL(4)}, {kParamOrg16, LEV(6)}, {kParamOrg8, LEV(7)}, {kParamOrg4, LEV(4)},
+                           {kParamOrgVol, VOL(-4)}, {kParamOrgEnsemble, 1} }, 6 },
+    { "Solo Lead",       { {kParamString1, 0}, {kParamString2, 0}, {kParamSoloVol, VOL(0)}, {kParamSoloCutoff, 0.5f},
+                           {kParamSoloReso, 0.35f}, {kParamSoloEgDepth, 0.4f}, {kParamPortamento, 0.25f},
+                           {kParamTouchVib, 1}, {kParamTouchBrill, 1} }, 9 },
+    { "Square Solo PWM", { {kParamString1, 0}, {kParamString2, 0}, {kParamSoloVol, VOL(0)}, {kParamSoloWave, 1},
+                           {kParamSoloPw, 0.8f}, {kParamPwSource, PWS(0)}, {kParamLfoSpeed, 0.25f}, {kParamSoloCutoff, 0.6f},
+                           {kParamSoloReso, 0.15f}, {kParamTouchVib, 1} }, 10 },
+    { "Strings + Man Bass", { {kParamSoloVol, VOL(-4)}, {kParamSoloMode, SMODE(2)}, {kParamSoloFeet, SFEET(3)},
+                           {kParamSoloCutoff, 0.42f}, {kParamSoloReso, 0.25f}, {kParamSoloEgDepth, 0.35f}, {kParamSoloDecay, 0.3f},
+                           {kParamSoloSustain, 0.4f}, {kParamSoloRelease, 0.15f} }, 9 },
+    { "Strings + Bass Mode", { {kParamSoloVol, VOL(-6)}, {kParamSoloMode, SMODE(1)}, {kParamSoloFeet, SFEET(3)},
+                           {kParamSoloWave, 0.5f}, {kParamSoloCutoff, 0.38f}, {kParamSoloEgDepth, 0.3f} }, 6 },
+    { "Glide Lead",      { {kParamString1, 0}, {kParamString2, 0}, {kParamSoloVol, VOL(0)}, {kParamGlide, 0.3f},
+                           {kParamSoloFeet, SFEET(0)}, {kParamSoloCutoff, 0.45f}, {kParamSoloReso, 0.5f}, {kParamSoloEgDepth, 0.5f},
+                           {kParamSoloMod, 0.1f}, {kParamLfoSpeed, 0.3f} }, 10 },
+    { "Split Poly|Organ", { {kParamSplit, SPLIT(1)}, {kParamString1, 0}, {kParamPolySel, SEL(2)}, {kParamOrgSel, OSEL(2)},
                            {kParamOrgVol, VOL(-4)}, {kParamOrgEnsemble, 1} }, 6 },
     { "Slow Rotor Pad",  { {kParamString3, 1}, {kParamEnsemble, 0}, {kParamPolyTremolo, 1}, {kParamTremoloSpeed, 0},
                            {kParamSustainTime, SUS(1.4)}, {kParamVolume, VOL(-3)} }, 6 },
@@ -200,6 +221,31 @@ void processBlock(Plugin* p, float** outputs, VstInt32 n, bool accumulate)
     e.setOrgTremoloNorm(p->params[kParamOrgTremolo].load());
     e.setOrgEnsembleNorm(p->params[kParamOrgEnsemble].load());
     e.setMasterNorm(p->params[kParamMaster].load());
+    e.setSoloVolNorm(p->params[kParamSoloVol].load());
+    e.setSoloModeNorm(p->params[kParamSoloMode].load());
+    e.setLfoSpeedNorm(p->params[kParamLfoSpeed].load());
+    e.setPortamentoNorm(p->params[kParamPortamento].load());
+    e.setGlideNorm(p->params[kParamGlide].load());
+    e.setSoloFeetNorm(p->params[kParamSoloFeet].load());
+    e.setSoloWaveNorm(p->params[kParamSoloWave].load());
+    e.setSoloPwNorm(p->params[kParamSoloPw].load());
+    e.setPwSourceNorm(p->params[kParamPwSource].load());
+    e.setSoloCutoffNorm(p->params[kParamSoloCutoff].load());
+    e.setSoloResoNorm(p->params[kParamSoloReso].load());
+    e.setSoloModNorm(p->params[kParamSoloMod].load());
+    e.setSoloEgDepthNorm(p->params[kParamSoloEgDepth].load());
+    e.setVcaModeNorm(p->params[kParamVcaMode].load());
+    e.setSoloAttackNorm(p->params[kParamSoloAttack].load());
+    e.setSoloDecayNorm(p->params[kParamSoloDecay].load());
+    e.setSoloSustainNorm(p->params[kParamSoloSustain].load());
+    e.setSoloReleaseNorm(p->params[kParamSoloRelease].load());
+    e.setTouchVibNorm(p->params[kParamTouchVib].load());
+    e.setTouchBrillNorm(p->params[kParamTouchBrill].load());
+    e.setTouchModNorm(p->params[kParamTouchMod].load());
+    e.setSoloTuneNorm(p->params[kParamSoloTune].load());
+    e.setSplitNorm(p->params[kParamSplit].load());
+    e.setSplitPointNorm(p->params[kParamSplitPoint].load());
+    e.setBassPointNorm(p->params[kParamBassPoint].load());
 
     float* left = outputs[0];
     float* right = outputs[1];

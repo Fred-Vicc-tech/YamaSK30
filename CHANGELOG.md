@@ -1,5 +1,11 @@
 # Ändringslogg
 
+## 0.4.0 – etapp 4 (2026-11-27)
+- Solosynt (CPB 7/9): VCO med FEET 4'–64', WAVE, PW (LFO/MANUAL/EG), VCF med tangentföljning,
+  VCA HOLD/GATE/EG, ADSR, LFO 0,1–100 Hz, PORTAMENTO, GLIDE, SOLO TUNE, TOUCH (aftertouch/modhjul).
+- MODE NORMAL / BASS / MANUAL BASS, KEYBOARD SPLIT (7 + 7 röster) med inställbar delningspunkt.
+- 28 fabriksljud. Nya parametrar 49–73.
+
 ## 0.3.0 – etapp 3 (2026-11-27)
 - Orgel enligt OG1/CPB: ORGAN CANCEL/1/2/3/MANUAL, nio tone levers med OG1:s tonfilter,
   egen 2 MHz-generator, DECAY/SUSTAIN, ORGAN BRILLIANCE, PERCUSSIVE 2nd/3rd/5th, ORGAN TREMOLO/ENSEMBLE.

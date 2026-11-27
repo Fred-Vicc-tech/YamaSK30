@@ -519,6 +519,118 @@ int main()
         check(rms(render(p2, 0.5, sr), (size_t)(0.2 * sr), (size_t)(0.5 * sr)) > 1e-3, "STRING VOLUME -inf: poly-synthen hors anda");
     }
 
+
+    // ===== Etapp 4: solosynt, manual bass, split =====
+    auto soloOnly = [&](Engine& e) {
+        plain(e);
+        e.setStringNorm(1, 0.0);
+        e.setSoloVolNorm(normFromVolumeDb(0.0));
+        e.setVcaModeNorm(stepNorm(1, kNumVcaModes));   // GATE
+        e.setSoloCutoffNorm(0.9); e.setSoloEgDepthNorm(0.0);
+    };
+
+    // 31. Solosynten är tyst som standard
+    {
+        Engine e; e.prepare(sr); plain(e); e.setStringNorm(1, 0.0);
+        render(e, 0.2, sr);                                  // stråkarna hinner tonas bort
+        e.handleMidi(0x90, 69, 100);
+        check(peak(render(e, 0.5, sr)) < 1e-6, "SOLO: tyst som standard (SOLO VOLUME -inf)");
+    }
+
+    // 32. NORMAL = högsta tonen, BASS = lägsta tonen, 16' = oktav ner
+    {
+        Engine e; e.prepare(sr); soloOnly(e);
+        e.handleMidi(0x90, 57, 100); e.handleMidi(0x90, 69, 100);
+        std::vector<double> v = render(e, 0.8, sr);
+        check(std::fabs(cents(measurePitch(v, (size_t)(0.3 * sr), 16384, sr, 440.0), 440.0)) < 5.0, "SOLO NORMAL: hogsta tonen (A4)");
+        check(e.soloCurrentNote() == 69, "SOLO NORMAL: tonen 69");
+
+        Engine b; b.prepare(sr); soloOnly(b); b.setSoloModeNorm(stepNorm(1, kNumSoloModes));
+        b.handleMidi(0x90, 57, 100); b.handleMidi(0x90, 69, 100);
+        check(b.soloCurrentNote() == 57, "SOLO BASS: lagsta tonen");
+
+        Engine f; f.prepare(sr); soloOnly(f); f.setSoloFeetNorm(stepNorm(3, kNumSoloFeet));
+        f.handleMidi(0x90, 69, 100);
+        std::vector<double> w = render(f, 0.8, sr);
+        check(std::fabs(cents(measurePitch(w, (size_t)(0.3 * sr), 16384, sr, 220.0), 220.0)) < 5.0, "SOLO FEET 16': en oktav ner");
+    }
+
+    // 33. Legato tillbaka till hållen ton, tyst när alla släppts (GATE)
+    {
+        Engine e; e.prepare(sr); soloOnly(e);
+        e.handleMidi(0x90, 60, 100); render(e, 0.1, sr);
+        e.handleMidi(0x90, 67, 100); render(e, 0.1, sr);
+        e.handleMidi(0x80, 67, 0);
+        check(e.soloCurrentNote() == 60, "SOLO: tillbaka till hallen ton");
+        e.handleMidi(0x80, 60, 0);
+        std::vector<double> v = render(e, 0.2, sr);
+        check(rms(v, (size_t)(0.1 * sr), v.size()) < 1e-4, "SOLO GATE: tyst nar tangenterna slapps");
+    }
+
+    // 34. VCA HOLD: fortsätter låta efter att tangenten släppts
+    {
+        Engine e; e.prepare(sr); soloOnly(e); e.setVcaModeNorm(0.0);
+        e.handleMidi(0x90, 60, 100); render(e, 0.1, sr);
+        e.handleMidi(0x80, 60, 0);
+        std::vector<double> v = render(e, 0.5, sr);
+        check(rms(v, (size_t)(0.3 * sr), v.size()) > 1e-3, "SOLO VCA HOLD: fortsatter lata");
+    }
+
+    // 35. PORTAMENTO: tonhöjden glider
+    {
+        Engine e; e.prepare(sr); soloOnly(e); e.setPortamentoNorm(1.0);   // 3 s för tre oktaver
+        e.handleMidi(0x90, 48, 100); render(e, 0.2, sr);
+        e.handleMidi(0x90, 72, 100);                                      // två oktaver upp: 2 s
+        std::vector<double> v = render(e, 1.2, sr);
+        const double f = measurePitch(v, (size_t)(0.95 * sr), 4096, sr, 261.63 * std::pow(2.0, 0.5));
+        check(f > 261.63 * 1.1 && f < 523.25 * 0.9, "PORTAMENTO: tonen ar pa vag upp efter 1 s");
+    }
+
+    // 36. TOUCH VIBRATO: aftertouch ger vibrato
+    {
+        double spread[2];
+        for (int at = 0; at < 2; ++at) {
+            Engine e; e.prepare(sr); soloOnly(e); e.setTouchVibNorm(1.0); e.setLfoSpeedNorm(std::log(5.0 / 0.1) / std::log(1000.0));
+            e.handleMidi(0x90, 69, 100);
+            e.handleMidi(0xD0, at ? 127 : 0, 0);
+            std::vector<double> v = render(e, 1.5, sr);
+            double lo = 1e9, hi = 0;
+            for (int k = 0; k < 8; ++k) { const double f = measurePitch(v, (size_t)(0.4 * sr + k * 0.025 * sr), 1024, sr, 440.0); lo = std::fmin(lo, f); hi = std::fmax(hi, f); }
+            spread[at] = cents(hi, lo);
+        }
+        check(spread[0] < 10.0 && spread[1] > 40.0, "TOUCH VIBRATO: aftertouch ger vibrato");
+    }
+
+    // 37. MANUAL BASS: bastangenter spelar bara solosynten, inte stråkarna
+    {
+        Engine e; e.prepare(sr); plain(e);                 // stråkar på, solo tyst
+        e.setSoloModeNorm(stepNorm(2, kNumSoloModes)); e.setBassPointNorm(normFromSplitNote(42));
+        e.handleMidi(0x90, 36, 100);
+        check(peak(render(e, 0.4, sr)) < 1e-6 && e.soloCurrentNote() == 36, "MANUAL BASS: bastangent styr bara solosynten");
+        e.handleMidi(0x90, 60, 100);
+        check(rms(render(e, 0.4, sr), (size_t)(0.2 * sr), (size_t)(0.4 * sr)) > 1e-3 && e.soloCurrentNote() == 36, "MANUAL BASS: ovre tangenter spelar strakarna");
+    }
+
+    // 38. KEYBOARD SPLIT POLY|ORGAN: under delningen ingen orgel, över ingen poly/stråkar; 7 + 7 röster
+    {
+        Engine e; e.prepare(sr); plain(e); e.setStringNorm(1, 0.0);
+        e.setSplitNorm(stepNorm(1, kNumSplit)); e.setSplitPointNorm(normFromSplitNote(55));
+        e.setOrgSelNorm(stepNorm(1, kNumOrgSel));            // orgel på, poly CANCEL, inga stråkar
+        e.setOrgSustainNorm(0.0);
+        render(e, 0.2, sr);
+        e.handleMidi(0x90, 48, 100);
+        check(peak(render(e, 0.3, sr)) < 1e-6, "SPLIT: lag tangent spelar inte orgeln");
+        e.handleMidi(0x90, 67, 100);
+        check(rms(render(e, 0.3, sr), (size_t)(0.1 * sr), (size_t)(0.3 * sr)) > 1e-3, "SPLIT: hog tangent spelar orgeln");
+
+        Engine p2; p2.prepare(sr); plain(p2);
+        p2.setSplitNorm(stepNorm(1, kNumSplit)); p2.setOrgSelNorm(stepNorm(1, kNumOrgSel));
+        for (int n = 36; n < 43; ++n) p2.handleMidi(0x90, n, 100);
+        for (int n = 60; n < 67; ++n) p2.handleMidi(0x90, n, 100);
+        render(p2, 0.2, sr);
+        check(p2.activeVoices() == 14, "SPLIT: 7 + 7 roster");
+    }
+
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);
     return failures ? 1 : 0;
 }
