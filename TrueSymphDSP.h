@@ -115,7 +115,7 @@ enum ParamIndex
     kParamDelayMod = 76,     // DELAY MOD (svaj på delaytiden) 0..100 %
     kParamDelayLevel = 77,   // DELAY LEVEL -inf..0 dB
     kParamReverbDecay = 78,  // REVERB DECAY 0,3..8 s
-    kParamReverbLevel = 79,  // REVERB LEVEL -inf..0 dB
+    kParamReverbLevel = 79,  // REVERB LEVEL -inf, -36..+8 dB
     kParamDelaySpeed = 80,   // DELAY MOD SPEED 0,1..15 Hz (SDD-3000: VCO 0,1-15 Hz)
     kParamDelayHighCut = 81, // DELAY HIGH CUT: OFF, 8k, 4k, 2k (-6 dB/okt)
     kParamDelayLowCut = 82,  // DELAY LOW CUT: OFF, 125, 250, 500 Hz (-3 dB/okt)
@@ -237,6 +237,9 @@ inline double normFromDelayMs(double ms) { return std::log(ms) / std::log(1000.0
 inline double delayFeedback(double n) { return 0.95 * clamp01(n); }
 inline double fxLevelDb(double n)     { return n <= 0.0 ? -120.0 : -36.0 + 36.0 * clamp01(n); }
 inline double normFromFxDb(double db) { return (db + 36.0) / 36.0; }
+// REVERB LEVEL: -36..+8 dB, så att toppen ger lika mycket klang som i 0.8.0 och tidigare
+inline double revLevelDb(double n)    { return n <= 0.0 ? -120.0 : -36.0 + 44.0 * clamp01(n); }
+inline double normFromRevDb(double db) { return (db + 36.0) / 44.0; }
 inline double reverbSec(double n)     { return 0.3 * std::pow(8.0 / 0.3, clamp01(n)); }
 // SDD-3000: MODULATION INTENSITY 0 - 2:1 (förhållandet mellan längsta och kortaste delaytid)
 inline double delayModRatio(double n) { n = clamp01(n); return 1.0 + n * n; }
@@ -429,7 +432,7 @@ inline void paramDisplayText(int index, double n, char* out, size_t max)
     case kParamDelayLowCut: { static const char* const t[kNumLowCut] = { "OFF", "125", "250", "500" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumLowCut)]); break; }
     case kParamReverbType: { static const char* const t[kNumReverbTypes] = { "PLATE", "HALL", "CHAMBER", "ROOM" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumReverbTypes)]); break; }
     case kParamDelayLevel: case kParamReverbLevel: {
-        const double db = fxLevelDb(n);
+        const double db = index == kParamReverbLevel ? revLevelDb(n) : fxLevelDb(n);
         if (db <= -100.0) std::snprintf(out, max, "OFF"); else std::snprintf(out, max, "%.1f", db);
         break;
     }
@@ -1359,7 +1362,7 @@ public:
     void setDelayModNorm(double n)    { dlyMod = clamp01(n); }
     void setDelayLevelNorm(double n)  { dlyLevelTarget = fxGain(n); }
     void setReverbDecayNorm(double n) { revDecay = reverbSec(n); }
-    void setReverbLevelNorm(double n) { revLevelTarget = fxGain(n); }
+    void setReverbLevelNorm(double n) { const double db = revLevelDb(n); revLevelTarget = db <= -100.0 ? 0.0 : std::pow(10.0, db / 20.0); }
     void setDelaySpeedNorm(double n)  { dlySpeed = delaySpeedHz(n); }
     void setDelayFiltersNorm(double hi, double lo) { delay.setFilters(stepIndex(hi, kNumHighCut), stepIndex(lo, kNumLowCut)); }
     void setReverbTypeNorm(double n)  { reverb.setType(stepIndex(n, kNumReverbTypes)); }

@@ -756,17 +756,17 @@ int main()
             check(tail[0] > 1e-5 && tail[1] > 1e-5 && tail[2] > 1e-5 && tail[3] > 1e-5, "REVERB TYPE: alla fyra later");
             check(std::fabs(tail[0] - tail[1]) > 1e-6 && std::fabs(tail[0] - tail[3]) > 1e-6, "REVERB TYPE: typerna skiljer sig");
         }
-        // REVERB LEVEL på max höjer inte hela syntens volym mycket (högst 4 dB för ett hållet ackord)
+        // REVERB LEVEL på 0 dB höjer inte hela syntens volym mycket (högst 4 dB för ett hållet ackord)
         {
             double lv[2];
             for (int k = 0; k < 2; ++k) {
                 Engine e; e.prepare(sr);
-                e.setReverbLevelNorm(k ? 1.0 : 0.0); e.setReverbDecayNorm(normFromReverbSec(6.0));
+                e.setReverbLevelNorm(k ? normFromRevDb(0.0) : 0.0); e.setReverbDecayNorm(normFromReverbSec(6.0));
                 const int ch[4] = { 57, 60, 64, 69 }; for (int n : ch) e.handleMidi(0x90, n, 100);
                 stereo(e, 4.0, L, R);
                 lv[k] = 20.0 * std::log10(rms(L, (size_t)(2.0 * sr), L.size()));
             }
-            check(lv[1] - lv[0] < 4.0, "REVERB LEVEL max: hela ljudet blir inte mycket starkare");
+            check(lv[1] - lv[0] < 4.0, "REVERB LEVEL 0 dB: hela ljudet blir inte mycket starkare");
         }
         // DELAY HIGH CUT 2k ger mörkare eko än OFF
         {

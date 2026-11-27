@@ -1,5 +1,9 @@
 # Ändringslogg
 
+## 0.8.3 (2026-11-27)
+- REVERB LEVEL går nu upp till +8 dB, så att man kan få lika mycket reverb som i 0.8.0 och tidigare
+  (reglaget i topp = samma som förut). 0 dB ≈ lika mycket klang som torrt ljud. Rec:-ljuden oförändrade.
+
 ## 0.8.2 (2026-11-27)
 - Presetlistan: öppnas varje gång och stängs när man väljer ett ljud. Fönstret flyttade fokus
   när musen gick över listan, och Windows kräver att fönstret som äger en lista är förgrundsfönster.
