@@ -198,8 +198,8 @@ struct Editor
 
         // --- PITCH (234..341) --- tre rattar ovanför varandra
         knob(kParamTune, 287.5f, ta + 16.0f, L"TUNE");
-        knob(kParamDetune, 287.5f, ta + 78.0f, L"DETUNE");
-        knob(kParamSoloTune, 287.5f, ta + 140.0f, L"SOLO TUNE");
+        knob(kParamDetune, 287.5f, ta + 84.0f, L"DETUNE");
+        knob(kParamSoloTune, 287.5f, ta + 152.0f, L"SOLO TUNE");
 
         // --- SOLO SYNTHESIZER (349..980) ---
         fader(kParamLfoSpeed, 375.0f, ta, L"LFO");
