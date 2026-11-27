@@ -1,5 +1,8 @@
 # Ändringslogg
 
+## 0.9.10 (2026-11-27)
+- Texten under rattarna sitter närmare ratten (i bågens öppning), så att rattarna får mer luft runt sig.
+
 ## 0.9.9 (2026-11-27)
 - PITCH-rattarna ligger ovanför varandra (som Fredriks skiss). Översta raden har nu samma avstånd mellan
   reglagen i OUTPUT, SOLO SYNTHESIZER och EFFECTS: 33 px inom en grupp och 51 px mellan grupper.

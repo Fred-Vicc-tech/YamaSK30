@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.9.9";
+const wchar_t* const kVersionText = L"v0.9.10";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -198,8 +198,8 @@ struct Editor
 
         // --- PITCH (234..341) --- tre rattar ovanför varandra
         knob(kParamTune, 287.5f, ta + 16.0f, L"TUNE");
-        knob(kParamDetune, 287.5f, ta + 84.0f, L"DETUNE");
-        knob(kParamSoloTune, 287.5f, ta + 152.0f, L"SOLO TUNE");
+        knob(kParamDetune, 287.5f, ta + 85.0f, L"DETUNE");
+        knob(kParamSoloTune, 287.5f, ta + 154.0f, L"SOLO TUNE");
 
         // --- SOLO SYNTHESIZER (349..980) ---
         fader(kParamLfoSpeed, 375.0f, ta, L"LFO");
@@ -542,7 +542,7 @@ void drawKnob(Graphics& g, const FontFamily& ff, const Ctl& c, float v, bool dim
     Pen pointer(dim ? Color(255, 70, 70, 72) : Color(255, 40, 34, 26), 1.5f);   // lika tunn som strecket på reglagen
     pointer.SetStartCap(LineCapRound); pointer.SetEndCap(LineCapRound);
     g.DrawLine(&pointer, cx, cy, cx + std::cos(angle) * (ri - 0.8f), cy + std::sin(angle) * (ri - 0.8f));
-    drawText(g, c.label, ff, 9.0f, FontStyleBold, dim ? kTextDim : kLabel, cx - 32.0f, cy + r + 12.0f, 64.0f, StringAlignmentCenter, 30.0f);
+    drawText(g, c.label, ff, 9.0f, FontStyleBold, dim ? kTextDim : kLabel, cx - 32.0f, cy + r + 5.0f, 64.0f, StringAlignmentCenter, 30.0f);   // i bågens öppning, nära ratten
 }
 
 // Vippomkopplare med 2 eller 3 lägen (PW-källa, VCA, MODE)
