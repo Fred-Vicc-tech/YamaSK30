@@ -6,7 +6,7 @@ Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
 Efterliknar Yamaha SK30 (1979–80), byggt efter SK30:s servicemanual.
 Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, manual bass och keyboard split. Byggare: **2F Productions** (info@2f.se).
 
-## Status: 0.6.0 – presetlista och ljud från inspelningen
+## Status: 0.7.0 – effekter (delay + reverb) och wah-bas
 
 | Funktion | Status |
 |---|---|
@@ -50,7 +50,8 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | Windows 7-kontroll i bygget (inga nyare DLL:er/funktioner) | Klar |
 | Etapp 5 i Live | Testat av användaren: fungerar |
 | Presetlista vid klick på presetnamnet | **Ej testat ännu** |
-| 7 ljud (Rec:) uppmätta ur Fredriks SK30-inspelning | Klar |
+| 8 ljud (Rec:) uppmätta ur Fredriks SK30-inspelning, med delay och reverb | Klar |
+| EFFECTS: DELAY (SDD-3000-stil) och REVERB (platta), stereo | Klar, automatiskt testad |
 
 ## Installera och testa
 
@@ -135,6 +136,12 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | 71 | Split | KEYBOARD SPLIT | OFF, POLY\|ORG, ORG\|POLY |
 | 72 | SplitPt | delningspunkt | C1–C5 (Live), standard G2 |
 | 73 | BassPt | översta MANUAL BASS-tangent | C1–C5 (Live), standard F#1 |
+| 74 | DlyTime | DELAY TIME | 1–1000 ms |
+| 75 | DlyFdbk | DELAY FEEDBACK | 0–95 % |
+| 76 | DlyMod | DELAY MOD | 0–100 % |
+| 77 | DlyLvl | DELAY LEVEL | av, −36…0 dB |
+| 78 | RevDcy | REVERB DECAY | 0,3–8 s |
+| 79 | RevLvl | REVERB LEVEL | av, −36…0 dB |
 
 Reglagen 18–24 gäller bara i POLY-SYNTH MANUAL, och tone levers bara i ORGAN MANUAL.
 
@@ -196,7 +203,7 @@ ENSEMBLE och TREMOLO gäller både stråkar och poly-synth, precis som på SK30.
 ## Konventioner
 
 - **Tonnamn:** Abletons konvention, MIDI 60 = C3.
-- **Mono:** SK30 är mono, därför är vänster och höger identiska.
+- **Mono:** SK30 är mono, därför är vänster och höger identiska så länge DELAY och REVERB är av.
 - **Inte anslagskänslig:** som SK30:s stråkdel.
 - **Nivå:** standardljudet ger ca −16 dBFS RMS med ett fyrtonsackord.
 

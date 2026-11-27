@@ -109,6 +109,13 @@ enum ParamIndex
     kParamSplit = 71,        // KEYBOARD SPLIT: OFF, POLY-SYNTH▼ORGAN, ORGAN▼POLY-SYNTH
     kParamSplitPoint = 72,   // delningspunkt (tangent)
     kParamBassPoint = 73,    // MANUAL BASS: översta basstangent
+    // --- effekter (som på Fredriks inspelning: Korg SDD-3000 och Lexicon MPX500) ---
+    kParamDelayTime = 74,    // DELAY TIME 1..1000 ms
+    kParamDelayFeedback = 75,// DELAY FEEDBACK 0..95 %
+    kParamDelayMod = 76,     // DELAY MOD (svaj på delaytiden) 0..100 %
+    kParamDelayLevel = 77,   // DELAY LEVEL -inf..0 dB
+    kParamReverbDecay = 78,  // REVERB DECAY 0,3..8 s
+    kParamReverbLevel = 79,  // REVERB LEVEL -inf..0 dB
     kNumParams
 };
 
@@ -122,7 +129,8 @@ static const char* const kParamNames[kNumParams] = {
     "OrgTrm", "OrgEns", "Master",
     "SoloVol", "SMode", "LfoSpd", "Porta", "Glide", "SFeet", "SWave", "SPW", "PWSrc", "SCutoff",
     "SReso", "SMod", "SEGDep", "VCA", "SAttack", "SDecay", "SSusLvl", "SRelease", "TchVib", "TchBri",
-    "TchMod", "SoloTun", "Split", "SplitPt", "BassPt"
+    "TchMod", "SoloTun", "Split", "SplitPt", "BassPt",
+    "DlyTime", "DlyFdbk", "DlyMod", "DlyLvl", "RevDcy", "RevLvl"
 };
 static const char* const kParamLabels[kNumParams] = {
     "dB", "", "", "", "", "", "s", "", "cent", "s", "Hz", "cent", "dB", "", "Hz",
@@ -132,7 +140,8 @@ static const char* const kParamLabels[kNumParams] = {
     "", "", "dB",
     "dB", "", "Hz", "s", "", "", "", "%", "", "Hz",
     "Q", "oct", "oct", "", "s", "s", "", "s", "", "",
-    "", "cent", "", "", ""
+    "", "cent", "", "", "",
+    "ms", "%", "%", "dB", "s", "dB"
 };
 
 inline double clamp01(double v) { return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); }
@@ -218,6 +227,15 @@ inline void noteName(int m, char* out, size_t max)
     std::snprintf(out, max, "%s%d", nm[((m % 12) + 12) % 12], m / 12 - 2);   // Abletons namn: MIDI 60 = C3
 }
 
+// Effekter
+inline double delayMs(double n)       { return std::pow(1000.0, clamp01(n)); }               // 1..1000 ms
+inline double normFromDelayMs(double ms) { return std::log(ms) / std::log(1000.0); }
+inline double delayFeedback(double n) { return 0.95 * clamp01(n); }
+inline double fxLevelDb(double n)     { return n <= 0.0 ? -120.0 : -36.0 + 36.0 * clamp01(n); }
+inline double normFromFxDb(double db) { return (db + 36.0) / 36.0; }
+inline double reverbSec(double n)     { return 0.3 * std::pow(8.0 / 0.3, clamp01(n)); }
+inline double normFromReverbSec(double s) { return std::log(s / 0.3) / std::log(8.0 / 0.3); }
+
 inline double normFromVolumeDb(double db) { return (db + 48.0) / 54.0; }
 inline double normFromTune(double hz)     { return (hz - 415.0) / 51.0; }
 inline double normFromDetune(double c)    { return (c + 20.0) / 47.0; }
@@ -290,6 +308,12 @@ inline float defaultParam(int index)
     case kParamSplit:       return 0.0f;                            // OFF
     case kParamSplitPoint:  return (float)normFromSplitNote(55);    // F#/G (G2 i Live)
     case kParamBassPoint:   return (float)normFromSplitNote(42);    // MANUAL BASS upp till F#1 (Live)
+    case kParamDelayTime:   return (float)normFromDelayMs(380.0);
+    case kParamDelayFeedback: return 0.3f;
+    case kParamDelayMod:    return 0.25f;
+    case kParamDelayLevel:  return 0.0f;                            // av (torrt som originalet)
+    case kParamReverbDecay: return (float)normFromReverbSec(3.0);
+    case kParamReverbLevel: return 0.0f;                            // av
     default:                return 0.0f;
     }
 }
@@ -382,6 +406,15 @@ inline void paramDisplayText(int index, double n, char* out, size_t max)
         std::snprintf(out, max, "%s", t[stepIndex(n, kNumSplit)]); break;
     }
     case kParamSplitPoint: case kParamBassPoint: noteName(splitNote(n), out, max); break;
+    case kParamDelayTime:   std::snprintf(out, max, delayMs(n) < 10.0 ? "%.1f" : "%.0f", delayMs(n)); break;
+    case kParamDelayFeedback: std::snprintf(out, max, "%.0f", 100.0 * delayFeedback(n)); break;
+    case kParamDelayMod:    std::snprintf(out, max, "%.0f", 100.0 * clamp01(n)); break;
+    case kParamDelayLevel: case kParamReverbLevel: {
+        const double db = fxLevelDb(n);
+        if (db <= -100.0) std::snprintf(out, max, "OFF"); else std::snprintf(out, max, "%.1f", db);
+        break;
+    }
+    case kParamReverbDecay: std::snprintf(out, max, "%.1f", reverbSec(n)); break;
     case kParamOrgVol: case kParamMaster: case kParamSoloVol: {
         const double db = volumeDb(n);
         if (db <= -100.0) std::snprintf(out, max, "-inf");
@@ -874,6 +907,166 @@ struct SoloSynth
 };
 
 // ---------------------------------------------------------------------------
+// DELAY i stil med Korg SDD-3000: digital delay med mörkare återmatning,
+// lätt mättning och LFO-svaj på tiden. Svajet går åt olika håll i vänster och
+// höger kanal, så ekot blir brett.
+// ---------------------------------------------------------------------------
+struct StereoDelay
+{
+    static const int kSize = 1 << 17;          // > 1 s vid 96 kHz (+ svaj)
+    float* buf = nullptr;
+    int wp = 0;
+    double sr = 44100.0;
+    double timeSm = 0.38, lfo = 0.0, fbState = 0.0;
+    OnePoleLP loopLP, outLP;
+    OnePoleHP loopHP;
+    StereoDelay() { buf = new float[kSize]; std::memset(buf, 0, sizeof(float) * kSize); }
+    ~StereoDelay() { delete[] buf; }
+    StereoDelay(const StereoDelay&) = delete;
+    StereoDelay& operator=(const StereoDelay&) = delete;
+    void prepare(double rate)
+    {
+        sr = rate;
+        loopLP.set(std::fmin(6500.0, sr * 0.4), sr);
+        outLP.set(std::fmin(9000.0, sr * 0.45), sr);
+        loopHP.set(80.0, sr);
+        reset();
+    }
+    void reset() { std::memset(buf, 0, sizeof(float) * kSize); wp = 0; lfo = 0.0; fbState = 0.0; loopLP.reset(); outLP.reset(); loopHP.reset(); }
+    double read(double d) const
+    {
+        double rp = (double)wp - d;
+        while (rp < 0.0) rp += kSize;
+        const int i0 = (int)rp;
+        const double f = rp - i0;
+        return buf[i0 & (kSize - 1)] * (1.0 - f) + buf[(i0 + 1) & (kSize - 1)] * f;
+    }
+    // x = torrt (mono). Ut: vått vänster/höger.
+    void process(double x, double timeSec, double feedback, double mod, double& l, double& r)
+    {
+        timeSm += (timeSec - timeSm) * (1.0 - std::exp(-1.0 / (0.08 * sr)));   // mjuk tidsändring (som SDD:ns ratt)
+        lfo += 0.55 / sr; if (lfo >= 1.0) lfo -= 1.0;
+        const double tri = lfo < 0.5 ? 4.0 * lfo - 1.0 : 3.0 - 4.0 * lfo;
+        const double depth = mod * std::fmin(0.006, timeSm * 0.25) * sr;        // upp till ±6 ms
+        const double d = timeSm * sr;
+        double dl = d + depth * tri, dr = d - depth * tri;
+        if (dl < 1.0) dl = 1.0;
+        if (dr < 1.0) dr = 1.0;
+        if (dl > kSize - 4) dl = kSize - 4;
+        if (dr > kSize - 4) dr = kSize - 4;
+        const double yl = read(dl), yr = read(dr);
+        // återmatning: mörkare för varje varv, lätt mättning
+        double fb = loopHP.process(loopLP.process(0.5 * (yl + yr))) * feedback;
+        fb = std::tanh(fb * 1.2) / 1.2;
+        buf[wp] = (float)(x + fb);
+        wp = (wp + 1) & (kSize - 1);
+        l = yl; r = yr;
+    }
+};
+
+// ---------------------------------------------------------------------------
+// REVERB: plattreverb (Dattorro-struktur, ett klassiskt digitalt 80-talsrum i
+// stil med Lexicon). Fyra diffusorer, två korskopplade tankar med svaj.
+// ---------------------------------------------------------------------------
+struct PlateReverb
+{
+    struct Line
+    {
+        float* b = nullptr; int n = 1, p = 0;
+        Line() {}
+        Line(const Line&) = delete;
+        Line& operator=(const Line&) = delete;
+        void init(int len) { n = len < 1 ? 1 : len; delete[] b; b = new float[n]; std::memset(b, 0, sizeof(float) * n); p = 0; }
+        ~Line() { delete[] b; }
+        float tap(int k) const { int i = p - k; while (i < 0) i += n; return b[i % n]; }
+        void push(float v) { b[p] = v; p = (p + 1) % n; }
+        float last() const { return b[p]; }      // äldsta värdet (n sampel gammalt)
+        void clear() { if (b) std::memset(b, 0, sizeof(float) * n); p = 0; }
+    };
+    struct AllPass
+    {
+        Line l; double g = 0.5;
+        float process(float x) { const float d = l.last(); const float v = x + (float)g * d; l.push(v); return d - (float)g * v; }
+    };
+    double sr = 44100.0, scale = 1.0;
+    Line pre;
+    AllPass diff[4];
+    // tankarna
+    Line apModL, apModR;     // modulerade allpass (läses med svaj)
+    Line d1L, d2L, d1R, d2R;
+    AllPass ap2L, ap2R;
+    double dampL = 0.0, dampR = 0.0, inLP = 0.0, fbL = 0.0, fbR = 0.0, lfo = 0.0;
+    int modBaseL = 672, modBaseR = 908;
+    double modExc = 16.0;
+
+    int S(double n) const { return (int)(n * scale + 0.5); }
+    void prepare(double rate)
+    {
+        sr = rate; scale = sr / 29761.0;
+        pre.init(S(0.02 * 29761.0));                       // 20 ms fördröjning
+        const int dl[4] = { 142, 107, 379, 277 };
+        const double dg[4] = { 0.75, 0.75, 0.625, 0.625 };
+        for (int i = 0; i < 4; ++i) { diff[i].l.init(S(dl[i])); diff[i].g = dg[i]; }
+        modBaseL = S(672); modBaseR = S(908); modExc = 16.0 * scale;
+        apModL.init(modBaseL + (int)modExc + 4); apModR.init(modBaseR + (int)modExc + 4);
+        d1L.init(S(4453)); d2L.init(S(3720)); d1R.init(S(4217)); d2R.init(S(3163));
+        ap2L.l.init(S(1800)); ap2L.g = 0.5; ap2R.l.init(S(2656)); ap2R.g = 0.5;
+        reset();
+    }
+    void reset()
+    {
+        pre.clear(); for (int i = 0; i < 4; ++i) diff[i].l.clear();
+        apModL.clear(); apModR.clear(); d1L.clear(); d2L.clear(); d1R.clear(); d2R.clear(); ap2L.l.clear(); ap2R.l.clear();
+        dampL = dampR = inLP = fbL = fbR = lfo = 0.0;
+    }
+    float modAllPass(Line& l, int base, double exc, double ph, float x)
+    {
+        const double dly = base + exc * std::sin(ph);
+        const int i = (int)dly; const double f = dly - i;
+        const float d = (float)(l.tap(i) * (1.0 - f) + l.tap(i + 1) * f);
+        const float g = -0.7f;                               // decay diffusion 1
+        const float v = x + g * d;
+        l.push(v);
+        return d - g * v;
+    }
+    void process(double x, double decaySec, double& outL, double& outR)
+    {
+        // förstärkning per tankvarv för vald efterklangstid (-60 dB på decaySec)
+        const double loop = (672.0 + 4453.0 + 1800.0 + 3720.0) / 29761.0;
+        double g = std::pow(10.0, -3.0 * loop / (2.0 * decaySec));   // g används två gånger per tankhalva
+        if (g > 0.98) g = 0.98;
+        const double damp = 0.35;
+        const float in = pre.last(); pre.push((float)x);
+        inLP += (in - inLP) * 0.75;                         // bandbredd
+        float v = (float)inLP;
+        for (int i = 0; i < 4; ++i) v = diff[i].process(v);
+        lfo += 1.0 / sr; if (lfo >= 1.0) lfo -= 1.0;
+        const double ph = 2.0 * kPi * lfo;
+        // vänster tank
+        float a = modAllPass(apModL, modBaseL, modExc, ph, v + (float)fbR);
+        d1L.push(a);
+        float t = d1L.last();
+        dampL = t * (1.0 - damp) + dampL * damp;
+        float b = ap2L.process((float)(dampL * g));
+        d2L.push(b);
+        fbL = d2L.last() * g;
+        // höger tank
+        float c = modAllPass(apModR, modBaseR, modExc, ph + kPi * 0.5, v + (float)fbL);
+        d1R.push(c);
+        float u = d1R.last();
+        dampR = u * (1.0 - damp) + dampR * damp;
+        float e = ap2R.process((float)(dampR * g));
+        d2R.push(e);
+        fbR = d2R.last() * g;
+        // uttag (Dattorros tappar)
+        outL = 0.6 * (d1R.tap(S(266)) + d1R.tap(S(2974)) - ap2R.l.tap(S(1913)) + d2R.tap(S(1996))
+                      - d1L.tap(S(1990)) - ap2L.l.tap(S(187)) - d2L.tap(S(1066)));
+        outR = 0.6 * (d1L.tap(S(353)) + d1L.tap(S(3627)) - ap2L.l.tap(S(1228)) + d2L.tap(S(2673))
+                      - d1R.tap(S(2111)) - ap2R.l.tap(S(335)) - d2R.tap(S(121)));
+    }
+};
+
+// ---------------------------------------------------------------------------
 // Säkerhetslimiter sist i kedjan: TrueSymph går aldrig över -0,3 dBFS.
 // 1,5 ms framförhållning (ingen överslängd), mjuk återgång på 150 ms.
 // ---------------------------------------------------------------------------
@@ -881,6 +1074,7 @@ struct Limiter
 {
     static const int kMaxLook = 256;
     float buf[kMaxLook];
+    float bufR[kMaxLook];
     int pos = 0, look = 64;
     double gain = 1.0, hold = 1.0, relCoef = 0.0, atkCoef = 0.0;
     int holdCount = 0;
@@ -894,7 +1088,24 @@ struct Limiter
         atkCoef = 1.0 - std::exp(-3.0 / look);
         reset();
     }
-    void reset() { for (int i = 0; i < kMaxLook; ++i) buf[i] = 0.0f; pos = 0; gain = 1.0; hold = 1.0; holdCount = 0; minGain = 1.0; }
+    void reset() { for (int i = 0; i < kMaxLook; ++i) { buf[i] = 0.0f; bufR[i] = 0.0f; } pos = 0; gain = 1.0; hold = 1.0; holdCount = 0; minGain = 1.0; }
+    // Stereo: samma förstärkning i båda kanalerna (bilden flyttar sig inte)
+    void processStereo(double& l, double& r)
+    {
+        const double a = std::fmax(std::fabs(l), std::fabs(r));
+        const double need = a > kCeiling ? kCeiling / a : 1.0;
+        if (need <= hold) { hold = need; holdCount = look; }
+        else if (holdCount > 0) --holdCount;
+        else hold += (1.0 - hold) * relCoef;
+        gain += (hold - gain) * (hold < gain ? atkCoef : 1.0);
+        const double dl = buf[pos], dr = bufR[pos];
+        buf[pos] = (float)l; bufR[pos] = (float)r;
+        pos = (pos + 1) % look;
+        l = dl * gain; r = dr * gain;
+        if (l > kCeiling) l = kCeiling; else if (l < -kCeiling) l = -kCeiling;
+        if (r > kCeiling) r = kCeiling; else if (r < -kCeiling) r = -kCeiling;
+        if (gain < minGain) minGain = gain;
+    }
     double process(double x)
     {
         const double a = std::fabs(x);
@@ -940,6 +1151,8 @@ public:
         ensemble.prepare(sr);
         solo.prepare(sr);
         limiter.prepare(sr);
+        delay.prepare(sr); reverb.prepare(sr);
+        delayOutLP.set(std::fmin(8000.0, sr * 0.45), sr); delayOutLPR.set(std::fmin(8000.0, sr * 0.45), sr);
         dcBlock.set(5.0, sr);
         paramSmooth = 1.0 - std::exp(-1.0 / (0.02 * sr));
         stealCoef = 1.0 - std::exp(-3.0 / (0.003 * sr));
@@ -982,6 +1195,8 @@ public:
         for (int i = 0; i < 3; ++i) { hpIn[i].reset(); hpLadder[i].reset(); ladder[i].reset(); }
         hp4to8.reset(); hp8to16.reset(); hpOut4.reset();
         brill.reset(); ensemble.reset(); dcBlock.reset(); limiter.reset();
+        delay.reset(); reverb.reset(); delayOutLP.reset(); delayOutLPR.reset();
+        dlyActive = 0; revActive = 0; dlyLevelSm = dlyLevelTarget; revLevelSm = revLevelTarget;
         vibPhase = 0.0; vibTime = 0.0;
         sustainPedal = false;
         ageCounter = 0;
@@ -1063,6 +1278,12 @@ public:
     void setSoloTuneNorm(double n)    { solo.tuneCents = soloTuneCents(n); }
     void setSplitNorm(double n)       { split = stepIndex(n, kNumSplit); }
     void setSplitPointNorm(double n)  { splitPoint = splitNote(n); }
+    void setDelayTimeNorm(double n)   { dlyTime = delayMs(n) * 0.001; }
+    void setDelayFeedbackNorm(double n){ dlyFeedback = delayFeedback(n); }
+    void setDelayModNorm(double n)    { dlyMod = clamp01(n); }
+    void setDelayLevelNorm(double n)  { dlyLevelTarget = fxGain(n); }
+    void setReverbDecayNorm(double n) { revDecay = reverbSec(n); }
+    void setReverbLevelNorm(double n) { revLevelTarget = fxGain(n); }
     void setBassPointNorm(double n)   { const int b = splitNote(n); if (b != bassPoint) { bassPoint = b; updateSolo(false); } }
 
     // Alla parametrar på en gång (normaliserade 0..1, index enligt ParamIndex)
@@ -1132,6 +1353,12 @@ public:
         setSplitNorm(v[kParamSplit]);
         setSplitPointNorm(v[kParamSplitPoint]);
         setBassPointNorm(v[kParamBassPoint]);
+        setDelayTimeNorm(v[kParamDelayTime]);
+        setDelayFeedbackNorm(v[kParamDelayFeedback]);
+        setDelayModNorm(v[kParamDelayMod]);
+        setDelayLevelNorm(v[kParamDelayLevel]);
+        setReverbDecayNorm(v[kParamReverbDecay]);
+        setReverbLevelNorm(v[kParamReverbLevel]);
     }
 
     // --- MIDI --------------------------------------------------------------
@@ -1149,8 +1376,12 @@ public:
         }
     }
 
-    // --- en sampel (mono) -------------------------------------------------
-    double next()
+    // --- en sampel ---------------------------------------------------------
+    // Mono (för tester och analyser): medelvärdet av vänster och höger.
+    double next() { double l, r; nextStereo(l, r); return 0.5 * (l + r); }
+
+    // Stereo: SK30 är mono; delay och reverb (om de är på) gör ljudet brett.
+    void nextStereo(double& outL, double& outR)
     {
         // Parametrar som glider (klickfritt)
         volSmoothed += paramSmooth * (targetVolume() - volSmoothed);
@@ -1320,7 +1551,26 @@ public:
         double out = dry + ensemble.process(teIn);
 
         out = dcBlock.process(out) * masterSmoothed;
-        return limiter.process(out);       // går aldrig över -0,3 dBFS
+
+        // EFFEKTER: delay (SDD-3000-stil) -> reverb (plattreverb), som Fredriks kedja
+        dlyLevelSm += paramSmooth * (dlyLevelTarget - dlyLevelSm);
+        revLevelSm += paramSmooth * (revLevelTarget - revLevelSm);
+        double l = out, r = out;
+        if (dlyLevelSm > 1e-5 || dlyLevelTarget > 0.0 || dlyActive > 0) {
+            double wl, wr;
+            delay.process(out, dlyTime, dlyFeedback, dlyMod, wl, wr);
+            wl = delayOutLP.process(wl); wr = delayOutLPR.process(wr);
+            l += wl * dlyLevelSm; r += wr * dlyLevelSm;
+            dlyActive = (dlyLevelTarget > 0.0) ? (int)(sr * 8.0) : dlyActive - 1;   // låt ekona klinga ut innan den stängs av
+        }
+        if (revLevelSm > 1e-5 || revLevelTarget > 0.0 || revActive > 0) {
+            double rl, rr;
+            reverb.process(0.5 * (l + r), revDecay, rl, rr);
+            l += rl * revLevelSm; r += rr * revLevelSm;
+            revActive = (revLevelTarget > 0.0) ? (int)(sr * (revDecay + 1.0)) : revActive - 1;
+        }
+        limiter.processStereo(l, r);       // går aldrig över -0,3 dBFS
+        outL = l; outR = r;
     }
 
     // För tester / gränssnitt
@@ -1641,6 +1891,13 @@ private:
     Biquad brill;
     Ensemble ensemble;
     Limiter limiter;
+    StereoDelay delay;
+    PlateReverb reverb;
+    OnePoleLP delayOutLP, delayOutLPR;
+    double dlyTime = 0.38, dlyFeedback = 0.285, dlyMod = 0.25, dlyLevelTarget = 0.0, dlyLevelSm = 0.0;
+    double revDecay = 3.0, revLevelTarget = 0.0, revLevelSm = 0.0;
+    int dlyActive = 0, revActive = 0;
+    static double fxGain(double n) { const double db = fxLevelDb(n); return db <= -100.0 ? 0.0 : std::pow(10.0, db / 20.0); }
 };
 
 } // namespace truesymph

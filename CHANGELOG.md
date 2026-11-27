@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.7.0 (2026-11-27)
+- EFFECTS högst upp till höger (SOLO-panelen smalare): DELAY i SDD-3000-stil (TIME, FEEDBACK, MOD, LEVEL)
+  och plattreverb (DECAY, LEVEL). Stereo när effekterna är på; LEVEL i botten = av (mono och torrt som förut).
+- Wah-basen från inspelningen (0:25): solosynten med LFO 3,2 Hz på ett resonant filter. Nytt ljud Rec: Wah Bass,
+  och Rec: Pluck + Bass har fått wah-basen. Alla Rec:-ljud har delay och reverb som på inspelningen.
+- Limitern är stereo (samma sänkning i båda kanalerna).
+
 ## 0.6.1 (2026-11-27)
 - Solosynten var ca 6 dB för stark jämfört med sektionerna (slog i taket på max). Nu lika stark
   som stråkarna vid samma inställning; solo-ljuden höjda så att de låter som förut.

@@ -72,18 +72,25 @@ static const ManualPara kManualEng[] = {
                 L"speaker. Organ and poly-synth/strings each have their own buttons; they share one effect board, and ENSEMBLE "
                 L"has priority. The solo synthesizer never goes through the effect." },
 
+    { kManHead, L"EFFECTS" },
+    { kManBody, L"The recording was played through a Korg SDD-3000 delay and a Lexicon MPX500 reverb, so TrueSymph has both. DELAY: "
+                L"TIME (1-1000 ms), FEEDBACK (repeats, darker each time like the SDD-3000), MOD (the delay time sways, left and right in "
+                L"opposite directions, which makes the echo wide) and LEVEL. REVERB: a plate reverb with DECAY (0.3-8 s) and LEVEL. "
+                L"LEVEL at the bottom = off, so the sound is mono and dry like the SK30 itself. The solo synthesizer also goes through "
+                L"the effects (they sit after the SK30, as in the recording)." },
+
     { kManHead, L"PRESETS" },
     { kManBody, L"Click the preset name to pick a sound from a list (your own presets are under My presets). The arrows step through the factory presets and then your own presets. SAVE stores the current sound as a "
                 L"file in Documents\\TrueSymph Presets; LOAD opens any preset file. Factory presets also appear in Live's preset list." },
 
     { kManHead, L"SOUNDS FROM THE RECORDING" },
     { kManBody, L"The presets named Rec: recreate the sounds in Fredrik's SK30 recording, measured from the audio: Intro Lead (solo with "
-                L"portamento over strings), Pluck + Bass (POLY-SYNTH 1 with manual bass), High Lead, Poly 2 Sweeps, Ensemble Pad, Swell "
-                L"Chords and Glide Solo. The leads use TOUCH VIBRATO: add a little aftertouch or mod wheel (about 20 %) for the vibrato "
+                L"portamento over strings), Pluck + Bass and Wah Bass (the bass at 0:25: solo synth as manual bass, the LFO sweeps the resonant filter at 3.2 Hz), High Lead, Poly 2 Sweeps, Ensemble Pad, Swell "
+                L"Chords and Glide Solo. They use the delay and reverb. The leads use TOUCH VIBRATO: add a little aftertouch or mod wheel (about 20 %) for the vibrato "
                 L"heard in the recording. The recording is tuned about 45 cents flat: set TUNE to about 428.5 Hz to match it exactly." },
 
     { kManHead, L"ABOUT THE SOUND" },
-    { kManBody, L"The SK30 is mono, so TrueSymph is mono too (left = right). For the classic sound add reverb and delay after it." },
+    { kManBody, L"The SK30 is mono, so TrueSymph is mono too (left = right) until you turn on DELAY or REVERB." },
     { kManNote, L"Yamaha and SK30 are trademarks of Yamaha Corporation. TrueSymph is not affiliated with Yamaha." },
 };
 
@@ -146,18 +153,25 @@ static const ManualPara kManualSwe[] = {
                 L"roterande högtalare. Orgeln och poly-synth/stråkar har egna knappar; de delar ett effektkort och ENSEMBLE har "
                 L"företräde. Solosynten går aldrig genom effekten." },
 
+    { kManHead, L"EFFEKTER" },
+    { kManBody, L"Inspelningen spelades genom en Korg SDD-3000 (delay) och en Lexicon MPX500 (reverb), så TrueSymph har båda. DELAY: "
+                L"TIME (1-1000 ms), FEEDBACK (upprepningar, mörkare för varje varv som på SDD-3000), MOD (delaytiden svajar åt olika håll "
+                L"i vänster och höger, vilket gör ekot brett) och LEVEL. REVERB: en plattreverb med DECAY (0,3-8 s) och LEVEL. LEVEL i "
+                L"botten = av, då är ljudet torrt och mono som SK30 själv. Även solosynten går genom effekterna (de sitter efter SK30, "
+                L"som på inspelningen)." },
+
     { kManHead, L"PRESETS" },
     { kManBody, L"Klicka på presetnamnet för att välja ljud i en lista (egna presets finns under My presets). Pilarna stegar genom fabriksljuden och sedan dina egna presets. SAVE sparar ljudet som en fil i "
                 L"Dokument\\TrueSymph Presets; LOAD öppnar valfri presetfil. Fabriksljuden finns också i Lives presetlista." },
 
     { kManHead, L"LJUDEN FRÅN INSPELNINGEN" },
     { kManBody, L"Ljuden som heter Rec: återskapar ljuden i Fredriks SK30-inspelning, uppmätta ur ljudfilen: Intro Lead (solo med "
-                L"portamento över stråkar), Pluck + Bass (POLY-SYNTH 1 med manual bass), High Lead, Poly 2 Sweeps, Ensemble Pad, Swell "
-                L"Chords och Glide Solo. Solostämmorna använder TOUCH VIBRATO: lägg på lite aftertouch eller modulationshjul (ca 20 %) "
+                L"portamento över stråkar), Pluck + Bass och Wah Bass (basen vid 0:25: solosynten som manual bass, LFO:n sveper det resonanta filtret med 3,2 Hz), High Lead, Poly 2 Sweeps, Ensemble Pad, Swell "
+                L"Chords och Glide Solo. De använder delay och reverb. Solostämmorna använder TOUCH VIBRATO: lägg på lite aftertouch eller modulationshjul (ca 20 %) "
                 L"för vibratot i inspelningen. Inspelningen ligger ca 45 cent lågt: ställ TUNE på ca 428,5 Hz för att matcha den exakt." },
 
     { kManHead, L"OM LJUDET" },
-    { kManBody, L"SK30 är mono, så TrueSymph är också mono (vänster = höger). Lägg reverb och delay efter för det klassiska ljudet." },
+    { kManBody, L"SK30 är mono, så TrueSymph är också mono (vänster = höger) tills du sätter på DELAY eller REVERB." },
     { kManNote, L"Yamaha och SK30 är varumärken som tillhör Yamaha Corporation. TrueSymph har ingen koppling till Yamaha." },
 };
 

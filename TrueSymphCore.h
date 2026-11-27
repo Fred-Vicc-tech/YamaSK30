@@ -120,7 +120,7 @@ struct Core
         ++queueCount;
     }
 
-    // --- Ljudbehandling (ljudtråden). SK30 är mono: samma signal i båda kanalerna.
+    // --- Ljudbehandling (ljudtråden). Mono som SK30, stereo när delay/reverb är på.
     void processAudio(float* outL, float* outR, int n, bool accumulate)
     {
         if (!outL || n <= 0) return;
@@ -135,10 +135,11 @@ struct Core
         double pk = 0.0;
         for (int i = 0; i < n; ++i) {
             while (ev < queueCount && queue[ev].delta <= i) { const MidiMsg& m = queue[ev++]; engine.handleMidi(m.status, m.d1, m.d2); }
-            const float s = (float)engine.next();
-            if (accumulate) { outL[i] += s; if (outR) outR[i] += s; }
-            else            { outL[i] = s;  if (outR) outR[i] = s; }
-            const double a = s < 0 ? -s : s; if (a > pk) pk = a;
+            double l, r;
+            engine.nextStereo(l, r);
+            if (accumulate) { outL[i] += (float)l; if (outR) outR[i] += (float)r; }
+            else            { outL[i] = (float)l;  if (outR) outR[i] = (float)r; }
+            const double a = std::fmax(std::fabs(l), std::fabs(r)); if (a > pk) pk = a;
         }
         while (ev < queueCount) { const MidiMsg& m = queue[ev++]; engine.handleMidi(m.status, m.d1, m.d2); }
         queueCount = 0;

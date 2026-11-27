@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.6.1";
+const wchar_t* const kVersionText = L"v0.7.0";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -55,7 +55,7 @@ const float kRowBY = 304.0f, kRowBH = 222.0f;
 const float kRowCY = 532.0f, kRowCH = 128.0f;
 const float kTrackLen = 100.0f;          // skjutreglagens längd
 const float kTrackDY = 58.0f;            // reglagets topp under panelens överkant
-const float kKnobR = 17.0f;
+const float kKnobR = 15.0f;
 
 enum CtlKind { kFader, kKnob, kSwitch };
 enum CapColor { kCapCream, kCapAmber };
@@ -112,7 +112,8 @@ const wchar_t* const kDisplayNames[kNumParams] = {
     L"SOLO VOLUME", L"SOLO MODE", L"SOLO LFO SPEED", L"PORTAMENTO", L"GLIDE DEPTH", L"SOLO VCO FEET", L"SOLO WAVE",
     L"SOLO PULSE WIDTH", L"SOLO PW SOURCE", L"SOLO CUTOFF FREQ", L"SOLO RESONANCE", L"SOLO VCF MODULATION", L"SOLO EG DEPTH",
     L"SOLO VCA", L"SOLO ATTACK TIME", L"SOLO DECAY TIME", L"SOLO SUSTAIN LEVEL", L"SOLO RELEASE TIME",
-    L"TOUCH VIBRATO", L"TOUCH BRILLIANCE", L"TOUCH MODULATION", L"SOLO TUNE", L"KEYBOARD SPLIT", L"SPLIT AT", L"MANUAL BASS UP TO"
+    L"TOUCH VIBRATO", L"TOUCH BRILLIANCE", L"TOUCH MODULATION", L"SOLO TUNE", L"KEYBOARD SPLIT", L"SPLIT AT", L"MANUAL BASS UP TO",
+    L"DELAY TIME", L"DELAY FEEDBACK", L"DELAY MODULATION", L"DELAY LEVEL", L"REVERB DECAY", L"REVERB LEVEL"
 };
 
 struct Editor
@@ -180,38 +181,48 @@ struct Editor
         const float ta = kRowAY + kTrackDY, tb = kRowBY + kTrackDY;
 
         // --- OUTPUT ---
-        knob(kParamMaster, 60.0f, kRowAY + 112.0f, L"MASTER\nVOLUME");
-        fader(kParamSoloVol, 114.0f, ta, L"SOLO");
-        fader(kParamOrgVol, 148.0f, ta, L"ORGAN");
-        fader(kParamVolume, 182.0f, ta, L"STRING");
-        fader(kParamPolyVol, 216.0f, ta, L"POLY-\nSYNTH");
+        knob(kParamMaster, 52.0f, kRowAY + 112.0f, L"MASTER\nVOLUME");
+        fader(kParamSoloVol, 102.0f, ta, L"SOLO");
+        fader(kParamOrgVol, 133.0f, ta, L"ORGAN");
+        fader(kParamVolume, 164.0f, ta, L"STRING");
+        fader(kParamPolyVol, 195.0f, ta, L"POLY-\nSYNTH");
 
         // --- PITCH ---
-        knob(kParamTune, 282.0f, kRowAY + 112.0f, L"TUNE");
-        knob(kParamDetune, 337.0f, kRowAY + 112.0f, L"POLY-SYNTH\nDETUNE");
-        knob(kParamSoloTune, 392.0f, kRowAY + 112.0f, L"SOLO\nTUNE");
+        knob(kParamTune, 254.0f, kRowAY + 112.0f, L"TUNE");
+        knob(kParamDetune, 298.0f, kRowAY + 112.0f, L"DETUNE");
+        knob(kParamSoloTune, 342.0f, kRowAY + 112.0f, L"SOLO\nTUNE");
 
         // --- SOLO SYNTHESIZER ---
-        fader(kParamLfoSpeed, 456.0f, ta, L"LFO\nSPEED");
-        fader(kParamPortamento, 494.0f, ta, L"PORTA-\nMENTO");
-        fader(kParamGlide, 532.0f, ta, L"GLIDE\nDEPTH");
-        fader(kParamSoloFeet, 588.0f, ta, L"FEET", kCapCream, kNumSoloFeet);
-        fader(kParamSoloWave, 626.0f, ta, L"WAVE");
-        fader(kParamSoloPw, 664.0f, ta, L"PW");
-        sw(kParamPwSource, 696.0f, ta + 18.0f, L"", 3, kNumPwSources, L"LFO", 0, L"MAN", 1, L"EG", 2);
-        groups.push_back({ 572.0f, 730.0f, kRowAY + 36.0f, L"VCO" });
-        fader(kParamSoloCutoff, 770.0f, ta, L"CUTOFF");
-        fader(kParamSoloReso, 808.0f, ta, L"RESO-\nNANCE");
-        fader(kParamSoloMod, 846.0f, ta, L"MODU-\nLATION");
-        fader(kParamSoloEgDepth, 884.0f, ta, L"EG\nDEPTH");
-        groups.push_back({ 754.0f, 900.0f, kRowAY + 36.0f, L"VCF" });
-        sw(kParamVcaMode, 922.0f, ta + 18.0f, L"", 3, kNumVcaModes, L"HOLD", 0, L"GATE", 1, L"EG", 2);
-        groups.push_back({ 912.0f, 966.0f, kRowAY + 36.0f, L"VCA" });
-        fader(kParamSoloAttack, 1000.0f, ta, L"A");
-        fader(kParamSoloDecay, 1038.0f, ta, L"D");
-        fader(kParamSoloSustain, 1076.0f, ta, L"S");
-        fader(kParamSoloRelease, 1114.0f, ta, L"R");
-        groups.push_back({ 984.0f, 1130.0f, kRowAY + 36.0f, L"EG" });
+        fader(kParamLfoSpeed, 392.0f, ta, L"LFO\nSPEED");
+        fader(kParamPortamento, 423.0f, ta, L"PORTA-\nMENTO");
+        fader(kParamGlide, 454.0f, ta, L"GLIDE\nDEPTH");
+        fader(kParamSoloFeet, 492.0f, ta, L"FEET", kCapCream, kNumSoloFeet);
+        fader(kParamSoloWave, 523.0f, ta, L"WAVE");
+        fader(kParamSoloPw, 554.0f, ta, L"PW");
+        sw(kParamPwSource, 580.0f, ta + 18.0f, L"", 3, kNumPwSources, L"LFO", 0, L"MAN", 1, L"EG", 2);
+        groups.push_back({ 476.0f, 610.0f, kRowAY + 36.0f, L"VCO" });
+        fader(kParamSoloCutoff, 642.0f, ta, L"CUT\nOFF");
+        fader(kParamSoloReso, 673.0f, ta, L"RESO-\nNANCE");
+        fader(kParamSoloMod, 704.0f, ta, L"MODU-\nLATION");
+        fader(kParamSoloEgDepth, 735.0f, ta, L"EG\nDEPTH");
+        groups.push_back({ 626.0f, 750.0f, kRowAY + 36.0f, L"VCF" });
+        sw(kParamVcaMode, 762.0f, ta + 18.0f, L"", 3, kNumVcaModes, L"HOLD", 0, L"GATE", 1, L"EG", 2);
+        groups.push_back({ 755.0f, 800.0f, kRowAY + 36.0f, L"VCA" });
+        fader(kParamSoloAttack, 822.0f, ta, L"A");
+        fader(kParamSoloDecay, 853.0f, ta, L"D");
+        fader(kParamSoloSustain, 884.0f, ta, L"S");
+        fader(kParamSoloRelease, 915.0f, ta, L"R");
+        groups.push_back({ 808.0f, 929.0f, kRowAY + 36.0f, L"EG" });
+
+        // --- EFFECTS (som på Fredriks inspelning: SDD-3000-delay och plattreverb) ---
+        fader(kParamDelayTime, 974.0f, ta, L"TIME");
+        fader(kParamDelayFeedback, 1004.0f, ta, L"FEED-\nBACK");
+        fader(kParamDelayMod, 1034.0f, ta, L"MOD");
+        fader(kParamDelayLevel, 1064.0f, ta, L"LEVEL");
+        groups.push_back({ 960.0f, 1078.0f, kRowAY + 36.0f, L"DELAY" });
+        fader(kParamReverbDecay, 1106.0f, ta, L"DECAY");
+        fader(kParamReverbLevel, 1137.0f, ta, L"LEVEL");
+        groups.push_back({ 1092.0f, 1151.0f, kRowAY + 36.0f, L"REVERB" });
 
         // --- VIBRATO ---
         fader(kParamVibDelay, 46.0f, tb, L"DELAY");
@@ -515,7 +526,7 @@ void drawKnob(Graphics& g, const FontFamily& ff, const Ctl& c, float v, bool dim
     Pen pointer(dim ? Color(255, 140, 146, 152) : Color(255, 250, 250, 250), 2.0f);
     g.DrawLine(&pointer, cx + std::cos(angle) * (ringOut * 0.2f), cy + std::sin(angle) * (ringOut * 0.2f),
                cx + std::cos(angle) * (tip - 2.0f), cy + std::sin(angle) * (tip - 2.0f));
-    drawText(g, c.label, ff, 9.5f, FontStyleBold, dim ? kTextDim : kLabel, cx - 34.0f, cy + r + 12.0f, 68.0f, StringAlignmentCenter, 30.0f);
+    drawText(g, c.label, ff, 9.0f, FontStyleBold, dim ? kTextDim : kLabel, cx - 24.0f, cy + r + 12.0f, 48.0f, StringAlignmentCenter, 30.0f);
 }
 
 // Vippomkopplare med 2 eller 3 lägen (PW-källa, VCA, MODE)
@@ -580,6 +591,8 @@ bool isDim(const float* pv, int param)
     default: break;
     }
     if (param >= kParamOrg16 && param <= kParamOrg1) return orgSel != 4;
+    if (param == kParamDelayTime || param == kParamDelayFeedback || param == kParamDelayMod) return pv[kParamDelayLevel] <= 0.0f;
+    if (param == kParamReverbDecay) return pv[kParamReverbLevel] <= 0.0f;
     if ((param >= kParamLfoSpeed && param <= kParamSoloRelease) || param == kParamSoloTune) return pv[kParamSoloVol] <= 0.0f;
     return false;
 }
@@ -810,9 +823,10 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     }
 
     // --- Paneler ---
-    drawPanel(g, 16.0f, kRowAY, 226.0f, kRowAH);   drawSectionTitle(g, ff, L"OUTPUT", 16.0f, kRowAY, 226.0f);
-    drawPanel(g, 250.0f, kRowAY, 170.0f, kRowAH);  drawSectionTitle(g, ff, L"PITCH", 250.0f, kRowAY, 170.0f);
-    drawPanel(g, 428.0f, kRowAY, 736.0f, kRowAH);  drawSectionTitle(g, ff, L"SOLO SYNTHESIZER", 428.0f, kRowAY, 736.0f);
+    drawPanel(g, 16.0f, kRowAY, 202.0f, kRowAH);   drawSectionTitle(g, ff, L"OUTPUT", 16.0f, kRowAY, 202.0f);
+    drawPanel(g, 226.0f, kRowAY, 144.0f, kRowAH);  drawSectionTitle(g, ff, L"PITCH", 226.0f, kRowAY, 144.0f);
+    drawPanel(g, 378.0f, kRowAY, 564.0f, kRowAH);  drawSectionTitle(g, ff, L"SOLO SYNTHESIZER", 378.0f, kRowAY, 564.0f);
+    drawPanel(g, 950.0f, kRowAY, 214.0f, kRowAH);  drawSectionTitle(g, ff, L"EFFECTS", 950.0f, kRowAY, 214.0f);
     drawPanel(g, 16.0f, kRowBY, 134.0f, kRowBH);   drawSectionTitle(g, ff, L"VIBRATO", 16.0f, kRowBY, 134.0f);
     drawPanel(g, 158.0f, kRowBY, 562.0f, kRowBH);  drawSectionTitle(g, ff, L"ORGAN", 158.0f, kRowBY, 562.0f);
     drawPanel(g, 728.0f, kRowBY, 436.0f, kRowBH);  drawSectionTitle(g, ff, L"POLY-SYNTH", 728.0f, kRowBY, 436.0f);

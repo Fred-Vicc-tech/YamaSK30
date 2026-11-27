@@ -676,7 +676,60 @@ int main()
         bool names = true;
         for (int i = 0; i < kNumParams; ++i) for (int j = i + 1; j < kNumParams; ++j) if (std::string(kParamNames[i]) == kParamNames[j]) names = false;
         check(names, "parameternamnen ar unika (presetfilerna bygger pa dem)");
-        check(kNumFactoryPresets == 35 && std::string(factoryPresetName(0)) == "Dream Strings", "35 fabriksljud");
+        check(kNumFactoryPresets == 36 && std::string(factoryPresetName(0)) == "Dream Strings", "36 fabriksljud");
+    }
+
+
+    // ===== Effekter: delay och reverb =====
+    {
+        auto stereo = [&](Engine& e, double sec, std::vector<double>& L, std::vector<double>& R) {
+            L.resize((size_t)(sec * sr)); R.resize(L.size());
+            for (size_t i = 0; i < L.size(); ++i) e.nextStereo(L[i], R[i]);
+        };
+        std::vector<double> L, R;
+        // Av: vänster = höger (mono som SK30)
+        Engine a; a.prepare(sr); a.handleMidi(0x90, 60, 100);
+        stereo(a, 0.5, L, R);
+        bool same = true; for (size_t i = 0; i < L.size(); ++i) same = same && L[i] == R[i];
+        check(same, "effekter av: vanster = hoger");
+
+        // DELAY 250 ms: ett eko 250 ms efter en kort ton
+        Engine d; d.prepare(sr); plain(d);
+        d.setDelayTimeNorm(normFromDelayMs(250.0)); d.setDelayFeedbackNorm(0.0); d.setDelayModNorm(0.0); d.setDelayLevelNorm(1.0);
+        d.handleMidi(0x90, 72, 100);
+        std::vector<double> v((size_t)(0.6 * sr));
+        for (size_t i = 0; i < v.size(); ++i) { if (i == (size_t)(0.05 * sr)) d.handleMidi(0x80, 72, 0); double l, r; d.nextStereo(l, r); v[i] = 0.5 * (l + r); }
+        const double pre = rms(v, (size_t)(0.12 * sr), (size_t)(0.24 * sr)), echo = rms(v, (size_t)(0.25 * sr), (size_t)(0.30 * sr));
+        check(echo > 10.0 * pre + 1e-6, "DELAY: eko efter 250 ms");
+
+        // DELAY med MOD: stereo (vänster och höger skiljer sig)
+        Engine dm; dm.prepare(sr); plain(dm);
+        dm.setDelayLevelNorm(1.0); dm.setDelayModNorm(1.0); dm.setDelayTimeNorm(normFromDelayMs(100.0));
+        dm.handleMidi(0x90, 60, 100);
+        stereo(dm, 1.5, L, R);
+        double diff = 0.0; for (size_t i = 0; i < L.size(); ++i) diff = std::fmax(diff, std::fabs(L[i] - R[i]));
+        check(diff > 1e-3 && finite(L) && finite(R), "DELAY MOD: brett i stereo");
+
+        // REVERB: efterklang som klingar ut ungefär på vald tid
+        Engine rv; rv.prepare(sr); plain(rv);
+        rv.setReverbLevelNorm(1.0); rv.setReverbDecayNorm(normFromReverbSec(2.0));
+        rv.handleMidi(0x90, 60, 100);
+        stereo(rv, 0.3, L, R);
+        rv.handleMidi(0x80, 60, 0);
+        stereo(rv, 3.0, L, R);
+        std::vector<double> mono(L.size()); for (size_t i = 0; i < L.size(); ++i) mono[i] = 0.5 * (L[i] + R[i]);
+        const double t1 = rms(mono, (size_t)(0.2 * sr), (size_t)(0.4 * sr)), t2 = rms(mono, (size_t)(1.2 * sr), (size_t)(1.4 * sr));
+        const double rate = 20.0 * std::log10(t1 / (t2 + 1e-12)) / 1.0;          // dB per sekund
+        std::printf("      (reverb 2 s: %.0f dB/s, borde vara ca 30)\n", rate);
+        check(t2 > 1e-5 && rate > 15.0 && rate < 60.0, "REVERB: efterklang ungefar som vald tid");
+        check(finite(L) && finite(R), "REVERB: inga ogiltiga tal");
+
+        // Allt på max med effekter: fortfarande under -0,3 dBFS
+        Engine mx; mx.prepare(sr);
+        mx.setMasterNorm(1.0); mx.setVolumeNorm(1.0); mx.setDelayLevelNorm(1.0); mx.setDelayFeedbackNorm(1.0); mx.setReverbLevelNorm(1.0);
+        for (int n = 48; n < 55; ++n) mx.handleMidi(0x90, n, 127);
+        stereo(mx, 3.0, L, R);
+        check(peak(L) <= 0.9661 && peak(R) <= 0.9661 && finite(L), "effekter pa max: under -0,3 dBFS");
     }
 
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);
