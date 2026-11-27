@@ -205,10 +205,10 @@ struct Editor
         groups.push_back({ 754.0f, 900.0f, kRowAY + 36.0f, L"VCF" });
         sw(kParamVcaMode, 922.0f, ta + 18.0f, L"", 3, kNumVcaModes, L"HOLD", 0, L"GATE", 1, L"EG", 2);
         groups.push_back({ 912.0f, 966.0f, kRowAY + 36.0f, L"VCA" });
-        fader(kParamSoloAttack, 1000.0f, ta, L"ATTACK");
-        fader(kParamSoloDecay, 1038.0f, ta, L"DECAY");
-        fader(kParamSoloSustain, 1076.0f, ta, L"SUSTAIN");
-        fader(kParamSoloRelease, 1114.0f, ta, L"RELEASE");
+        fader(kParamSoloAttack, 1000.0f, ta, L"A");
+        fader(kParamSoloDecay, 1038.0f, ta, L"D");
+        fader(kParamSoloSustain, 1076.0f, ta, L"S");
+        fader(kParamSoloRelease, 1114.0f, ta, L"R");
         groups.push_back({ 984.0f, 1130.0f, kRowAY + 36.0f, L"EG" });
 
         // --- VIBRATO ---
@@ -233,16 +233,16 @@ struct Editor
         fader(kParamSustainTime, 790.0f, tb, L"S ~ L");
         fader(kParamBrilliance, 825.0f, tb, L"BRILLI-\nANCE");
         sw(kParamMode, 854.0f, tb + 24.0f, L"MODE", 2, 2, L"II", 1, L"I", 0);
-        fader(kParamPolyFeet, 902.0f, tb, L"FEET", kCapAmber, kNumFeet);
-        fader(kParamCutoff, 936.0f, tb, L"CUTOFF", kCapAmber);
-        fader(kParamResonance, 969.0f, tb, L"RESO-\nNANCE", kCapAmber);
-        fader(kParamEgDepth, 1002.0f, tb, L"EG\nDEPTH", kCapAmber);
-        fader(kParamAttack, 1036.0f, tb, L"ATTACK", kCapAmber);
-        fader(kParamDecay, 1069.0f, tb, L"DECAY", kCapAmber);
-        fader(kParamSustainLevel, 1102.0f, tb, L"SUSTAIN", kCapAmber);
-        fader(kParamRelease, 1135.0f, tb, L"RELEASE", kCapAmber);
-        groups.push_back({ 922.0f, 1016.0f, kRowBY + 36.0f, L"VCF" });
-        groups.push_back({ 1022.0f, 1149.0f, kRowBY + 36.0f, L"EG" });
+        fader(kParamPolyFeet, 892.0f, tb, L"FEET", kCapAmber, kNumFeet);
+        fader(kParamCutoff, 928.0f, tb, L"CUTOFF", kCapAmber);
+        fader(kParamResonance, 963.0f, tb, L"RESO-\nNANCE", kCapAmber);
+        fader(kParamEgDepth, 998.0f, tb, L"EG\nDEPTH", kCapAmber);
+        fader(kParamAttack, 1036.0f, tb, L"A", kCapAmber);
+        fader(kParamDecay, 1070.0f, tb, L"D", kCapAmber);
+        fader(kParamSustainLevel, 1104.0f, tb, L"S", kCapAmber);
+        fader(kParamRelease, 1138.0f, tb, L"R", kCapAmber);
+        groups.push_back({ 912.0f, 1012.0f, kRowBY + 36.0f, L"VCF" });
+        groups.push_back({ 1020.0f, 1152.0f, kRowBY + 36.0f, L"EG" });
 
         // DECAY/SUSTAIN (orgel) och SLOW ATTACK/SUSTAIN (poly-synth): fyrkantiga knappar
         btns.push_back({ { 167.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"DECAY", kActToggle, kParamOrgDecay, 0, 0, false });
