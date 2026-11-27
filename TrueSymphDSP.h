@@ -874,6 +874,47 @@ struct SoloSynth
 };
 
 // ---------------------------------------------------------------------------
+// Säkerhetslimiter sist i kedjan: TrueSymph går aldrig över -0,3 dBFS.
+// 1,5 ms framförhållning (ingen överslängd), mjuk återgång på 150 ms.
+// ---------------------------------------------------------------------------
+struct Limiter
+{
+    static const int kMaxLook = 256;
+    float buf[kMaxLook];
+    int pos = 0, look = 64;
+    double gain = 1.0, hold = 1.0, relCoef = 0.0, atkCoef = 0.0;
+    int holdCount = 0;
+    double minGain = 1.0;                       // för mätaren (lägsta förstärkning sedan senast)
+    static constexpr double kCeiling = 0.966;   // -0,3 dBFS
+
+    void prepare(double sr)
+    {
+        look = (int)(0.0015 * sr); if (look < 8) look = 8; if (look > kMaxLook) look = kMaxLook;
+        relCoef = 1.0 - std::exp(-1.0 / (0.15 * sr));
+        atkCoef = 1.0 - std::exp(-3.0 / look);
+        reset();
+    }
+    void reset() { for (int i = 0; i < kMaxLook; ++i) buf[i] = 0.0f; pos = 0; gain = 1.0; hold = 1.0; holdCount = 0; minGain = 1.0; }
+    double process(double x)
+    {
+        const double a = std::fabs(x);
+        const double need = a > kCeiling ? kCeiling / a : 1.0;
+        if (need <= hold) { hold = need; holdCount = look; }            // nytt topp-krav: håll det under framförhållningen
+        else if (holdCount > 0) --holdCount;
+        else hold += (1.0 - hold) * relCoef;
+        gain += (hold - gain) * (hold < gain ? atkCoef : 1.0);          // sänk mjukt under framförhållningen
+        const double delayed = buf[pos];
+        buf[pos] = (float)x;
+        pos = (pos + 1) % look;
+        double y = delayed * gain;
+        if (y > kCeiling) y = kCeiling; else if (y < -kCeiling) y = -kCeiling;   // sista spärr (sker nästan aldrig)
+        if (gain < minGain) minGain = gain;
+        return y;
+    }
+    double takeReductionDb() { const double g = minGain; minGain = 1.0; return g < 1.0 ? -20.0 * std::log10(g) : 0.0; }
+};
+
+// ---------------------------------------------------------------------------
 // Motorn
 // ---------------------------------------------------------------------------
 class Engine
@@ -898,6 +939,7 @@ public:
         ladder[2].set(12e3, 18e-9, 12e3, par3(5.6e3, 47e3, 7.3e3), 18e-9, sr);   // /\4
         ensemble.prepare(sr);
         solo.prepare(sr);
+        limiter.prepare(sr);
         dcBlock.set(5.0, sr);
         paramSmooth = 1.0 - std::exp(-1.0 / (0.02 * sr));
         stealCoef = 1.0 - std::exp(-3.0 / (0.003 * sr));
@@ -939,7 +981,7 @@ public:
         solo.reset(); soloVolSmoothed = targetSoloVolume(); soloNote = -1;
         for (int i = 0; i < 3; ++i) { hpIn[i].reset(); hpLadder[i].reset(); ladder[i].reset(); }
         hp4to8.reset(); hp8to16.reset(); hpOut4.reset();
-        brill.reset(); ensemble.reset(); dcBlock.reset();
+        brill.reset(); ensemble.reset(); dcBlock.reset(); limiter.reset();
         vibPhase = 0.0; vibTime = 0.0;
         sustainPedal = false;
         ageCounter = 0;
@@ -1278,15 +1320,13 @@ public:
         double out = dry + ensemble.process(teIn);
 
         out = dcBlock.process(out) * masterSmoothed;
-        // Säkerhet: mjuk begränsning nära 0 dBFS
-        if (out > 0.9) out = 0.9 + 0.1 * std::tanh((out - 0.9) * 10.0);
-        else if (out < -0.9) out = -0.9 + 0.1 * std::tanh((out + 0.9) * 10.0);
-        return out;
+        return limiter.process(out);       // går aldrig över -0,3 dBFS
     }
 
     // För tester / gränssnitt
     int activeVoices() const { int n = 0; for (int v = 0; v < kAllVoices; ++v) if (voices[v].active) ++n; return n; }
     int soloCurrentNote() const { return soloNote; }
+    double takeLimiterReductionDb() { return limiter.takeReductionDb(); }
     bool isSounding() const { return activeVoices() > 0 || (soloVolNorm > 0.0 && solo.isSounding()); }
     double dividerFor(int pc) const { return divider[pc]; }
     // Frekvensen tangenten (8') får utan vibrato (för tester).
@@ -1306,7 +1346,7 @@ private:
     static constexpr int kOrganTopMidi = 108;       // orgelns toppoktav C8-B8
     static constexpr double kOrganGain = 0.05;      // orgeln ungefär lika stark som stråkarna
     static constexpr double kPercGain = 1.6;        // slagverket tydligt över fotlägena
-    static constexpr double kSoloGain = 0.32;       // solosynten ungefär lika stark som ett stråkackord
+    static constexpr double kSoloGain = 0.16;       // solosynten ungefär lika stark som ett stråkackord
     static constexpr double kStringGain = 0.15;     // ger ca -24 dBFS RMS för en ton och ca -16 dBFS för ett 4-tonsackord (STRING 1+2, MODE II)
 
     struct Voice
@@ -1600,6 +1640,7 @@ private:
     RCLadder ladder[3];
     Biquad brill;
     Ensemble ensemble;
+    Limiter limiter;
 };
 
 } // namespace truesymph

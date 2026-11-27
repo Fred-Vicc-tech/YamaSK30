@@ -58,6 +58,7 @@ struct Core
     // För fönstret
     std::atomic<float> peak{ 0.0f };          // högsta nivå sedan fönstret läste
     std::atomic<int> soloNote{ -1 };
+    std::atomic<float> limitDb{ 0.0f };       // limiterns största sänkning sedan fönstret läste
 
     StateChunk chunk;
     int program = 0;
@@ -143,6 +144,7 @@ struct Core
         queueCount = 0;
         if ((float)pk > peak.load()) peak.store((float)pk);
         soloNote.store(engine.soloCurrentNote());
+        { const float r = (float)engine.takeLimiterReductionDb(); if (r > limitDb.load()) limitDb.store(r); }
 #if TRUESYMPH_HAS_SSE
         _mm_setcsr(oldCsr);
 #endif

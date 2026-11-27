@@ -633,6 +633,32 @@ int main()
     }
 
 
+    // ===== 0.6.1: nivåbalans och limiter =====
+    {
+        // Allt på max (+6 dB överallt), 7 toner: aldrig över -0,3 dBFS
+        Engine e; e.prepare(sr);
+        e.setMasterNorm(1.0); e.setVolumeNorm(1.0); e.setPolyVolNorm(1.0); e.setOrgVolNorm(1.0); e.setSoloVolNorm(1.0);
+        e.setStringNorm(0, 1); e.setStringNorm(2, 1); e.setPolySelNorm(stepNorm(2, kNumPolySel)); e.setOrgSelNorm(stepNorm(3, kNumOrgSel));
+        for (int n = 48; n < 55; ++n) e.handleMidi(0x90, n, 127);
+        std::vector<double> v = render(e, 2.0, sr);
+        check(peak(v) <= 0.9661 && finite(v), "limiter: allt pa max ger hogst -0,3 dBFS");
+        check(e.takeLimiterReductionDb() > 1.0, "limiter: sanker nar det behovs");
+        // Under taket: limitern rör inte ljudet
+        Engine q; q.prepare(sr); plain(q);
+        q.handleMidi(0x90, 60, 100);
+        render(q, 1.0, sr);
+        check(q.takeLimiterReductionDb() == 0.0, "limiter: orord vid normal niva");
+        // Balans: en solo-ton och en stråkton ligger inom 4 dB vid samma inställning (0 dB)
+        // Standardljudet (Dream Strings) mot solosynten med sina standardvärden
+        Engine st; st.prepare(sr); st.handleMidi(0x90, 72, 100);
+        Engine so; so.prepare(sr); so.setStringNorm(0, 0.0); so.setStringNorm(1, 0.0); so.setSoloVolNorm(normFromVolumeDb(0.0)); so.handleMidi(0x90, 72, 100);
+        render(so, 0.2, sr);
+        std::vector<double> a = render(st, 1.0, sr), b = render(so, 1.0, sr);
+        const double d = 20.0 * std::log10(peak(b) / peak(a));
+        std::printf("      (solo mot strakar, en ton: %+.1f dB)\n", d);
+        check(std::fabs(d) < 4.0, "balans: solo och strakar lika starka vid samma installning");
+    }
+
     // ===== Etapp 5: presetfiler =====
     {
         float v[kNumParams], w[kNumParams];

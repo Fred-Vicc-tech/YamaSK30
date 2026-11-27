@@ -22,7 +22,7 @@ namespace {
 
 // Samma ID som när pluginet hette YamaSK30, så att sparade Live-projekt fortsätter fungera.
 const VstInt32 kUniqueId = ('Y' << 24) | ('S' << 16) | ('3' << 8) | '0';
-const VstInt32 kVersion = 600;            // 0.6.0 (presetlista, ljud från inspelningen)
+const VstInt32 kVersion = 610;            // 0.6.1 (nivåbalans, limiter, nivåmätare)
 
 struct Plugin : Core
 {

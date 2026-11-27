@@ -1,5 +1,11 @@
 # Ändringslogg
 
+## 0.6.1 (2026-11-27)
+- Solosynten var ca 6 dB för stark jämfört med sektionerna (slog i taket på max). Nu lika stark
+  som stråkarna vid samma inställning; solo-ljuden höjda så att de låter som förut.
+- Riktig säkerhetslimiter sist (1,5 ms framförhållning, tak -0,3 dBFS) i stället för den enkla mjukklippningen.
+- Nivåmätare i fönstret (dBFS med topphållning, samma skala som Live) och en LIMIT-lampa.
+
 ## 0.6.0 (2026-11-27)
 - Klick på presetnamnet öppnar en lista med alla fabriksljud och egna presets (My presets).
 - Sju nya ljud (Rec:) som återskapar ljuden i Fredriks SK30-inspelning, uppmätta ur ljudfilen.

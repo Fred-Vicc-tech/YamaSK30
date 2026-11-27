@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.6.0";
+const wchar_t* const kVersionText = L"v0.6.1";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -137,6 +137,8 @@ struct Editor
     RectDef splitPrev, splitNext, bassPrev, bassNext;
 
     float peakShown = 0.0f;
+    double peakHoldDb = -100.0;
+    DWORD peakHoldUntil = 0, limitUntil = 0;
 
     // Baksidan (klick på loggan): credits och manual
     bool showBack = false;
@@ -724,7 +726,7 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     for (int i = 0; i < kNumParams; ++i) pv[i] = p->params[i].load();
 
     const float pk = p->peak.exchange(0.0f);
-    ed->peakShown = pk > ed->peakShown ? pk : ed->peakShown * 0.85f;
+    ed->peakShown = pk > ed->peakShown ? pk : ed->peakShown * 0.80f;
 
     // --- Header: logga, display, PRESET, version ---
     {
@@ -776,9 +778,29 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     }
     drawFlatButton(g, ff, ed->btnSave, L"SAVE");
     drawFlatButton(g, ff, ed->btnLoad, L"LOAD");
-    drawText(g, kVersionText, ff, 13, FontStyleRegular, kTextDim, 1064.0f, 31.0f, 70.0f, StringAlignmentFar);
-    SolidBrush dot(ed->peakShown > 0.001f ? kCyan : Color(255, 50, 54, 58));
-    g.FillEllipse(&dot, 1144.0f, 34.0f, 14.0f, 14.0f);
+    drawText(g, kVersionText, ff, 12, FontStyleRegular, kTextDim, 1074.0f, 8.0f, 86.0f, StringAlignmentFar);
+    // Utnivå (dBFS, som i Live) och limiterns lampa
+    {
+        const float mx = 1074.0f, my = 30.0f, mw = 86.0f, mh = 8.0f;
+        const double db = ed->peakShown > 1e-6f ? 20.0 * std::log10(ed->peakShown) : -100.0;
+        if (db > ed->peakHoldDb || GetTickCount() > ed->peakHoldUntil) { ed->peakHoldDb = db; ed->peakHoldUntil = GetTickCount() + 1500; }
+        const float lr = p->limitDb.exchange(0.0f);
+        if (lr > 0.5f) ed->limitUntil = GetTickCount() + 800;
+        SolidBrush back(Color(255, 6, 7, 8));
+        g.FillRectangle(&back, mx, my, mw, mh);
+        auto frac = [](double d) { double t = (d + 48.0) / 48.0; return (float)(t < 0.0 ? 0.0 : (t > 1.0 ? 1.0 : t)); };
+        const float f = frac(db);
+        SolidBrush bar(db > -6.0 ? kGold : kCyan);
+        g.FillRectangle(&bar, mx, my, mw * f, mh);
+        Pen holdPen(kText, 1.5f);
+        if (ed->peakHoldDb > -48.0) { const float hx = mx + mw * frac(ed->peakHoldDb); g.DrawLine(&holdPen, hx, my - 1.0f, hx, my + mh + 1.0f); }
+        Pen edgeP(Color(255, 70, 74, 80), 1.0f);
+        g.DrawRectangle(&edgeP, mx, my, mw, mh);
+        if (ed->peakHoldDb > -100.0) swprintf(txt, 96, L"%.1f dB", ed->peakHoldDb); else swprintf(txt, 96, L"-inf dB");
+        drawText(g, txt, ff, 11, FontStyleBold, kTextDim, mx - 10.0f, my + mh + 3.0f, 60.0f, StringAlignmentNear);
+        const bool lim = GetTickCount() < ed->limitUntil;
+        drawText(g, L"LIMIT", ff, 11, FontStyleBold, lim ? Color(255, 255, 70, 50) : Color(255, 50, 54, 58), mx + 40.0f, my + mh + 3.0f, 46.0f, StringAlignmentFar);
+    }
 
     if (ed->showBack) {
         paintBack(ed, g, ff);
