@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.9.4 (2026-11-27)
+- EFFECTS: enheten väljs med två pilväljare längst ner (som presetväljaren): DELAY (DIGI - Korg SDD-3000
+  Style / TAPE - Roland Space Echo Style) och REVERB (sex typer, MPX500 och RMX16). Klicka på pilarna eller
+  på rutan. Omkopplaren och TYPE-reglaget är borta, så EFFECTS är smalare.
+- OUTPUT och PITCH är bredare; MASTER VOLUME och BOOST ligger i höjd med reglagen bredvid.
+- Fönstret 1430 × 710 px (översta raden högre för väljarna).
+
 ## 0.9.3 (2026-11-27)
 - EFFECTS visar vilken enhet som är vald, t.ex. "TAPE - Roland Space Echo Style" och
   "AMBIENCE - AMS RMX16 Style" (lyser blått när effektens LEVEL är uppe). Samma text i displayen.
