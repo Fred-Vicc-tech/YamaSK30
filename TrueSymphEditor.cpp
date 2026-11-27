@@ -912,8 +912,8 @@ void paint(Editor* ed, HDC hdc, int width, int height, const RECT* dirty = nullp
     const bool rebuild = !ed->cache || sig != ed->cacheSig || width != ed->cacheW || height != ed->cacheH;
     if (rebuild) {
         delete ed->cache;
-        ed->cache = new (std::nothrow) Bitmap(width, height, PixelFormat32bppPARGB);
-        if (!ed->cache) return;
+        ed->cache = new Bitmap(width, height, PixelFormat32bppPARGB);
+        if (!ed->cache || ed->cache->GetLastStatus() != Ok) { delete ed->cache; ed->cache = nullptr; return; }
         Graphics g(ed->cache);
         g.SetSmoothingMode(SmoothingModeAntiAlias);
         g.SetTextRenderingHint(TextRenderingHintAntiAliasGridFit);
