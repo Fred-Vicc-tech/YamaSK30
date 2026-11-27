@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.9.6";
+const wchar_t* const kVersionText = L"v0.9.7";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -512,7 +512,7 @@ void drawKnob(Graphics& g, const FontFamily& ff, const Ctl& c, float v, bool dim
     else if (v > 0.001f) g.DrawArc(&arc, cx - ar, cy - ar, ar * 2, ar * 2, start, sweep * v);
     const float kPiF = 3.14159265f;
     const float angle = (start + sweep * v) * kPiF / 180.0f;
-    // Ratt som på SK30: benvit rund knopp med svart ram (ca 4 px) och en tunn svart visare
+    // Ratt som på SK30: benvit rund knopp med smal svart ram (2 px) och en tunn svart visare
     // från mitten ut till kanten.
     for (int i = 0; i < 4; ++i) {                                   // mjuk skugga under ratten
         const float rr = r + 1.5f - i * 1.0f;
@@ -523,7 +523,7 @@ void drawKnob(Graphics& g, const FontFamily& ff, const Ctl& c, float v, bool dim
     g.FillEllipse(&frame, cx - r, cy - r, r * 2, r * 2);
     Pen frameEdge(Color(255, 64, 66, 70), 1.0f);                    // tunn ljusare kant så att ramen syns mot panelen
     g.DrawEllipse(&frameEdge, cx - r, cy - r, r * 2, r * 2);
-    const float ri = r - 4.0f;                                      // benvit knopp innanför ramen
+    const float ri = r - 2.0f;                                      // benvit knopp innanför ramen (2 px)
     GraphicsPath cap;
     cap.AddEllipse(cx - ri, cy - ri, ri * 2, ri * 2);
     PathGradientBrush capB(&cap);
@@ -533,7 +533,7 @@ void drawKnob(Graphics& g, const FontFamily& ff, const Ctl& c, float v, bool dim
     int ncol = 1;
     capB.SetSurroundColors(&edgeC, &ncol);
     g.FillEllipse(&capB, cx - ri, cy - ri, ri * 2, ri * 2);
-    Pen pointer(dim ? Color(255, 70, 70, 72) : Color(255, 12, 12, 12), 1.6f);   // tunn svart visare
+    Pen pointer(dim ? Color(255, 70, 70, 72) : Color(255, 40, 34, 26), 1.5f);   // lika tunn som strecket på reglagen
     pointer.SetStartCap(LineCapRound); pointer.SetEndCap(LineCapRound);
     g.DrawLine(&pointer, cx, cy, cx + std::cos(angle) * (ri - 0.8f), cy + std::sin(angle) * (ri - 0.8f));
     drawText(g, c.label, ff, 9.0f, FontStyleBold, dim ? kTextDim : kLabel, cx - 24.0f, cy + r + 12.0f, 48.0f, StringAlignmentCenter, 30.0f);

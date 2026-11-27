@@ -1,5 +1,8 @@
 # Ändringslogg
 
+## 0.9.7 (2026-11-27)
+- Rattarna: visaren lika tunn som strecket på skjutreglagen (1,5 px), den svarta ramen hälften så smal (2 px).
+
 ## 0.9.6 (2026-11-27)
 - Rattarna ser ut som på SK30: benvit rund knopp med svart ram och en tunn svart visare från mitten
   till kanten. Den blå värdebågen runt ratten är kvar.
