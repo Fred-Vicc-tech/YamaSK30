@@ -121,7 +121,11 @@ enum ParamIndex
     kParamDelayLowCut = 82,  // DELAY LOW CUT: OFF, 125, 250, 500 Hz (-3 dB/okt)
     kParamReverbType = 83,   // REVERB TYPE: PLATE, HALL, CHAMBER, ROOM (som MPX500:s banker)
     kParamBoost = 84,        // BOOST: SK30:s utgångssteg (MO = 3 x mixen, VR1), +9,5 dB, på som standard
-    kParamDelayMode = 85,    // DELAY: DIGI (Korg SDD-3000) eller TAPE (Roland Space Echo-stil)
+    kParamDelayMode = 85,    // DELAY: sex lägen (SDD-3000, Space Echo, Echoplex, Echorec, Memory Man)
+    kParamDelayDuck = 86,    // DELAY DUCK 0..100 %: ljudet duckar ekot där det spelar (frekvensvis, Trackspacer-stil)
+    kParamReverbDuck = 87,   // REVERB DUCK 0..100 %: samma för reverbet
+    kParamReverbHighCut = 88,// REVERB HIGH CUT: OFF, 8k, 4k, 2k (-12 dB/okt)
+    kParamReverbLowCut = 89, // REVERB LOW CUT: OFF, 125, 250, 500 Hz (-12 dB/okt)
     kNumParams
 };
 
@@ -137,7 +141,7 @@ static const char* const kParamNames[kNumParams] = {
     "SReso", "SMod", "SEGDep", "VCA", "SAttack", "SDecay", "SSusLvl", "SRelease", "TchVib", "TchBri",
     "TchMod", "SoloTun", "Split", "SplitPt", "BassPt",
     "DlyTime", "DlyFdbk", "DlyMod", "DlyLvl", "RevDcy", "RevLvl", "DlySpd", "DlyHiCt", "DlyLoCt", "RevType",
-    "Boost", "DlyMode"
+    "Boost", "DlyMode", "DlyDuck", "RevDuck", "RevHiCt", "RevLoCt"
 };
 static const char* const kParamLabels[kNumParams] = {
     "dB", "", "", "", "", "", "s", "", "cent", "s", "Hz", "cent", "dB", "", "Hz",
@@ -149,7 +153,7 @@ static const char* const kParamLabels[kNumParams] = {
     "Q", "oct", "oct", "", "s", "s", "", "s", "", "",
     "", "cent", "", "", "",
     "ms", "%", "", "dB", "s", "dB", "Hz", "", "", "",
-    "", ""
+    "", "", "%", "%", "", ""
 };
 
 inline double clamp01(double v) { return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); }
@@ -354,6 +358,10 @@ inline float defaultParam(int index)
     case kParamDelayLowCut: return 0.0f;                            // OFF
     case kParamReverbType:  return 0.0f;                            // PLATE
     case kParamBoost:       return 1.0f;
+    case kParamReverbHighCut: return 0.0f;                          // OFF
+    case kParamReverbLowCut:  return 0.0f;                          // OFF
+    case kParamDelayDuck:   return 0.0f;
+    case kParamReverbDuck:  return 0.0f;
     case kParamDelayMode:   return 0.0f;                            // DIGI (SDD-3000)                            // på (nivå i klass med andra syntar)
     case kParamDelayLevel:  return 0.0f;                            // av (torrt som originalet)
     case kParamReverbDecay: return (float)normFromReverbSec(3.0);
@@ -454,8 +462,11 @@ inline void paramDisplayText(int index, double n, char* out, size_t max)
     case kParamDelayFeedback: std::snprintf(out, max, "%.0f", 100.0 * delayFeedback(n)); break;
     case kParamDelayMod:    std::snprintf(out, max, "%.2f:1", delayModRatio(n)); break;
     case kParamDelaySpeed:  std::snprintf(out, max, delaySpeedHz(n) < 10.0 ? "%.2f" : "%.1f", delaySpeedHz(n)); break;
+    case kParamReverbHighCut: { static const char* const t[kNumHighCut] = { "OFF", "8k", "4k", "2k" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumHighCut)]); break; }
+    case kParamReverbLowCut: { static const char* const t[kNumLowCut] = { "OFF", "125", "250", "500" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumLowCut)]); break; }
     case kParamDelayHighCut: { static const char* const t[kNumHighCut] = { "OFF", "8k", "4k", "2k" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumHighCut)]); break; }
     case kParamDelayLowCut: { static const char* const t[kNumLowCut] = { "OFF", "125", "250", "500" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumLowCut)]); break; }
+    case kParamDelayDuck: case kParamReverbDuck: std::snprintf(out, max, "%.0f", 100.0 * clamp01(n)); break;
     case kParamDelayMode: { static const char* const t[kNumDelayModes] = { "DIGI", "TAPE", "TAPE 3 HEADS", "ECHOPLEX", "ECHOREC", "MEMORY MAN" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumDelayModes)]); break; }
     case kParamReverbType: { static const char* const t[kNumReverbTypes] = { "PLATE", "HALL", "CHAMBER", "ROOM", "AMBIENCE", "NONLIN", "SPRING", "PLATE 140", "HALL 224", "DIGITAL 250" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumReverbTypes)]); break; }
     case kParamDelayLevel: case kParamReverbLevel: {
@@ -535,6 +546,13 @@ struct Biquad
         const double w = 2.0 * kPi * fc / sr, c = std::cos(w), s = std::sin(w), al = s / (2.0 * q);
         const double a0 = 1.0 + al;
         b0 = (1.0 - c) * 0.5 / a0; b1 = (1.0 - c) / a0; b2 = b0;
+        a1 = -2.0 * c / a0; a2 = (1.0 - al) / a0;
+    }
+    void highpass(double fc, double q, double sr)
+    {
+        const double w = 2.0 * kPi * fc / sr, c = std::cos(w), s = std::sin(w), al = s / (2.0 * q);
+        const double a0 = 1.0 + al;
+        b0 = (1.0 + c) * 0.5 / a0; b1 = -(1.0 + c) / a0; b2 = b0;
         a1 = -2.0 * c / a0; a2 = (1.0 - al) / a0;
     }
     void highShelf(double fc, double gainDb, double slope, double sr)
@@ -1360,6 +1378,58 @@ struct PlateReverb
 };
 
 // ---------------------------------------------------------------------------
+// DUCK (i stil med Waves Factory Trackspacer): effektens utsignal delas i 16 frekvensband
+// och varje band sänks så mycket som det torra ljudet spelar i samma band. En basston
+// duckar alltså reverbets bas men inte diskanten. Banden delas genom subtraktion
+// (lågpass, resten går vidare), så att de summerar exakt till originalet.
+// ---------------------------------------------------------------------------
+struct BandSplit
+{
+    static const int kBands = 16;
+    Biquad lp[kBands - 1];
+    void prepare(double sr)
+    {
+        for (int i = 0; i < kBands - 1; ++i) {
+            const double fc = 60.0 * std::pow(12000.0 / 60.0, (double)i / (kBands - 2));   // 60 Hz .. 12 kHz
+            lp[i].lowpass(std::fmin(fc, sr * 0.45), 0.707, sr);
+        }
+        reset();
+    }
+    void reset() { for (int i = 0; i < kBands - 1; ++i) lp[i].reset(); }
+    void split(double x, double* b)
+    {
+        double rest = x;
+        for (int i = 0; i < kBands - 1; ++i) { b[i] = lp[i].process(rest); rest -= b[i]; }
+        b[kBands - 1] = rest;
+    }
+};
+
+struct SpectralDucker
+{
+    static const int kB = BandSplit::kBands;
+    BandSplit sl, sr2;
+    double gain[kB];
+    void prepare(double sr) { sl.prepare(sr); sr2.prepare(sr); reset(); }
+    void reset() { sl.reset(); sr2.reset(); for (int i = 0; i < kB; ++i) gain[i] = 1.0; }
+    // env[] = det torra ljudets nivå per band (gemensam för delay och reverb)
+    void process(double& l, double& r, const double* env, double amount, double downCoef, double upCoef)
+    {
+        double bl[kB], br[kB];
+        sl.split(l, bl); sr2.split(r, br);
+        double ol = 0.0, orr = 0.0;
+        for (int i = 0; i < kB; ++i) {
+            // -54 dBFS i bandet = ingen duckning, -14 dBFS och starkare = full (20 dB vid 100 %)
+            const double db = 20.0 * std::log10(env[i] + 1e-9);
+            double t = (db + 54.0) / 40.0; t = t < 0.0 ? 0.0 : (t > 1.0 ? 1.0 : t);
+            const double target = std::pow(10.0, -20.0 * amount * t / 20.0);
+            gain[i] += (target - gain[i]) * (target < gain[i] ? downCoef : upCoef);   // ner snabbt, upp mjukt
+            ol += bl[i] * gain[i]; orr += br[i] * gain[i];
+        }
+        l = ol; r = orr;
+    }
+};
+
+// ---------------------------------------------------------------------------
 // Säkerhetslimiter sist i kedjan: TrueSymph går aldrig över -0,3 dBFS.
 // 1,5 ms framförhållning (ingen överslängd), mjuk återgång på 150 ms.
 // ---------------------------------------------------------------------------
@@ -1457,6 +1527,10 @@ public:
         solo.prepare(sr);
         limiter.prepare(sr);
         delay.prepare(sr); reverb.prepare(sr);
+        duckSc.prepare(sr); dlyDucker.prepare(sr); revDucker.prepare(sr);
+        { const int h = revHiIdx, l = revLoIdx; revHiIdx = revLoIdx = -1; setReverbFiltersNorm(stepNorm(h < 0 ? 0 : h, kNumHighCut), stepNorm(l < 0 ? 0 : l, kNumLowCut)); }
+        duckAtk = 1.0 - std::exp(-1.0 / (0.005 * sr)); duckRel = 1.0 - std::exp(-1.0 / (0.040 * sr));   // nivåmätningen
+        duckDown = 1.0 - std::exp(-1.0 / (0.010 * sr)); duckUp = 1.0 - std::exp(-1.0 / (0.250 * sr));     // duckningen: 10 ms ner, 250 ms upp
         delay.setFilters(1, 0); reverb.setType(0);        // standard: HIGH CUT 8k, PLATE
         dcBlock.set(5.0, sr);
         paramSmooth = 1.0 - std::exp(-1.0 / (0.02 * sr));
@@ -1502,6 +1576,9 @@ public:
         hp4to8.reset(); hp8to16.reset(); hpOut4.reset();
         brill.reset(); ensemble.reset(); dcBlock.reset(); limiter.reset();
         delay.reset(); reverb.reset();
+        duckSc.reset(); dlyDucker.reset(); revDucker.reset();
+        revHiL.reset(); revHiR.reset(); revLoL.reset(); revLoR.reset();
+        for (int i = 0; i < BandSplit::kBands; ++i) duckEnv[i] = 0.0;
         dlyActive = 0; revActive = 0; dlyLevelSm = dlyLevelTarget; revLevelSm = revLevelTarget;
         vibPhase = 0.0; vibTime = 0.0;
         sustainPedal = false;
@@ -1592,6 +1669,12 @@ public:
     void setReverbLevelNorm(double n) { const double db = revLevelDb(n); revLevelTarget = db <= -100.0 ? 0.0 : std::pow(10.0, db / 20.0); }
     void setDelaySpeedNorm(double n)  { dlySpeed = delaySpeedHz(n); }
     void setDelayFiltersNorm(double hi, double lo) { delay.setFilters(stepIndex(hi, kNumHighCut), stepIndex(lo, kNumLowCut)); }
+    void setReverbFiltersNorm(double hi, double lo)
+    {
+        const int h = stepIndex(hi, kNumHighCut), l = stepIndex(lo, kNumLowCut);
+        if (h != revHiIdx) { revHiIdx = h; if (h > 0) { revHiL.lowpass(kHighCutHz[h], 0.707, sr); revHiR.lowpass(kHighCutHz[h], 0.707, sr); } }
+        if (l != revLoIdx) { revLoIdx = l; if (l > 0) { revLoL.highpass(kLowCutHz[l], 0.707, sr); revLoR.highpass(kLowCutHz[l], 0.707, sr); } }
+    }
     void setReverbTypeNorm(double n)  { reverb.setType(stepIndex(n, kNumReverbTypes)); }
     void setDelayModeNorm(double n)   { delay.setMode(stepIndex(n, kNumDelayModes)); }
     void setBassPointNorm(double n)   { const int b = splitNote(n); if (b != bassPoint) { bassPoint = b; updateSolo(false); } }
@@ -1671,9 +1754,11 @@ public:
         setReverbLevelNorm(v[kParamReverbLevel]);
         setDelaySpeedNorm(v[kParamDelaySpeed]);
         setDelayFiltersNorm(v[kParamDelayHighCut], v[kParamDelayLowCut]);
+        setReverbFiltersNorm(v[kParamReverbHighCut], v[kParamReverbLowCut]);
         setReverbTypeNorm(v[kParamReverbType]);
         boostTarget = isOn(v[kParamBoost]) ? kBoostGain : 1.0;
         setDelayModeNorm(v[kParamDelayMode]);
+        dlyDuckAmt = clamp01(v[kParamDelayDuck]); revDuckAmt = clamp01(v[kParamReverbDuck]);
     }
 
     // --- MIDI --------------------------------------------------------------
@@ -1886,9 +1971,20 @@ public:
         dlyLevelSm += paramSmooth * (dlyLevelTarget - dlyLevelSm);
         revLevelSm += paramSmooth * (revLevelTarget - revLevelSm);
         double l = out, r = out;
+        // DUCK: mät det torra ljudet per frekvensband (bara när någon DUCK är på)
+        const bool ducking = dlyDuckAmt > 0.0 || revDuckAmt > 0.0;
+        if (ducking) {
+            double b[BandSplit::kBands];
+            duckSc.split(out, b);
+            for (int i = 0; i < BandSplit::kBands; ++i) {
+                const double a = std::fabs(b[i]);
+                duckEnv[i] += (a > duckEnv[i] ? duckAtk : duckRel) * (a - duckEnv[i]);
+            }
+        }
         if (dlyLevelSm > 1e-5 || dlyLevelTarget > 0.0 || dlyActive > 0) {
             double wl, wr;
             delay.process(out, dlyTime, dlyFeedback, delayModRatio(dlyMod), dlySpeed, wl, wr);
+            if (dlyDuckAmt > 0.0) dlyDucker.process(wl, wr, duckEnv, dlyDuckAmt, duckDown, duckUp);
             l += wl * dlyLevelSm; r += wr * dlyLevelSm;
             dlyActive = (dlyLevelTarget > 0.0) ? (int)(sr * 8.0) : dlyActive - 1;   // låt ekona klinga ut innan den stängs av
         }
@@ -1897,6 +1993,9 @@ public:
             reverb.process(0.5 * (l + r), revDecay, rl, rr);
             // Nivån kalibrerad så att LEVEL på max ger ungefär lika mycket reverb som torrt
             // ljud (inte +5..7 dB som förut), och lika stark klang oavsett DECAY.
+            if (revHiIdx > 0) { rl = revHiL.process(rl); rr = revHiR.process(rr); }
+            if (revLoIdx > 0) { rl = revLoL.process(rl); rr = revLoR.process(rr); }
+            if (revDuckAmt > 0.0) revDucker.process(rl, rr, duckEnv, revDuckAmt, duckDown, duckUp);
             const double rg = revLevelSm * kReverbTrim * reverb.levelComp(revDecay);
             l += rl * rg; r += rr * rg;
             revActive = (revLevelTarget > 0.0) ? (int)(sr * (revDecay + 1.0)) : revActive - 1;
@@ -2192,6 +2291,13 @@ private:
     double cOrgDecay = 0.0, cOrgRel = 0.0, cAttack = 0.0, cRelease = 0.0;
     double orgVolSmoothed = 1.0, masterSmoothed = 1.0, orgTe = 0.0;
     double boostTarget = kBoostGain, boostSm = kBoostGain, exprTarget = 1.0, exprSm = 1.0;
+    // DUCK: det torra ljudets nivå per band (snabb attack, mjuk release) och duckers för delay och reverb
+    Biquad revHiL, revHiR, revLoL, revLoR;          // REVERB HIGH/LOW CUT på klangen
+    int revHiIdx = 0, revLoIdx = 0;
+    BandSplit duckSc;
+    SpectralDucker dlyDucker, revDucker;
+    double duckEnv[BandSplit::kBands] = {};
+    double dlyDuckAmt = 0.0, revDuckAmt = 0.0, duckAtk = 0.0, duckRel = 0.0, duckDown = 0.0, duckUp = 0.0;
     OrganToneFilter orgFilter[kNumFootages];
     OnePoleHP percHp[3];
     Biquad orgBrill;

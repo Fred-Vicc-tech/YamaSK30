@@ -6,7 +6,7 @@ Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
 Efterliknar Yamaha SK30 (1979–80), byggt efter SK30:s servicemanual.
 Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, manual bass och keyboard split. Byggare: **2F Productions** (info@2f.se).
 
-## Status: 0.9.5 – sex delaylägen och tio reverbtyper från 70/80-talet; TAPE-delay, AMBIENCE/NONLIN-reverb; effektreglage med användbar skala; genomgång mot servicemanualen: BOOST (+9,5 dB), översta tangenten, delningspunkter, vibratodelay, fotpedaler
+## Status: 0.9.8 – DUCK (Trackspacer-stil) och HIGH/LOW CUT på reverbet; sex delaylägen och tio reverbtyper från 70/80-talet; TAPE-delay, AMBIENCE/NONLIN-reverb; effektreglage med användbar skala; genomgång mot servicemanualen: BOOST (+9,5 dB), översta tangenten, delningspunkter, vibratodelay, fotpedaler
 
 | Funktion | Status |
 |---|---|
@@ -35,7 +35,7 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | ORGAN TREMOLO / ORGAN ENSEMBLE (samma TE-kort, ensemble har prioritet) | Klar, automatiskt testad |
 | MASTER VOLUME; STRING VOLUME gäller nu bara stråkarna | Klar, automatiskt testad |
 | Etapp 3 i Live | Användaren testar |
-| SOLO SYNTHESIZER: VCO (FEET 4'–64', WAVE, PW 50–85 % via LFO/MANUAL/EG) | Klar, automatiskt testad |
+| SOLO SYNTHESIZER: VCO (FEET 4'–64', WAVE, PW 50–89 % via LFO/MANUAL/EG) | Klar, automatiskt testad |
 | Solo-VCF med tangentföljning, MODULATION, EG DEPTH; VCA HOLD/GATE/EG; ADSR | Klar, automatiskt testad |
 | LFO 0,1–100 Hz, PORTAMENTO (0–3 s per tre oktaver), GLIDE (±1 oktav, 70 ms), SOLO TUNE | Klar, automatiskt testad |
 | TOUCH VIBRATO / BRILLIANCE / MODULATION (aftertouch eller modulationshjul) | Klar, automatiskt testad |
@@ -124,7 +124,7 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | 53 | Glide | GLIDE DEPTH | −12…+12 halvtoner (mitten = av) |
 | 54 | SFeet | VCO FEET | 4', 5 1/3', 8', 16', 32', 64' |
 | 55 | SWave | WAVE | sågtand → fyrkant |
-| 56 | SPW | PW | 50–85 % |
+| 56 | SPW | PW | 50–89 % |
 | 57 | PWSrc | PW-väljaren | LFO, MANUAL, EG |
 | 58 | SCutoff | VCF CUTOFF FREQ | 20 Hz–20 kHz |
 | 59 | SReso | VCF RESONANCE | Q 0,5–10 |
@@ -149,6 +149,10 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | 83 | RevType | REVERB TYPE | PLATE, HALL, CHAMBER, ROOM (MPX500), AMBIENCE, NONLIN (RMX16), SPRING, PLATE 140 (EMT 140), HALL 224 (Lexicon 224), DIGITAL 250 (EMT 250) |
 | 84 | Boost | BOOST (SK30:s utgångssteg, efter effekterna) | på (+9,5 dB) / av |
 | 85 | DlyMode | DELAY-läge | DIGI (SDD-3000), TAPE, TAPE 3 HEADS (Space Echo), ECHOPLEX, ECHOREC, MEMORY MAN |
+| 86 | DlyDuck | DELAY DUCK | 0–100 % (frekvensvis duckning, Trackspacer-stil) |
+| 87 | RevDuck | REVERB DUCK | 0–100 % |
+| 88 | RevHiCt | REVERB HIGH CUT | OFF, 8k, 4k, 2k (−12 dB/okt) |
+| 89 | RevLoCt | REVERB LOW CUT | OFF, 125, 250, 500 Hz (−12 dB/okt) |
 
 Reglagen 18–24 gäller bara i POLY-SYNTH MANUAL, och tone levers bara i ORGAN MANUAL.
 
@@ -197,7 +201,7 @@ ENSEMBLE och TREMOLO gäller både stråkar och poly-synth, precis som på SK30.
   ORGAN 3 = alla nio. Slagverket (2nd = 4', 3rd = 2 2/3', 5th = 1 3/5') har en
   gemensam envelope (15 µF genom 2,7k + DECAY TIME) som startar om vid varje ny tangent.
 - **Solosynt (CPB 7/9):** en analog VCO (lite långsam drift) med fotlägen 4'–64',
-  sågtand som blandas mot fyrkant, PW 50–85 %. VCF med tangentföljning (KV), samma
+  sågtand som blandas mot fyrkant, PW 50–89 %. VCF med tangentföljning (KV), samma
   filtertyp som poly-synthen. Högsta tonen har företräde (NORMAL), lägsta i BASS och
   MANUAL BASS. Ny tangent ger ny attack, tillbaka till en hållen ton ger legato.
   Solosynten har egen utgång och går inte genom ensemble/tremolo.

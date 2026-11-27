@@ -956,6 +956,64 @@ int main()
         check(cen[1] < cen[0] * 0.85, "MEMORY MAN: morkare eko an DIGI");
     }
 
+    // 0.9.8: DUCK (Trackspacer-stil): reverbet viker undan där ljudet spelar och kommer tillbaka efteråt
+    {
+        auto run = [&](double lvl, double duck, int note) {
+            Engine e; e.prepare(sr);
+            float pv[kNumParams]; for (int i = 0; i < kNumParams; ++i) pv[i] = defaultParam(i);
+            pv[kParamBoost] = 0.0f; pv[kParamReverbLevel] = (float)lvl; pv[kParamReverbDuck] = (float)duck;
+            pv[kParamReverbDecay] = (float)normFromReverbSec(3.0); pv[kParamSustain] = 0.0f;
+            e.setParams(pv); e.reset();
+            const int ch[4] = { note, note + 3, note + 7, note + 12 };
+            for (int n : ch) e.handleMidi(0x90, n, 100);
+            std::vector<double> L; double l, r;
+            for (int i = 0; i < (int)(2.0 * sr); ++i) { e.nextStereo(l, r); L.push_back(0.5 * (l + r)); }
+            for (int n : ch) e.handleMidi(0x80, n, 0);
+            for (int i = 0; i < (int)(1.5 * sr); ++i) { e.nextStereo(l, r); L.push_back(0.5 * (l + r)); }
+            return L;
+        };
+        const double lv = normFromRevDb(0.0);
+        std::vector<double> d = run(0.0, 0.0, 45), a = run(lv, 0.0, 45), b = run(lv, 1.0, 45);
+        std::vector<double> wa(d.size()), wb(d.size());
+        for (size_t i = 0; i < d.size(); ++i) { wa[i] = a[i] - d[i]; wb[i] = b[i] - d[i]; }
+        const double during = 20.0 * std::log10(rms(wb, (size_t)(1.0 * sr), (size_t)(1.9 * sr)) / rms(wa, (size_t)(1.0 * sr), (size_t)(1.9 * sr)));
+        const double after = 20.0 * std::log10(rms(wb, (size_t)(2.9 * sr), (size_t)(3.4 * sr)) / rms(wa, (size_t)(2.9 * sr), (size_t)(3.4 * sr)));
+        check(during < -12.0, "REVERB DUCK 100 %: reverbet duckar medan ackordet spelar");
+        check(after > -1.5, "REVERB DUCK: reverbet kommer tillbaka efter att tonerna slappts");
+        check(centroid(wb, (size_t)(1.2 * sr), 4096, sr) > 1.3 * centroid(wa, (size_t)(1.2 * sr), 4096, sr),
+              "REVERB DUCK: frekvensvis (lagt ackord duckar basen mer an diskanten)");
+        std::vector<double> z = run(lv, 0.0, 45);
+        double diff = 0.0; for (size_t i = 0; i < z.size(); ++i) diff = std::fmax(diff, std::fabs(z[i] - a[i]));
+        check(diff == 0.0, "DUCK 0 %: ljudet exakt som utan duckning");
+        BandSplit bs; bs.prepare(sr); double bands[BandSplit::kBands], worst = 0.0;
+        for (int i = 0; i < 2000; ++i) { const double x = std::sin(0.05 * i) + 0.3 * std::sin(0.9 * i); bs.split(x, bands);
+            double sum = 0.0; for (double v : bands) sum += v; worst = std::fmax(worst, std::fabs(sum - x)); }
+        check(worst < 1e-9, "DUCK: banden summerar exakt till originalet");
+    }
+
+    // 0.9.8: REVERB HIGH CUT och LOW CUT
+    {
+        auto wet = [&](int hi, int lo) {
+            std::vector<double> out[2];
+            for (int k = 0; k < 2; ++k) {
+                Engine e; e.prepare(sr);
+                float pv[kNumParams]; for (int i = 0; i < kNumParams; ++i) pv[i] = defaultParam(i);
+                pv[kParamBoost] = 0.0f; pv[kParamReverbLevel] = k ? 1.0f : 0.0f;
+                pv[kParamReverbHighCut] = (float)stepNorm(hi, kNumHighCut); pv[kParamReverbLowCut] = (float)stepNorm(lo, kNumLowCut);
+                e.setParams(pv); e.reset();
+                e.handleMidi(0x90, 48, 100); e.handleMidi(0x90, 72, 100);
+                double l, r; for (int i = 0; i < (int)(1.5 * sr); ++i) { e.nextStereo(l, r); out[k].push_back(0.5 * (l + r)); }
+            }
+            for (size_t i = 0; i < out[0].size(); ++i) out[1][i] -= out[0][i];
+            return out[1];
+        };
+        std::vector<double> plain0 = wet(0, 0), hc = wet(3, 0), lc = wet(0, 3);
+        const double c0 = centroid(plain0, (size_t)(0.8 * sr), 4096, sr);
+        check(centroid(hc, (size_t)(0.8 * sr), 4096, sr) < 0.8 * c0, "REVERB HIGH CUT 2k: morkare klang");
+        check(centroid(lc, (size_t)(0.8 * sr), 4096, sr) > 1.1 * c0, "REVERB LOW CUT 500: tunnare klang");
+        check(finite(hc) && finite(lc), "REVERB HIGH/LOW CUT: inga ogiltiga tal");
+    }
+
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);
     return failures ? 1 : 0;
 }

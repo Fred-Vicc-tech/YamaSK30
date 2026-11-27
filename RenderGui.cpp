@@ -18,6 +18,8 @@ int main()
     busy.setParam(truesymph::kParamTouchVib, 1.0f);
     busy.setParam(truesymph::kParamDelayLevel, 0.6f);
     busy.setParam(truesymph::kParamReverbLevel, 0.7f);
+    busy.setParam(truesymph::kParamReverbDuck, 0.5f);
+    busy.setParam(truesymph::kParamReverbHighCut, (float)truesymph::stepNorm(1, truesymph::kNumHighCut));
     busy.setParam(truesymph::kParamDelayMode, (float)truesymph::stepNorm(truesymph::kDlyTape3, truesymph::kNumDelayModes));
     busy.setParam(truesymph::kParamReverbType, (float)truesymph::stepNorm(truesymph::kRevAmbience, truesymph::kNumReverbTypes));
     const bool c = truesymph::editorRenderPng(&busy, false, L"TrueSymph_front2.png");

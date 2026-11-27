@@ -1,5 +1,11 @@
 # Ändringslogg
 
+## 0.9.8 (2026-11-27)
+- DUCK för delay och reverb (i stil med Waves Factory Trackspacer): effekten delas i 16 frekvensband och
+  varje band sänks så mycket som ljudet spelar där (upp till 20 dB), 10 ms ner och 250 ms tillbaka.
+- REVERB HIGH CUT (8k/4k/2k) och LOW CUT (125/250/500 Hz), 12 dB/okt.
+- Fönstret 1470 px brett; OUTPUT och PITCH smalare så att EFFECTS får plats med de nya reglagen.
+
 ## 0.9.7 (2026-11-27)
 - Rattarna: visaren lika tunn som strecket på skjutreglagen (1,5 px), den svarta ramen hälften så smal (2 px).
 

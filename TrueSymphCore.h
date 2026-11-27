@@ -19,7 +19,7 @@
 
 namespace truesymph {
 
-const int kEditorWidth = 1430, kEditorHeight = 710;
+const int kEditorWidth = 1470, kEditorHeight = 710;
 const uint32_t kStateVersion = 4;        // 2 = LEVEL med ljudtaper (0.9.1), 3 = sex reverbtyper (0.9.2), 4 = tio reverbtyper och sex delaylägen (0.9.5)
 const int kMaxQueuedEvents = 1024;
 

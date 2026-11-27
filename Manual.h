@@ -98,6 +98,10 @@ static const ManualPara kManualEng[] = {
                 L"PLATE, HALL, CHAMBER and ROOM: PLATE bright and dense, HALL large and clean, CHAMBER even, ROOM small. "
                 L"SPRING is the bouncy, metallic spring tank. PLATE 140 is a real steel plate, softer and darker. HALL 224 is a dark, "
                 L"smooth hall with a slowly moving tail. DIGITAL 250 is an early digital studio reverb with a little grain. "
+                L"REVERB HIGH CUT (8k/4k/2k) and LOW CUT (125/250/500 Hz) make the reverb darker or thinner. "
+                L"DUCK (delay and reverb, 0-100 %) works like Trackspacer: the effect is split into 16 frequency bands and each band "
+                L"is turned down as much as TrueSymph plays in that band (up to 20 dB at 100 %), so the effect steps aside while you "
+                L"play and fills the gaps between notes. A bass note ducks the reverb's low end but leaves the shimmer. "
                 L"REVERB TYPE AMBIENCE is a short, dense sense of space with almost no tail (DECAY sets its length, about a fifth of the "
                 L"value shown). NONLIN is the gated 80s reverb: an even burst that stops abruptly; DECAY sets the gate time (one tenth "
                 L"of the value shown, 0.06-0.8 s)." },
@@ -205,6 +209,10 @@ static const ManualPara kManualSwe[] = {
                 L"PLATE, HALL, CHAMBER och ROOM: PLATE ljus och tät, HALL stor och ren, CHAMBER jämn, ROOM liten. "
                 L"SPRING är den studsiga, metalliska fjädertanken. PLATE 140 är en äkta stålplatta, mjukare och mörkare. HALL 224 är "
                 L"en mörk, mjuk hall med en långsamt svajande svans. DIGITAL 250 är en tidig digital studioreverb med lite gryn. "
+                L"REVERB HIGH CUT (8k/4k/2k) och LOW CUT (125/250/500 Hz) gör klangen mörkare eller tunnare. "
+                L"DUCK (delay och reverb, 0-100 %) fungerar som Trackspacer: effekten delas i 16 frekvensband och varje band sänks "
+                L"så mycket som TrueSymph spelar i det bandet (upp till 20 dB vid 100 %), så att effekten viker undan när du spelar "
+                L"och fyller i mellan tonerna. En baston duckar reverbets bas men låter glansen vara kvar. "
                 L"REVERB TYPE AMBIENCE är en kort, tät rymdkänsla nästan utan svans (DECAY styr längden, ungefär en femtedel av "
                 L"visat värde). NONLIN är 80-talets grindade reverb: en jämn skur som tar tvärt slut; DECAY styr grindtiden (en "
                 L"tiondel av visat värde, 0,06-0,8 s)." },
