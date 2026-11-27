@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.7.0";
+const wchar_t* const kVersionText = L"v0.8.0";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -157,7 +157,14 @@ struct Editor
     bool tracking = false;
     bool overLogo(int x, int y) const { return x >= 15 && x <= logoRight && y >= 4 && y <= 50; }
 
+    // Ritcache: panelen (allt utom nivåmätaren) ritas bara om när något på den
+    // ändrats. Mätaren ritas ovanpå 25 ggr/s. Sparar mycket CPU i Live.
+    Gdiplus::Bitmap* cache = nullptr;
+    unsigned long long cacheSig = 0;
+    int cacheW = 0, cacheH = 0;
+
     Editor() { build(); }
+    ~Editor() { delete cache; }
 
     void fader(int param, float x, float y, const wchar_t* label, int cap = kCapCream, int steps = 0)
     {
@@ -722,19 +729,59 @@ void paintBack(Editor* ed, Graphics& g, const FontFamily& ff)
 // ---------------------------------------------------------------------------
 // Framsidan
 // ---------------------------------------------------------------------------
-void paint(Editor* ed, HDC hdc, int width, int height)
+// Nivåmätarens område (ritas om för sig)
+const int kMeterX0 = 1156, kMeterY0 = 26, kMeterX1 = 1266, kMeterY1 = 58;
+
+void paintMeter(Editor* ed, Graphics& g, const FontFamily& ff)
 {
     Core* p = ed->plugin;
-    if (width <= 0 || height <= 0) return;
+    wchar_t txt[96];
+    const float pk = p->peak.exchange(0.0f);
+    ed->peakShown = pk > ed->peakShown ? pk : ed->peakShown * 0.80f;
+    // Utnivå (dBFS, som i Live) och limiterns lampa
+    {
+        const float mx = 1162.0f, my = 30.0f, mw = 98.0f, mh = 8.0f;
+        const double db = ed->peakShown > 1e-6f ? 20.0 * std::log10(ed->peakShown) : -100.0;
+        if (db > ed->peakHoldDb || GetTickCount() > ed->peakHoldUntil) { ed->peakHoldDb = db; ed->peakHoldUntil = GetTickCount() + 1500; }
+        const float lr = p->limitDb.exchange(0.0f);
+        if (lr > 0.5f) ed->limitUntil = GetTickCount() + 800;
+        SolidBrush back(Color(255, 6, 7, 8));
+        g.FillRectangle(&back, mx, my, mw, mh);
+        auto frac = [](double d) { double t = (d + 48.0) / 48.0; return (float)(t < 0.0 ? 0.0 : (t > 1.0 ? 1.0 : t)); };
+        const float f = frac(db);
+        SolidBrush bar(db > -6.0 ? kGold : kCyan);
+        g.FillRectangle(&bar, mx, my, mw * f, mh);
+        Pen holdPen(kText, 1.5f);
+        if (ed->peakHoldDb > -48.0) { const float hx = mx + mw * frac(ed->peakHoldDb); g.DrawLine(&holdPen, hx, my - 1.0f, hx, my + mh + 1.0f); }
+        Pen edgeP(Color(255, 70, 74, 80), 1.0f);
+        g.DrawRectangle(&edgeP, mx, my, mw, mh);
+        if (ed->peakHoldDb > -100.0) swprintf(txt, 96, L"%.1f dB", ed->peakHoldDb); else swprintf(txt, 96, L"-inf dB");
+        drawText(g, txt, ff, 11, FontStyleBold, kTextDim, mx - 3.0f, my + mh + 3.0f, 60.0f, StringAlignmentNear);
+        const bool lim = GetTickCount() < ed->limitUntil;
+        drawText(g, L"LIMIT", ff, 11, FontStyleBold, lim ? Color(255, 255, 70, 50) : Color(255, 50, 54, 58), mx + 52.0f, my + mh + 3.0f, 46.0f, StringAlignmentFar);
+    }
 
-    Bitmap buffer(width, height, PixelFormat32bppPARGB);
-    Graphics g(&buffer);
-    g.SetSmoothingMode(SmoothingModeAntiAlias);
-    g.SetTextRenderingHint(TextRenderingHintAntiAliasGridFit);
+}
 
-    FontFamily segoe(L"Segoe UI");   // finns i Windows 7
-    FontFamily arial(L"Arial");
-    const FontFamily& ff = segoe.IsAvailable() ? segoe : arial;
+// Allt som visas utom mätaren -> en kontrollsumma. Ändras den ritas panelen om.
+unsigned long long panelSignature(const Editor* ed)
+{
+    unsigned long long h = 1469598103934665603ull;
+    auto mix = [&h](const void* d, size_t n) { const unsigned char* b = (const unsigned char*)d; for (size_t i = 0; i < n; ++i) { h ^= b[i]; h *= 1099511628211ull; } };
+    const Core* p = ed->plugin;
+    for (int i = 0; i < kNumParams; ++i) { const float v = p->params[i].load(); mix(&v, sizeof v); }
+    const int sn = p->soloNote.load();
+    const int ints[] = { ed->hoverParam, ed->dragCtl, ed->lastParam, sn, ed->showBack ? 1 : 0, ed->swedish ? 1 : 0, ed->dragThumb ? 1 : 0 };
+    mix(ints, sizeof ints);
+    mix(&ed->scroll, sizeof ed->scroll);
+    mix(&ed->contentH, sizeof ed->contentH);
+    mix(p->presetName, std::strlen(p->presetName));
+    return h;
+}
+
+void paintPanel(Editor* ed, Graphics& g, int width, int height, const FontFamily& ff)
+{
+    Core* p = ed->plugin;
 
     LinearGradientBrush bg(Point(0, 0), Point(0, height), kBgTop, kBgBottom);
     g.FillRectangle(&bg, 0, 0, width, height);
@@ -743,9 +790,6 @@ void paint(Editor* ed, HDC hdc, int width, int height)
 
     float pv[kNumParams];
     for (int i = 0; i < kNumParams; ++i) pv[i] = p->params[i].load();
-
-    const float pk = p->peak.exchange(0.0f);
-    ed->peakShown = pk > ed->peakShown ? pk : ed->peakShown * 0.80f;
 
     // --- Header: logga, display, PRESET, version ---
     {
@@ -798,33 +842,8 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     drawFlatButton(g, ff, ed->btnSave, L"SAVE");
     drawFlatButton(g, ff, ed->btnLoad, L"LOAD");
     drawText(g, kVersionText, ff, 12, FontStyleRegular, kTextDim, 1170.0f, 8.0f, 92.0f, StringAlignmentFar);
-    // Utnivå (dBFS, som i Live) och limiterns lampa
-    {
-        const float mx = 1162.0f, my = 30.0f, mw = 98.0f, mh = 8.0f;
-        const double db = ed->peakShown > 1e-6f ? 20.0 * std::log10(ed->peakShown) : -100.0;
-        if (db > ed->peakHoldDb || GetTickCount() > ed->peakHoldUntil) { ed->peakHoldDb = db; ed->peakHoldUntil = GetTickCount() + 1500; }
-        const float lr = p->limitDb.exchange(0.0f);
-        if (lr > 0.5f) ed->limitUntil = GetTickCount() + 800;
-        SolidBrush back(Color(255, 6, 7, 8));
-        g.FillRectangle(&back, mx, my, mw, mh);
-        auto frac = [](double d) { double t = (d + 48.0) / 48.0; return (float)(t < 0.0 ? 0.0 : (t > 1.0 ? 1.0 : t)); };
-        const float f = frac(db);
-        SolidBrush bar(db > -6.0 ? kGold : kCyan);
-        g.FillRectangle(&bar, mx, my, mw * f, mh);
-        Pen holdPen(kText, 1.5f);
-        if (ed->peakHoldDb > -48.0) { const float hx = mx + mw * frac(ed->peakHoldDb); g.DrawLine(&holdPen, hx, my - 1.0f, hx, my + mh + 1.0f); }
-        Pen edgeP(Color(255, 70, 74, 80), 1.0f);
-        g.DrawRectangle(&edgeP, mx, my, mw, mh);
-        if (ed->peakHoldDb > -100.0) swprintf(txt, 96, L"%.1f dB", ed->peakHoldDb); else swprintf(txt, 96, L"-inf dB");
-        drawText(g, txt, ff, 11, FontStyleBold, kTextDim, mx - 3.0f, my + mh + 3.0f, 60.0f, StringAlignmentNear);
-        const bool lim = GetTickCount() < ed->limitUntil;
-        drawText(g, L"LIMIT", ff, 11, FontStyleBold, lim ? Color(255, 255, 70, 50) : Color(255, 50, 54, 58), mx + 52.0f, my + mh + 3.0f, 46.0f, StringAlignmentFar);
-    }
-
     if (ed->showBack) {
         paintBack(ed, g, ff);
-        Graphics screen(hdc);
-        screen.DrawImage(&buffer, 0, 0, width, height);
         return;
     }
 
@@ -880,8 +899,53 @@ void paint(Editor* ed, HDC hdc, int width, int height)
                  ed->splitNext.x - ed->splitPrev.x - 18.0f, StringAlignmentCenter);
     }
 
+}
+
+void paint(Editor* ed, HDC hdc, int width, int height, const RECT* dirty = nullptr)
+{
+    if (width <= 0 || height <= 0) return;
+    FontFamily segoe(L"Segoe UI");   // finns i Windows 7
+    FontFamily arial(L"Arial");
+    const FontFamily& ff = segoe.IsAvailable() ? segoe : arial;
+
+    const unsigned long long sig = panelSignature(ed);
+    const bool rebuild = !ed->cache || sig != ed->cacheSig || width != ed->cacheW || height != ed->cacheH;
+    if (rebuild) {
+        delete ed->cache;
+        ed->cache = new (std::nothrow) Bitmap(width, height, PixelFormat32bppPARGB);
+        if (!ed->cache) return;
+        Graphics g(ed->cache);
+        g.SetSmoothingMode(SmoothingModeAntiAlias);
+        g.SetTextRenderingHint(TextRenderingHintAntiAliasGridFit);
+        paintPanel(ed, g, width, height, ff);
+        ed->cacheSig = panelSignature(ed);     // paintBack kan ha räknat ut contentH
+        ed->cacheW = width; ed->cacheH = height;
+        // Bara mätaren var ogiltig men panelen ändrades: be om en hel omritning
+        if (dirty && ed->hwnd && (dirty->left > 0 || dirty->top > 0 || dirty->right < width || dirty->bottom < height))
+            InvalidateRect(ed->hwnd, nullptr, FALSE);
+    }
+
+    // Mätaren: panelens bakgrund + staplar i en liten bild
+    const int mw = kMeterX1 - kMeterX0, mh = kMeterY1 - kMeterY0;
+    Bitmap meter(mw, mh, PixelFormat32bppPARGB);
+    {
+        Graphics gm(&meter);
+        gm.DrawImage(ed->cache, Rect(0, 0, mw, mh), kMeterX0, kMeterY0, mw, mh, UnitPixel);
+        gm.SetSmoothingMode(SmoothingModeAntiAlias);
+        gm.SetTextRenderingHint(TextRenderingHintAntiAliasGridFit);
+        gm.TranslateTransform((REAL)-kMeterX0, (REAL)-kMeterY0);
+        paintMeter(ed, gm, ff);
+    }
+
     Graphics screen(hdc);
-    screen.DrawImage(&buffer, 0, 0, width, height);
+    RECT r = { 0, 0, width, height };
+    if (dirty && !rebuild) r = *dirty;
+    const bool onlyMeter = r.left >= kMeterX0 && r.top >= kMeterY0 && r.right <= kMeterX1 && r.bottom <= kMeterY1;
+    if (!onlyMeter) {
+        const int w = r.right - r.left, h = r.bottom - r.top;
+        if (w > 0 && h > 0) screen.DrawImage(ed->cache, Rect(r.left, r.top, w, h), r.left, r.top, w, h, UnitPixel);
+    }
+    screen.DrawImage(&meter, kMeterX0, kMeterY0, mw, mh);
 }
 
 // ---------------------------------------------------------------------------
@@ -1175,7 +1239,11 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         return 0;
     }
     case WM_TIMER:
-        InvalidateRect(hwnd, nullptr, FALSE);
+        // Bara mätaren ritas om, om inget annat har ändrats
+        if (ed && ed->cache && panelSignature(ed) == ed->cacheSig) {
+            RECT mr = { kMeterX0, kMeterY0, kMeterX1, kMeterY1 };
+            InvalidateRect(hwnd, &mr, FALSE);
+        } else InvalidateRect(hwnd, nullptr, FALSE);
         return 0;
     case WM_ERASEBKGND:
         return 1;
@@ -1184,7 +1252,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         HDC hdc = BeginPaint(hwnd, &ps);
         if (ed) {
             RECT rc; GetClientRect(hwnd, &rc);
-            paint(ed, hdc, rc.right - rc.left, rc.bottom - rc.top);
+            paint(ed, hdc, rc.right - rc.left, rc.bottom - rc.top, &ps.rcPaint);
         }
         EndPaint(hwnd, &ps);
         return 0;
@@ -1373,6 +1441,35 @@ void editorClose(Core* p)
         GdiplusShutdown(g_gdiplusToken);
         g_gdiplusToken = 0;
     }
+}
+
+// Mäter ritningens tid (ms per bild): hel panel resp. bara mätaren.
+void editorBenchPaint(Core* core, int frames, double* fullMs, double* meterMs)
+{
+    GdiplusStartupInput input;
+    ULONG_PTR token = 0;
+    *fullMs = *meterMs = -1.0;
+    if (GdiplusStartup(&token, &input, nullptr) != Ok) return;
+    {
+        Editor ed;
+        ed.plugin = core;
+        HDC screen = GetDC(nullptr);
+        HDC mem = CreateCompatibleDC(screen);
+        HBITMAP bmp = CreateCompatibleBitmap(screen, kEditorWidth, kEditorHeight);
+        HGDIOBJ old = SelectObject(mem, bmp);
+        LARGE_INTEGER f, a, b; QueryPerformanceFrequency(&f);
+        QueryPerformanceCounter(&a);
+        for (int i = 0; i < frames; ++i) { ed.cacheSig ^= 1; paint(&ed, mem, kEditorWidth, kEditorHeight); }
+        GdiFlush(); QueryPerformanceCounter(&b);
+        *fullMs = 1000.0 * (b.QuadPart - a.QuadPart) / f.QuadPart / frames;
+        RECT mr = { kMeterX0, kMeterY0, kMeterX1, kMeterY1 };
+        QueryPerformanceCounter(&a);
+        for (int i = 0; i < frames; ++i) paint(&ed, mem, kEditorWidth, kEditorHeight, &mr);
+        GdiFlush(); QueryPerformanceCounter(&b);
+        *meterMs = 1000.0 * (b.QuadPart - a.QuadPart) / f.QuadPart / frames;
+        SelectObject(mem, old); DeleteObject(bmp); DeleteDC(mem); ReleaseDC(nullptr, screen);
+    }
+    GdiplusShutdown(token);
 }
 
 // Ritar fönstret (framsida eller baksida) till en PNG-fil utan att öppna något

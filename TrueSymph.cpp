@@ -22,7 +22,7 @@ namespace {
 
 // Samma ID som när pluginet hette YamaSK30, så att sparade Live-projekt fortsätter fungera.
 const VstInt32 kUniqueId = ('Y' << 24) | ('S' << 16) | ('3' << 8) | '0';
-const VstInt32 kVersion = 700;            // 0.7.0 (effekter: delay + reverb, wah-bas)
+const VstInt32 kVersion = 800;            // 0.7.0 (effekter: delay + reverb, wah-bas)
 
 struct Plugin : Core
 {
@@ -85,7 +85,7 @@ VstIntPtr dispatcher(AEffect* e, VstInt32 opcode, VstInt32 index, VstIntPtr valu
         delete p;
         return 0;
 
-    case effSetSampleRate: p->engine.prepare(opt); return 0;
+    case effSetSampleRate: p->engine.prepare(opt); e->initialDelay = p->engine.latencySamples(); return 0;
     case effSetBlockSize: return 0;
     case effMainsChanged:
         if (value) p->engine.reset();
@@ -187,5 +187,6 @@ VST_EXPORT AEffect* VSTPluginMain(audioMasterCallback host)
     p->rect.bottom = (int16_t)kEditorHeight; p->rect.right = (int16_t)kEditorWidth;
 
     p->engine.prepare(44100.0);
+    e.initialDelay = p->engine.latencySamples();   // limiterns framförhållning (Live kompenserar)
     return &e;
 }

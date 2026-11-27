@@ -73,15 +73,19 @@ static double measurePitch(const std::vector<double>& v, size_t a, size_t n, dou
 // Spektral tyngdpunkt (grov ljushetsmätning)
 static double centroid(const std::vector<double>& v, size_t a, size_t n, double sr)
 {
+    // Spektralt tyngdpunkt (Hann-fönster, FFT-upplösning sr/n, upp till 10 kHz)
     double num = 0.0, den = 0.0;
-    for (int k = 1; k < 200; ++k) {
-        const double f = k * 50.0;
-        double re = 0.0, im = 0.0;
-        for (size_t i = 0; i < n; ++i) { const double ph = 2.0 * kPi * f * i / sr; re += v[a + i] * std::cos(ph); im += v[a + i] * std::sin(ph); }
+    const int kmax = (int)(10000.0 * n / sr);
+    std::vector<double> w(n);
+    for (size_t i = 0; i < n; ++i) w[i] = (0.5 - 0.5 * std::cos(2.0 * kPi * i / n)) * v[a + i];
+    for (int k = 2; k < kmax; ++k) {
+        const double f = k * sr / n;
+        double re = 0.0, im = 0.0, c = 1.0, s = 0.0;
+        const double dc = std::cos(2.0 * kPi * k / n), ds = std::sin(2.0 * kPi * k / n);
+        for (size_t i = 0; i < n; ++i) { re += w[i] * c; im += w[i] * s; const double c2 = c * dc - s * ds; s = s * dc + c * ds; c = c2; }
         const double m = std::sqrt(re * re + im * im);
         num += f * m; den += m;
     }
-    (void)sr;
     return den > 0 ? num / den : 0.0;
 }
 
@@ -648,6 +652,22 @@ int main()
         q.handleMidi(0x90, 60, 100);
         render(q, 1.0, sr);
         check(q.takeLimiterReductionDb() == 0.0, "limiter: orord vid normal niva");
+        // Limitern klipper aldrig (inget knaster): 12 dB för mycket på en bas-sinus
+        {
+            Limiter lim; lim.prepare(sr);
+            int flat = 0; double prev = 0.0, worstStep = 0.0;
+            for (int i = 0; i < (int)sr; ++i) {
+                const double x = 4.0 * std::sin(2.0 * kPi * 55.0 * i / sr) + (i % 4800 == 0 ? 3.0 : 0.0);   // plus enstaka spikar
+                const double y = lim.process(x);
+                if (std::fabs(y) >= Limiter::kCeiling - 1e-9 && std::fabs(prev) >= Limiter::kCeiling - 1e-9) ++flat;
+                const int ph = (i - lim.latency()) % 4800;
+                if (i > lim.latency() + 2 && ph > 1 && ph < 4799) worstStep = std::fmax(worstStep, std::fabs(y - prev));
+                prev = y;
+            }
+            check(flat == 0, "limiter: ingen hard klippning (inget knaster)");
+            check(worstStep < 0.05, "limiter: inga hopp i signalen");
+            check(lim.latency() == (int)(0.002 * sr + 0.5), "limiter: 2 ms latens (rapporteras till Live)");
+        }
         // Balans: en solo-ton och en stråkton ligger inom 4 dB vid samma inställning (0 dB)
         // Standardljudet (Dream Strings) mot solosynten med sina standardvärden
         Engine st; st.prepare(sr); st.handleMidi(0x90, 72, 100);

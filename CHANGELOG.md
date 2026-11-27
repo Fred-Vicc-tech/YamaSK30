@@ -1,5 +1,15 @@
 # Ändringslogg
 
+## 0.8.0 (2026-11-27)
+- Knaster borta: den gamla limitern hann inte alltid sänka helt innan en topp kom och klippte då
+  resten hårt (hördes som knaster när man vred upp nivåerna). Nya limitern håller kravet över hela
+  framförhållningen och sänker med en mjuk ramp, så den klipper aldrig. Framförhållningen (2 ms)
+  rapporteras nu till Live, som kompenserar för den.
+- Starkare: hela utgången +4 dB, så TrueSymph ligger i nivå med andra syntar i Live (limitern tar
+  topparna).
+- Fönstret ritar bara om panelen när något ändras; annars bara nivåmätaren. Mycket mindre CPU för
+  grafiken (viktigt på äldre datorer, där tung grafik kan ge avbrott i ljudet).
+
 ## 0.7.0 (2026-11-27)
 - EFFECTS högst upp till höger (SOLO-panelen smalare, fönstret 1280 px): DELAY efter Korg SDD-3000:s
   servicemanual (TIME 1-1000 ms, FEEDBACK, MOD SPEED 0,1-15 Hz, INTENSITY upp till 2:1, HIGH CUT 8k/4k/2k,

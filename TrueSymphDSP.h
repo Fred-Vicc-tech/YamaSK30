@@ -1136,55 +1136,67 @@ struct PlateReverb
 // ---------------------------------------------------------------------------
 struct Limiter
 {
-    static const int kMaxLook = 256;
+    // Framåtblickande limiter som aldrig klipper: kravet (förstärkningen som
+    // behövs) hålls över hela framförhållningen och jämnas sedan ut med ett
+    // glidande medelvärde lika långt. Då har förstärkningen alltid nått rätt
+    // nivå precis när toppen kommer ut, och sänkningen sker som en mjuk ramp
+    // (inga knäppar eller knaster som av en hård klippning).
+    static const int kMaxLook = 512;
     float buf[kMaxLook];
     float bufR[kMaxLook];
-    int pos = 0, look = 64;
-    double gain = 1.0, hold = 1.0, relCoef = 0.0, atkCoef = 0.0;
-    int holdCount = 0;
+    double need[kMaxLook + 1];
+    double held[kMaxLook + 1];
+    int pos = 0, hpos = 0, look = 88;
+    double rel = 1.0, relCoef = 0.0;
     double minGain = 1.0;                       // för mätaren (lägsta förstärkning sedan senast)
     static constexpr double kCeiling = 0.966;   // -0,3 dBFS
+    static constexpr double kLookSec = 0.002;   // 2 ms framförhållning (rapporteras som latens)
 
     void prepare(double sr)
     {
-        look = (int)(0.0015 * sr); if (look < 8) look = 8; if (look > kMaxLook) look = kMaxLook;
+        look = (int)(kLookSec * sr + 0.5); if (look < 8) look = 8; if (look > kMaxLook) look = kMaxLook;
         relCoef = 1.0 - std::exp(-1.0 / (0.15 * sr));
-        atkCoef = 1.0 - std::exp(-3.0 / look);
         reset();
     }
-    void reset() { for (int i = 0; i < kMaxLook; ++i) { buf[i] = 0.0f; bufR[i] = 0.0f; } pos = 0; gain = 1.0; hold = 1.0; holdCount = 0; minGain = 1.0; }
+    int latency() const { return look; }
+    void reset()
+    {
+        for (int i = 0; i < kMaxLook; ++i) { buf[i] = 0.0f; bufR[i] = 0.0f; }
+        for (int i = 0; i <= kMaxLook; ++i) { need[i] = 1.0; held[i] = 1.0; }
+        pos = 0; hpos = 0; rel = 1.0; minGain = 1.0;
+    }
+    double gainFor(double a)
+    {
+        const int n = look + 1;
+        need[hpos] = a > kCeiling ? kCeiling / a : 1.0;
+        double m = 1.0;
+        for (int i = 0; i < n; ++i) if (need[i] < m) m = need[i];
+        rel = m < rel ? m : rel + (m - rel) * relCoef;      // sänk direkt, släpp långsamt
+        held[hpos] = rel;
+        double sum = 0.0;
+        for (int i = 0; i < n; ++i) sum += held[i];
+        hpos = hpos + 1 < n ? hpos + 1 : 0;
+        const double g = sum / n;
+        if (g < minGain) minGain = g;
+        return g;
+    }
+    static double safety(double y) { return y > kCeiling ? kCeiling : (y < -kCeiling ? -kCeiling : y); }
     // Stereo: samma förstärkning i båda kanalerna (bilden flyttar sig inte)
     void processStereo(double& l, double& r)
     {
-        const double a = std::fmax(std::fabs(l), std::fabs(r));
-        const double need = a > kCeiling ? kCeiling / a : 1.0;
-        if (need <= hold) { hold = need; holdCount = look; }
-        else if (holdCount > 0) --holdCount;
-        else hold += (1.0 - hold) * relCoef;
-        gain += (hold - gain) * (hold < gain ? atkCoef : 1.0);
+        const double g = gainFor(std::fmax(std::fabs(l), std::fabs(r)));
         const double dl = buf[pos], dr = bufR[pos];
         buf[pos] = (float)l; bufR[pos] = (float)r;
-        pos = (pos + 1) % look;
-        l = dl * gain; r = dr * gain;
-        if (l > kCeiling) l = kCeiling; else if (l < -kCeiling) l = -kCeiling;
-        if (r > kCeiling) r = kCeiling; else if (r < -kCeiling) r = -kCeiling;
-        if (gain < minGain) minGain = gain;
+        pos = pos + 1 < look ? pos + 1 : 0;
+        l = safety(dl * g); r = safety(dr * g);
     }
     double process(double x)
     {
-        const double a = std::fabs(x);
-        const double need = a > kCeiling ? kCeiling / a : 1.0;
-        if (need <= hold) { hold = need; holdCount = look; }            // nytt topp-krav: håll det under framförhållningen
-        else if (holdCount > 0) --holdCount;
-        else hold += (1.0 - hold) * relCoef;
-        gain += (hold - gain) * (hold < gain ? atkCoef : 1.0);          // sänk mjukt under framförhållningen
-        const double delayed = buf[pos];
+        const double g = gainFor(std::fabs(x));
+        const double d = buf[pos];
         buf[pos] = (float)x;
-        pos = (pos + 1) % look;
-        double y = delayed * gain;
-        if (y > kCeiling) y = kCeiling; else if (y < -kCeiling) y = -kCeiling;   // sista spärr (sker nästan aldrig)
-        if (gain < minGain) minGain = gain;
-        return y;
+        pos = pos + 1 < look ? pos + 1 : 0;
+        return safety(d * g);
     }
     double takeReductionDb() { const double g = minGain; minGain = 1.0; return g < 1.0 ? -20.0 * std::log10(g) : 0.0; }
 };
@@ -1620,7 +1632,7 @@ public:
 
         double out = dry + ensemble.process(teIn);
 
-        out = dcBlock.process(out) * masterSmoothed;
+        out = dcBlock.process(out) * masterSmoothed * kOutputMakeup;
 
         // EFFEKTER: delay (SDD-3000-stil) -> reverb (plattreverb), som Fredriks kedja
         dlyLevelSm += paramSmooth * (dlyLevelTarget - dlyLevelSm);
@@ -1646,6 +1658,7 @@ public:
     int activeVoices() const { int n = 0; for (int v = 0; v < kAllVoices; ++v) if (voices[v].active) ++n; return n; }
     int soloCurrentNote() const { return soloNote; }
     double takeLimiterReductionDb() { return limiter.takeReductionDb(); }
+    int latencySamples() const { return limiter.latency(); }
     bool isSounding() const { return activeVoices() > 0 || (soloVolNorm > 0.0 && solo.isSounding()); }
     double dividerFor(int pc) const { return divider[pc]; }
     // Frekvensen tangenten (8') får utan vibrato (för tester).
@@ -1666,6 +1679,7 @@ private:
     static constexpr double kOrganGain = 0.05;      // orgeln ungefär lika stark som stråkarna
     static constexpr double kPercGain = 1.6;        // slagverket tydligt över fotlägena
     static constexpr double kSoloGain = 0.16;       // solosynten ungefär lika stark som ett stråkackord
+    static constexpr double kOutputMakeup = 1.585;  // +4 dB (0.8.0): i nivå med andra syntar i Live
     static constexpr double kStringGain = 0.15;     // ger ca -24 dBFS RMS för en ton och ca -16 dBFS för ett 4-tonsackord (STRING 1+2, MODE II)
 
     struct Voice
