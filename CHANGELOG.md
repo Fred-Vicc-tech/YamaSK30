@@ -1,5 +1,11 @@
 # Ändringslogg
 
+## 0.2.0 – etapp 2 (2026-11-27)
+- Poly-synth enligt CPC-kortet: POLY-SYNTH CANCEL/1/2/3/MANUAL, FEET (6 lägen inkl. BP8'),
+  VCF med resonans och EG DEPTH, ADSR. POLY-SYNTH 1/2/3 har värden ur motståndsnäten.
+- Tremolo: POLY-SYNTH TREMOLO och TREMOLO SPEED (0,64/6,4 Hz), volym + delay-svaj (TE-kortet).
+- 14 fabriksljud. Nya parametrar 15-26 (gamla index oförändrade).
+
 ## 0.1.1 – nytt namn (2026-11-27)
 - Pluginet heter nu TrueSymph (tidigare YamaSK30). Samma interna ID: sparade Live-projekt fungerar.
 - Etapp 1 testad i Live 9.6 på Windows 7: fungerar.

@@ -47,15 +47,31 @@ enum ParamIndex
     kParamBrilliance = 12,// BRILLIANCE -12..+12 dB
     kParamEnsemble = 13,  // TREMOLO/ENSEMBLE: ENSEMBLE av/på
     kParamTune = 14,      // TUNE: A4 415..466 Hz
+    // --- etapp 2: poly-synth + tremolo ---
+    kParamPolySel = 15,   // POLY-SYNTH: CANCEL, 1, 2, 3, MANUAL
+    kParamPolyVol = 16,   // POLY-SYNTH VOLUME (-inf..+6 dB)
+    kParamPolyFeet = 17,  // FEET: 4'/\, 8'⊓, BP8'/\, 8'/\, 16'⊓, 16'/\  (MANUAL)
+    kParamCutoff = 18,    // CUTOFF FREQ (10 oktaver)
+    kParamResonance = 19, // VCF RESONANCE (Q 0,5..10)
+    kParamEgDepth = 20,   // EG DEPTH (0..10 oktaver)
+    kParamAttack = 21,    // ATTACK TIME 0,003..3 s
+    kParamDecay = 22,     // DECAY TIME 0,03..30 s
+    kParamSustainLevel = 23, // SUSTAIN LEVEL 0..10
+    kParamRelease = 24,   // RELEASE TIME 0,03..30 s
+    kParamPolyTremolo = 25,  // POLY-SYNTH TREMOLO av/på
+    kParamTremoloSpeed = 26, // TREMOLO SPEED: av 0,64 Hz / på 6,4 Hz
     kNumParams
 };
 
 static const char* const kParamNames[kNumParams] = {
     "Volume", "Str 1", "Str 2", "Str 3", "SlowAtk", "Sustain", "SusTime",
-    "Mode", "Detune", "VibDly", "VibSpd", "VibDep", "Brill", "Ensembl", "Tune"
+    "Mode", "Detune", "VibDly", "VibSpd", "VibDep", "Brill", "Ensembl", "Tune",
+    "PolySel", "PolyVol", "Feet", "Cutoff", "Reso", "EGDepth", "Attack", "Decay",
+    "SusLvl", "Release", "PolyTrm", "TrmSpd"
 };
 static const char* const kParamLabels[kNumParams] = {
-    "dB", "", "", "", "", "", "s", "", "cent", "s", "Hz", "cent", "dB", "", "Hz"
+    "dB", "", "", "", "", "", "s", "", "cent", "s", "Hz", "cent", "dB", "", "Hz",
+    "", "dB", "", "Hz", "Q", "oct", "s", "s", "", "s", "", ""
 };
 
 inline double clamp01(double v) { return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); }
@@ -70,6 +86,29 @@ inline double vibSpeedHz(double n)    { return 5.0 + 2.0 * clamp01(n); }
 inline double vibDepthCents(double n) { return 30.0 * clamp01(n); }
 inline double brillianceDb(double n)  { return -12.0 + 24.0 * clamp01(n); }
 inline double tuneHz(double n)        { return 415.0 + 51.0 * clamp01(n); }
+
+// Poly-synth
+const int kNumPolySel = 5;                       // CANCEL, 1, 2, 3, MANUAL
+const int kNumFeet = 6;                          // 4'/\, 8'⊓, BP8'/\, 8'/\, 16'⊓, 16'/\  (panelens ordning)
+inline int stepIndex(double n, int steps) { int i = (int)(clamp01(n) * (steps - 1) + 0.5); return i < 0 ? 0 : (i >= steps ? steps - 1 : i); }
+inline double stepNorm(int i, int steps) { return steps > 1 ? (double)i / (steps - 1) : 0.0; }
+inline double cutoffHz(double pos)      { return 20.0 * std::pow(2.0, 10.0 * clamp01(pos)); }   // 20 Hz..20 kHz
+inline double resonanceQ(double pos)    { return 0.5 * std::pow(20.0, clamp01(pos)); }          // 0,5..10
+inline double egDepthOct(double pos)    { return 10.0 * clamp01(pos); }
+inline double attackSec(double pos)     { return 0.003 * std::pow(1000.0, clamp01(pos)); }
+inline double decaySec(double pos)      { return 0.03 * std::pow(1000.0, clamp01(pos)); }
+inline double releaseSec(double pos)    { return 0.03 * std::pow(1000.0, clamp01(pos)); }
+
+// POLY-SYNTH 1/2/3: fasta spänningar från motståndsnäten på CPC-kortet.
+// Varje rad har ett motstånd från V och 10k mot jord, alltså läge = 10k/(R+10k).
+// Ordning: CUTOFF, RESONANCE, EG DEPTH, ATTACK, DECAY, SUSTAIN, RELEASE.
+// Alla tre använder 16'-sågtanden (dioderna D8-D10 till FT1) och lågpass.
+inline double presetPos(double rk) { return 10.0 / (rk + 10.0); }
+static const double kPolyPresetR[3][7] = {
+    { 18.0, 2.2, 27.0, 18.0, 15.0, 56.0, 3.3 },   // POLY-SYNTH 1 (Tr8, D11-D17)
+    { 56.0, 1.2, 10.0, 12.0, 6.8, 8.2, 5.6 },     // POLY-SYNTH 2 (Tr9, D18-D24)
+    { 15.0, 2.2, 22.0, 6.8, 18.0, 27.0, 4.7 },    // POLY-SYNTH 3 (Tr10, D25-D31)
+};
 
 inline double normFromVolumeDb(double db) { return (db + 48.0) / 54.0; }
 inline double normFromTune(double hz)     { return (hz - 415.0) / 51.0; }
@@ -93,6 +132,18 @@ inline float defaultParam(int index)
     case kParamBrilliance:  return 0.5f;                            // 0 dB
     case kParamEnsemble:    return 1.0f;
     case kParamTune:        return (float)normFromTune(440.0);
+    case kParamPolySel:     return 0.0f;                            // CANCEL
+    case kParamPolyVol:     return (float)normFromVolumeDb(0.0);
+    case kParamPolyFeet:    return (float)stepNorm(5, kNumFeet);    // 16' sågtand
+    case kParamCutoff:      return 0.55f;
+    case kParamResonance:   return 0.25f;
+    case kParamEgDepth:     return 0.35f;
+    case kParamAttack:      return 0.35f;
+    case kParamDecay:       return 0.40f;
+    case kParamSustainLevel:return 0.50f;
+    case kParamRelease:     return 0.40f;
+    case kParamPolyTremolo: return 0.0f;
+    case kParamTremoloSpeed:return 1.0f;                            // 6,4 Hz
     default:                return 0.0f;
     }
 }
@@ -117,6 +168,33 @@ inline void paramDisplayText(int index, double n, char* out, size_t max)
     case kParamVibDepth:    std::snprintf(out, max, "%.0f", vibDepthCents(n)); break;
     case kParamBrilliance:  std::snprintf(out, max, "%+.1f", brillianceDb(n)); break;
     case kParamTune:        std::snprintf(out, max, "%.1f", tuneHz(n)); break;
+    case kParamPolyVol: {
+        const double db = volumeDb(n);
+        if (db <= -100.0) std::snprintf(out, max, "-inf");
+        else std::snprintf(out, max, "%.1f", db);
+        break;
+    }
+    case kParamPolySel: {
+        static const char* const t[kNumPolySel] = { "CANCEL", "1", "2", "3", "MANUAL" };
+        std::snprintf(out, max, "%s", t[stepIndex(n, kNumPolySel)]); break;
+    }
+    case kParamPolyFeet: {
+        static const char* const t[kNumFeet] = { "4 SAW", "8 SQR", "BP8 SAW", "8 SAW", "16 SQR", "16 SAW" };
+        std::snprintf(out, max, "%s", t[stepIndex(n, kNumFeet)]); break;
+    }
+    case kParamCutoff: {
+        const double f = cutoffHz(n);
+        if (f >= 1000.0) std::snprintf(out, max, "%.1fk", f / 1000.0); else std::snprintf(out, max, "%.0f", f);
+        break;
+    }
+    case kParamResonance:   std::snprintf(out, max, "%.1f", resonanceQ(n)); break;
+    case kParamEgDepth:     std::snprintf(out, max, "%.1f", egDepthOct(n)); break;
+    case kParamAttack:      std::snprintf(out, max, attackSec(n) < 1.0 ? "%.3f" : "%.2f", attackSec(n)); break;
+    case kParamDecay:       std::snprintf(out, max, decaySec(n) < 1.0 ? "%.3f" : "%.2f", decaySec(n)); break;
+    case kParamRelease:     std::snprintf(out, max, releaseSec(n) < 1.0 ? "%.3f" : "%.2f", releaseSec(n)); break;
+    case kParamSustainLevel:std::snprintf(out, max, "%.1f", 10.0 * clamp01(n)); break;
+    case kParamPolyTremolo: std::snprintf(out, max, "%s", isOn(n) ? "ON" : "OFF"); break;
+    case kParamTremoloSpeed:std::snprintf(out, max, "%s", isOn(n) ? "6.4Hz" : "0.64Hz"); break;
     default:                std::snprintf(out, max, "%.2f", n); break;
     }
 }
@@ -227,6 +305,62 @@ struct RCLadder
     }
 };
 
+// Spänningsstyrt filter (IG00156 på CPC-kortet): tvåpoligt state variable-filter
+// med lågpass- och bandpassutgång. TPT-struktur (stabil vid snabb modulation),
+// med mjuk mättning som i ett analogt filter.
+struct SVF
+{
+    double s1 = 0.0, s2 = 0.0;
+    void reset() { s1 = s2 = 0.0; }
+    // Returnerar lågpass i lp och bandpass (normerad till 0 dB topp) i bp.
+    void process(double x, double g, double k, double& lp, double& bp)
+    {
+        x = std::tanh(x * 0.5) * 2.0;                 // ingångssteget mättar mjukt
+        const double hp = (x - (k + g) * s1 - s2) / (1.0 + g * (g + k));
+        const double b = g * hp + s1;
+        s1 = g * hp + b;
+        const double l = g * b + s2;
+        s2 = g * b + l;
+        lp = l;
+        bp = b * k;
+    }
+};
+
+// Envelope-generator (IG00151): ADSR med RC-kurvor. Attacken siktar över 1,0
+// (som en kondensator mot en högre spänning) och vänder vid toppen.
+struct ADSR
+{
+    enum Stage { Idle, Attack, Decay, Release };
+    Stage stage = Idle;
+    double v = 0.0;
+    double aCoef = 0.0, dCoef = 0.0, rCoef = 0.0, sus = 0.5;
+    static constexpr double kOvershoot = 1.3;
+
+    void set(double attack, double decay, double sustain, double release, double sr)
+    {
+        aCoef = 1.0 - std::exp(-std::log(kOvershoot / (kOvershoot - 1.0)) / (attack * sr));
+        dCoef = 1.0 - std::exp(-4.6 / (decay * sr));
+        rCoef = 1.0 - std::exp(-4.6 / (release * sr));
+        sus = sustain;
+    }
+    void trigger() { stage = Attack; }
+    void releaseGate() { if (stage != Idle) stage = Release; }
+    void reset() { stage = Idle; v = 0.0; }
+    double next()
+    {
+        switch (stage) {
+        case Attack:
+            v += (kOvershoot - v) * aCoef;
+            if (v >= 1.0) { v = 1.0; stage = Decay; }
+            break;
+        case Decay:   v += (sus - v) * dCoef; break;
+        case Release: v -= v * rCoef; if (v < 1e-5) { v = 0.0; stage = Idle; } break;
+        default: break;
+        }
+        return v;
+    }
+};
+
 // ---------------------------------------------------------------------------
 // Ensemblen: tre BBD-linjer (MN3009, 256 steg) enligt TE-kortet.
 // ---------------------------------------------------------------------------
@@ -254,11 +388,23 @@ struct Ensemble
     static constexpr double kFastHz = 6.4;
     static constexpr int kSteps = 16;           // trappsteg per halvperiod
 
+    // Tremololäge (ENSEMBLE av, TREMOLO på): samma klockchip ger en LFO
+    // (0,64 eller 6,4 Hz) som både svajar delay-chippen och styr volymen
+    // (VCA IC9). Ger en roterande högtalar-liknande effekt.
+    static constexpr double kTremDelayDepthMs = 0.22;   // ca ±15 cent vid 6,4 Hz
+    static constexpr double kTremAmDepth = 0.35;        // ca 3,7 dB volymsvajning
+    bool tremoloMode = false;
+    bool tremoloFast = true;
+    double tremPhase = 0.0;
+    double modeMix = 0.0;          // 0 = ensemble, 1 = tremolo (glider mjukt)
+    double modeSmooth = 0.0;
+
     void prepare(double sampleRate)
     {
         sr = sampleRate;
         slowInc = kSlowHz / sr;
         fastInc = kFastHz / sr;
+        modeSmooth = 1.0 - std::exp(-1.0 / (0.05 * sr));
         for (int i = 0; i < 3; ++i) { lfoSmooth[i].set(60.0, sr); postLP[i].lowpass(std::fmin(5400.0, sr * 0.45), 0.707, sr); }
         preLP1.lowpass(std::fmin(6600.0, sr * 0.45), 0.707, sr);
         preLP2.lowpass(std::fmin(9000.0, sr * 0.45), 0.6, sr);
@@ -269,7 +415,8 @@ struct Ensemble
         std::memset(buf, 0, sizeof buf);
         writePos = 0;
         noiseEnv = 0.0;
-        slowPhase = 0.0; fastPhase = 0.0;
+        slowPhase = 0.0; fastPhase = 0.0; tremPhase = 0.0;
+        modeMix = tremoloMode ? 1.0 : 0.0;
         preLP1.reset(); preLP2.reset();
         for (int i = 0; i < 3; ++i) { postLP[i].reset(); lfoSmooth[i].reset(lfoValue(i)); }
     }
@@ -285,7 +432,14 @@ struct Ensemble
     double lfoValue(int line) const
     {
         const double off = line / 3.0;                     // 0°, 120°, 240°
-        return kSlowDepthMs * steppedTri(slowPhase + off) + kFastDepthMs * steppedTri(fastPhase + off);
+        const double ens = kSlowDepthMs * steppedTri(slowPhase + off) + kFastDepthMs * steppedTri(fastPhase + off);
+        const double trem = kTremDelayDepthMs * steppedTri(tremPhase + off);
+        return ens + modeMix * (trem - ens);
+    }
+    double tremoloGain() const
+    {
+        const double l = 0.5 + 0.5 * steppedTri(tremPhase);
+        return 1.0 - modeMix * kTremAmDepth * l;
     }
 
     double readInterp(double delaySamples) const
@@ -329,7 +483,9 @@ struct Ensemble
         writePos = (writePos + 1) & (kBufSize - 1);
         slowPhase += slowInc; if (slowPhase >= 1.0) slowPhase -= 1.0;
         fastPhase += fastInc; if (fastPhase >= 1.0) fastPhase -= 1.0;
-        return sum * (1.0 / 3.0) * 1.41;  // tre linjer, ungefär samma upplevda nivå som torrt
+        tremPhase += (tremoloFast ? fastInc : slowInc); if (tremPhase >= 1.0) tremPhase -= 1.0;
+        modeMix += modeSmooth * ((tremoloMode ? 1.0 : 0.0) - modeMix);
+        return sum * (1.0 / 3.0) * 1.41 * tremoloGain();  // tre linjer, ungefär samma upplevda nivå som torrt
     }
 };
 
@@ -359,6 +515,8 @@ public:
         dcBlock.set(5.0, sr);
         paramSmooth = 1.0 - std::exp(-1.0 / (0.02 * sr));
         stealCoef = 1.0 - std::exp(-3.0 / (0.003 * sr));
+        posSmooth = 1.0 - std::exp(-1.0 / (0.03 * sr));   // 10µF på styrledningarna: mjuka byten
+        updatePolyEnv();
         updateBrilliance(true);
         reset();
     }
@@ -375,7 +533,12 @@ public:
         ageCounter = 0;
         volSmoothed = targetVolume();
         for (int i = 0; i < 3; ++i) strLevel[i] = strTarget[i];
-        ensMix = ensembleOn ? 1.0 : 0.0;
+        ensMix = (ensembleOn || polyTremolo) ? 1.0 : 0.0;
+        ensemble.tremoloMode = !ensembleOn && polyTremolo;
+        svf.reset(); polyEnv.reset(); prevAnyGate = false;
+        polyVolSmoothed = targetPolyVolume();
+        curCut = polyPos(0); curReso = polyPos(1); curDepth = polyPos(2);
+        polyLevel = polySel > 0 ? 1.0 : 0.0;
     }
 
     // --- parametrar (normaliserade 0..1) ---------------------------------
@@ -392,6 +555,20 @@ public:
     void setBrillianceNorm(double n)  { const double d = brillianceDb(n); if (d != brillDb) { brillDb = d; updateBrilliance(false); } }
     void setEnsembleNorm(double n)    { ensembleOn = isOn(n); }
     void setTuneNorm(double n)        { tune = tuneHz(n); }
+
+    // Poly-synth
+    void setPolySelNorm(double n)     { const int v = stepIndex(n, kNumPolySel); if (v != polySel) { polySel = v; updatePolyEnv(); } }
+    void setPolyVolNorm(double n)     { polyVolNorm = n; }
+    void setPolyFeetNorm(double n)    { polyFeet = stepIndex(n, kNumFeet); }
+    void setCutoffNorm(double n)      { manCutoff = clamp01(n); }
+    void setResonanceNorm(double n)   { manReso = clamp01(n); }
+    void setEgDepthNorm(double n)     { manDepth = clamp01(n); }
+    void setAttackNorm(double n)      { if (n != manAttack) { manAttack = clamp01(n); updatePolyEnv(); } }
+    void setDecayNorm(double n)       { if (n != manDecay) { manDecay = clamp01(n); updatePolyEnv(); } }
+    void setSustainLevelNorm(double n){ if (n != manSus) { manSus = clamp01(n); updatePolyEnv(); } }
+    void setReleaseNorm(double n)     { if (n != manRelease) { manRelease = clamp01(n); updatePolyEnv(); } }
+    void setPolyTremoloNorm(double n) { polyTremolo = isOn(n); }
+    void setTremoloSpeedNorm(double n){ ensemble.tremoloFast = isOn(n); }
 
     // --- MIDI --------------------------------------------------------------
     void handleMidi(uint8_t status, uint8_t d1, uint8_t d2)
@@ -411,7 +588,14 @@ public:
         // Parametrar som glider (klickfritt)
         volSmoothed += paramSmooth * (targetVolume() - volSmoothed);
         for (int i = 0; i < 3; ++i) strLevel[i] += paramSmooth * (strTarget[i] - strLevel[i]);
-        ensMix += paramSmooth * ((ensembleOn ? 1.0 : 0.0) - ensMix);
+        const bool teOn = ensembleOn || polyTremolo;          // TREMOLO/ENSEMBLE (ensemble har prioritet)
+        ensemble.tremoloMode = !ensembleOn && polyTremolo;
+        ensMix += paramSmooth * ((teOn ? 1.0 : 0.0) - ensMix);
+        polyVolSmoothed += paramSmooth * (targetPolyVolume() - polyVolSmoothed);
+        polyLevel += paramSmooth * ((polySel > 0 ? 1.0 : 0.0) - polyLevel);
+        curCut += posSmooth * (polyPos(0) - curCut);
+        curReso += posSmooth * (polyPos(1) - curReso);
+        curDepth += posSmooth * (polyPos(2) - curDepth);
 
         // Vibrato (modulerar masterklockan, som på SK30)
         double vibAmt = 0.0;
@@ -470,6 +654,37 @@ public:
         s += strLevel[2] * (1.0 / 6.8) * ladder[2].process(hpLadder[2].process(saw4));
         s *= kStringGain;
 
+        // POLY-SYNTH (CPC): tonväljare -> VCF (LP/BP) med envelope -> blandas med stråkarna.
+        // Ingen VCA: volymen kommer från tangenternas keyer, precis som för stråkarna.
+        const bool anyG = anyGate();
+        if (prevAnyGate && !anyG) polyEnv.releaseGate();
+        prevAnyGate = anyG;
+        const double env = polyEnv.next();
+        if (polyLevel > 1e-4) {
+            const int feet = polySel == 4 ? polyFeet : 5;        // POLY-SYNTH 1/2/3: 16'-sågtand
+            double src;
+            switch (feet) {
+            case 0:  src = saw4; break;
+            case 1:  src = sq8 * 0.6; break;                     // fyrkanten är starkare än sågtanden
+            case 2:  src = saw8; break;
+            case 3:  src = saw8; break;
+            case 4:  src = sq16 * 0.6; break;
+            default: src = saw16; break;
+            }
+            double fc = cutoffHz(curCut) * std::pow(2.0, egDepthOct(curDepth) * env);
+            const double fmax = sr * 0.45;
+            if (fc > fmax) fc = fmax;
+            if (fc < 10.0) fc = 10.0;
+            const double g = std::tan(kPi * fc / sr);
+            const double k = 1.0 / resonanceQ(curReso);
+            double lp, bp;
+            svf.process(src * 0.8, g, k, lp, bp);
+            const double y = (feet == 2) ? bp * 1.6 : lp;
+            s += y * kPolyGain * polyVolSmoothed * polyLevel;
+        } else {
+            svf.reset();
+        }
+
         // BRILLIANCE (CPC)
         s = brill.process(s);
 
@@ -500,6 +715,7 @@ public:
 
 private:
     static constexpr double kMasterClock = 1.0e6;   // 1 MHz (ΦUL1/ΦUL2)
+    static constexpr double kPolyGain = 0.05;       // poly-synth ungefär lika stark som stråkarna
     static constexpr double kStringGain = 0.15;     // ger ca -24 dBFS RMS för en ton och ca -16 dBFS för ett 4-tonsackord (STRING 1+2, MODE II)
 
     struct Voice
@@ -588,6 +804,7 @@ private:
     {
         if (midi < 12 || midi > 120) return;
         if (!anyGate()) vibTime = 0.0;             // vibratots fördröjning startar om
+        polyEnv.trigger();                         // PTR: varje ny tangent startar poly-synthens envelope
         const int pc = midi % 12, shift = shiftFor(midi);
         ++ageCounter;
         // Samma ton klingar redan ut: spela den igen i samma röst (som orgeln)
@@ -663,6 +880,38 @@ private:
     double volSmoothed = 1.0, ensMix = 1.0, paramSmooth = 0.001;
     double stealCoef = 0.0;
     double vibPhase = 0.0, vibTime = 0.0;
+
+    // Poly-synth
+    int polySel = 0, polyFeet = 5;
+    bool polyTremolo = false;
+    double polyVolNorm = defaultParam(kParamPolyVol);
+    double manCutoff = defaultParam(kParamCutoff), manReso = defaultParam(kParamResonance), manDepth = defaultParam(kParamEgDepth);
+    double manAttack = defaultParam(kParamAttack), manDecay = defaultParam(kParamDecay);
+    double manSus = defaultParam(kParamSustainLevel), manRelease = defaultParam(kParamRelease);
+    double curCut = 0.5, curReso = 0.2, curDepth = 0.3, posSmooth = 0.001;
+    double polyVolSmoothed = 1.0, polyLevel = 0.0;
+    bool prevAnyGate = false;
+    SVF svf;
+    ADSR polyEnv;
+
+    // Läge för styrledning i (0 CUTOFF, 1 RESONANCE, 2 EG DEPTH, 3 ATTACK, 4 DECAY, 5 SUSTAIN, 6 RELEASE)
+    double polyPos(int i) const
+    {
+        if (polySel >= 1 && polySel <= 3) return presetPos(kPolyPresetR[polySel - 1][i]);
+        switch (i) {
+        case 0: return manCutoff; case 1: return manReso; case 2: return manDepth;
+        case 3: return manAttack; case 4: return manDecay; case 5: return manSus; default: return manRelease;
+        }
+    }
+    void updatePolyEnv()
+    {
+        polyEnv.set(attackSec(polyPos(3)), decaySec(polyPos(4)), polyPos(5), releaseSec(polyPos(6)), sr);
+    }
+    double targetPolyVolume() const
+    {
+        const double db = volumeDb(polyVolNorm);
+        return db <= -100.0 ? 0.0 : std::pow(10.0, db / 20.0);
+    }
 
     // Filter
     OnePoleHP hpIn[3], hp4to8, hp8to16, hpOut4, hpLadder[3], dcBlock;

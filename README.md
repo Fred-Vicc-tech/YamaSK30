@@ -1,10 +1,10 @@
 # TrueSymph – Symphonic Ensemble
 
 Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
-Efterliknar stråkdelen och ensemblen i Yamaha SK30 (1979–80), byggt efter
-SK30:s servicemanual. Byggare: **2F Productions** (info@2f.se).
+Efterliknar Yamaha SK30 (1979–80), byggt efter SK30:s servicemanual.
+Målet är att alla delar ska finnas med: stråkar, poly-synth, orgel, solosynt och ensemble. Byggare: **2F Productions** (info@2f.se).
 
-## Status: etapp 1 – stråkar + ensemble
+## Status: etapp 2 – poly-synth + tremolo
 
 | Funktion | Status |
 |---|---|
@@ -17,11 +17,18 @@ SK30:s servicemanual. Byggare: **2F Productions** (info@2f.se).
 | BRILLIANCE ±12 dB | Klar, automatiskt testad |
 | ENSEMBLE: tre BBD-linjer, LFO 0,64 + 6,4 Hz i trappsteg, 120° | Klar, automatiskt testad |
 | 7 röster, mjukt röstbyte (inget klick) | Klar, automatiskt testad |
-| 6 fabriksljud i Lives presetlista | Klar, automatiskt testad |
-| Fungerar i Live 9.6 på Win7 | Testat av användaren: fungerar |
-| Poly-synth (filter, envelope), tremolo | Etapp 2–3 |
-| Orgel | Senare (om den ska med) |
-| Eget fönster (kompakt SK30-panel) | Senare etapp |
+| Etapp 1 i Live 9.6 på Win7 | Testat av användaren: fungerar |
+| POLY-SYNTH: CANCEL / 1 / 2 / 3 / MANUAL | Klar, automatiskt testad |
+| POLY-SYNTH 1/2/3 med värden ur motståndsnäten på CPC-kortet | Klar, automatiskt testad |
+| FEET: 4'/\\, 8'⊓, BP8'/\\, 8'/\\, 16'⊓, 16'/\\ | Klar, automatiskt testad |
+| VCF (lågpass/bandpass, resonans Q 0,5–10, EG DEPTH 0–10 oktaver) | Klar, automatiskt testad |
+| Envelope ADSR (0,003–3 s / 0,03–30 s / 0–10 / 0,03–30 s) | Klar, automatiskt testad |
+| POLY-SYNTH TREMOLO, TREMOLO SPEED (0,64 / 6,4 Hz) | Klar, automatiskt testad |
+| 14 fabriksljud i Lives presetlista | Klar, automatiskt testad |
+| Etapp 2 i Live | **Ej testat ännu** |
+| Orgel (fotlägen, perkussion, ORGAN 1/2/3) | Etapp 3 |
+| Solosynt, MANUAL BASS, KEYBOARD SPLIT | Etapp 4 |
+| Eget fönster (kompakt SK30-panel) | Etapp 5 |
 
 ## Installera och testa
 
@@ -51,6 +58,21 @@ SK30:s servicemanual. Byggare: **2F Productions** (info@2f.se).
 | 12 | Brill | BRILLIANCE | −12…+12 dB |
 | 13 | Ensembl | POLY-SYNTH ENSEMBLE | av/på |
 | 14 | Tune | TUNE | A4 415–466 Hz |
+| 15 | PolySel | POLY-SYNTH-knapparna | CANCEL, 1, 2, 3, MANUAL |
+| 16 | PolyVol | POLY-SYNTH VOLUME | −inf…+6 dB |
+| 17 | Feet | FEET (bara MANUAL) | 4 SAW, 8 SQR, BP8 SAW, 8 SAW, 16 SQR, 16 SAW |
+| 18 | Cutoff | CUTOFF FREQ | 20 Hz–20 kHz |
+| 19 | Reso | VCF RESONANCE | Q 0,5–10 |
+| 20 | EGDepth | EG DEPTH | 0–10 oktaver |
+| 21 | Attack | ATTACK TIME | 0,003–3 s |
+| 22 | Decay | DECAY TIME | 0,03–30 s |
+| 23 | SusLvl | SUSTAIN LEVEL | 0–10 |
+| 24 | Release | RELEASE TIME | 0,03–30 s |
+| 25 | PolyTrm | POLY-SYNTH TREMOLO | av/på |
+| 26 | TrmSpd | TREMOLO SPEED | av 0,64 Hz / på 6,4 Hz |
+
+Reglagen 18–24 gäller bara i MANUAL. POLY-SYNTH 1/2/3 har egna fasta värden.
+ENSEMBLE och TREMOLO gäller både stråkar och poly-synth, precis som på SK30.
 
 ## Hur ljudet är byggt (från servicemanualen)
 
@@ -66,6 +88,20 @@ SK30:s servicemanual. Byggare: **2F Productions** (info@2f.se).
 - **Keyer:** varje röst har en envelope (SLOW ATTACK och SUSTAIN), samma för
   stråkar och poly-synth.
 - **Vibrato:** modulerar masterklockan (alla toner), med fördröjning som tonar in.
+- **Poly-synth (CPC-kortet):** samma tangenter och keyer som stråkarna, men genom
+  ett gemensamt spänningsstyrt filter (IG00156, lågpass eller bandpass) med egen
+  envelope (IG00151). Ingen VCA: volymen kommer från keyern. Envelopen startar om
+  vid varje ny tangent. POLY-SYNTH 1/2/3 är fasta motståndsnät (läge = 10k/(R+10k)):
+
+  | | CUTOFF | RESONANCE | EG DEPTH | ATTACK | DECAY | SUSTAIN | RELEASE |
+  |---|---|---|---|---|---|---|---|
+  | 1 | 18k | 2,2k | 27k | 18k | 15k | 56k | 3,3k |
+  | 2 | 56k | 1,2k | 10k | 12k | 6,8k | 8,2k | 5,6k |
+  | 3 | 15k | 2,2k | 22k | 6,8k | 18k | 27k | 4,7k |
+
+  Alla tre använder 16'-sågtanden.
+- **Tremolo (TE-kortet):** när ENSEMBLE är av och TREMOLO på styr klockchippet
+  både volymen (VCA) och delay-chippen med en LFO på 0,64 eller 6,4 Hz.
 - **Ensemble (TE-kortet):** tre MN3009 parallellt. Varje linje svajas av en
   långsam (0,64 Hz) och en snabb (6,4 Hz) trappstegs-triangel från YM63300,
   120° förskjutna. Lågpass före (ca 6,6 kHz) och efter (ca 5,4 kHz). Mono, som originalet.

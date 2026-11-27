@@ -303,6 +303,108 @@ int main()
         check(std::fabs(cents(f1, e.noteFrequency(69))) < 3.0, "VIBRATO DELAY: inget vibrato i borjan");
     }
 
+
+    // ===== Etapp 2: poly-synth och tremolo =====
+
+    // 18. POLY-SYNTH 1/2/3 läses ur motståndsnäten: läge = 10k/(R+10k)
+    {
+        check(std::fabs(presetPos(kPolyPresetR[0][0]) - 10.0 / 28.0) < 1e-12, "POLY-SYNTH 1: CUTOFF fran 18k");
+        check(std::fabs(presetPos(kPolyPresetR[1][1]) - 10.0 / 11.2) < 1e-12, "POLY-SYNTH 2: RESONANCE fran 1,2k");
+        check(std::fabs(presetPos(kPolyPresetR[2][6]) - 10.0 / 14.7) < 1e-12, "POLY-SYNTH 3: RELEASE fran 4,7k");
+    }
+
+    // 19. CANCEL: poly-synthen är tyst; 1/2/3/MANUAL låter
+    {
+        double lv[kNumPolySel];
+        bool ok = true;
+        for (int sel = 0; sel < kNumPolySel; ++sel) {
+            Engine e; e.prepare(sr); plain(e);
+            e.setStringNorm(1, 0.0);                       // inga stråkar
+            e.setPolySelNorm(stepNorm(sel, kNumPolySel));
+            e.handleMidi(0x90, 57, 100); e.handleMidi(0x90, 64, 100);
+            std::vector<double> v = render(e, 1.0, sr);
+            ok = ok && finite(v) && peak(v) < 0.9;
+            lv[sel] = 20.0 * std::log10(rms(v, (size_t)(0.3 * sr), v.size()) + 1e-12);
+        }
+        check(lv[0] < -100.0, "POLY-SYNTH CANCEL: tyst");
+        check(lv[1] > -40.0 && lv[2] > -40.0 && lv[3] > -40.0 && lv[4] > -40.0, "POLY-SYNTH 1/2/3/MANUAL later");
+        check(ok, "POLY-SYNTH: inga ogiltiga tal, ingen klippning");
+    }
+
+    // 20. CUTOFF: högre ger ljusare
+    {
+        double c[2];
+        for (int i = 0; i < 2; ++i) {
+            Engine e; e.prepare(sr); plain(e);
+            e.setStringNorm(1, 0.0);
+            e.setPolySelNorm(1.0);                        // MANUAL
+            e.setEgDepthNorm(0.0);
+            e.setCutoffNorm(i ? 0.8 : 0.45);
+            e.handleMidi(0x90, 45, 100);
+            std::vector<double> v = render(e, 0.6, sr);
+            c[i] = centroid(v, (size_t)(0.3 * sr), 4096, sr);
+        }
+        check(c[1] > c[0] * 1.3, "CUTOFF hogre ger ljusare ljud");
+    }
+
+    // 21. EG DEPTH: filtret öppnar och stänger (ljusare i början än senare)
+    {
+        Engine e; e.prepare(sr); plain(e);
+        e.setStringNorm(1, 0.0);
+        e.setPolySelNorm(1.0);
+        e.setCutoffNorm(0.3); e.setEgDepthNorm(0.6);
+        e.setAttackNorm(0.0); e.setDecayNorm(0.3); e.setSustainLevelNorm(0.0);
+        e.handleMidi(0x90, 45, 100);
+        std::vector<double> v = render(e, 1.5, sr);
+        const double early = centroid(v, (size_t)(0.02 * sr), 2048, sr);
+        const double late = centroid(v, (size_t)(1.2 * sr), 2048, sr);
+        check(early > late * 1.3, "EG DEPTH: filtret sveper (ljust i borjan, morkare sen)");
+    }
+
+    // 22. Maximal resonans är stabil
+    {
+        Engine e; e.prepare(sr); plain(e);
+        e.setPolySelNorm(1.0); e.setResonanceNorm(1.0); e.setEgDepthNorm(1.0);
+        e.setPolyVolNorm(1.0);
+        for (int n = 40; n < 47; ++n) e.handleMidi(0x90, n, 100);
+        std::vector<double> v = render(e, 2.0, sr);
+        check(finite(v) && peak(v) <= 1.0, "RESONANCE max (Q 10): stabilt, ingen klippning");
+    }
+
+    // 23. BP8' låter annorlunda än 8' lågpass
+    {
+        Engine a; a.prepare(sr); plain(a); a.setStringNorm(1, 0.0); a.setPolySelNorm(1.0); a.setPolyFeetNorm(stepNorm(2, kNumFeet));
+        Engine b; b.prepare(sr); plain(b); b.setStringNorm(1, 0.0); b.setPolySelNorm(1.0); b.setPolyFeetNorm(stepNorm(3, kNumFeet));
+        a.handleMidi(0x90, 45, 100); b.handleMidi(0x90, 45, 100);
+        std::vector<double> va = render(a, 0.6, sr), vb = render(b, 0.6, sr);
+        double diff = 0.0; for (size_t i = 0; i < va.size(); ++i) diff = std::fmax(diff, std::fabs(va[i] - vb[i]));
+        check(diff > 0.01 && rms(va, (size_t)(0.3 * sr), va.size()) > 1e-3, "BP8' (bandpass) skiljer sig fran 8' lagpass och later");
+    }
+
+    // 24. TREMOLO: volymen svajar med 6,4 Hz (SPEED på) och 0,64 Hz (SPEED av)
+    {
+        for (int fast = 0; fast < 2; ++fast) {
+            Engine e; e.prepare(sr); plain(e);
+            e.setPolyTremoloNorm(1.0); e.setTremoloSpeedNorm(fast ? 1.0 : 0.0);
+            e.handleMidi(0x90, 57, 100);
+            std::vector<double> v = render(e, 4.0, sr);
+            // nivå i korta fönster (10 ms) och dess svängning
+            const double hz = fast ? 6.4 : 0.64;
+            const size_t win = (size_t)(0.01 * sr);
+            std::vector<double> envv;
+            for (size_t i = (size_t)(0.5 * sr); i + win < v.size(); i += win) envv.push_back(rms(v, i, i + win));
+            double mean = 0.0; for (double x : envv) mean += x; mean /= envv.size();
+            double re = 0.0, im = 0.0, re2 = 0.0, im2 = 0.0;
+            for (size_t i = 0; i < envv.size(); ++i) {
+                const double t = i * 0.01;
+                re += (envv[i] - mean) * std::cos(2 * kPi * hz * t); im += (envv[i] - mean) * std::sin(2 * kPi * hz * t);
+                re2 += (envv[i] - mean) * std::cos(2 * kPi * hz * 1.7 * t); im2 += (envv[i] - mean) * std::sin(2 * kPi * hz * 1.7 * t);
+            }
+            const double at = std::sqrt(re * re + im * im), other = std::sqrt(re2 * re2 + im2 * im2);
+            check(at > 3.0 * other && at / envv.size() > 0.02 * mean, fast ? "TREMOLO 6,4 Hz" : "TREMOLO 0,64 Hz");
+        }
+    }
+
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);
     return failures ? 1 : 0;
 }

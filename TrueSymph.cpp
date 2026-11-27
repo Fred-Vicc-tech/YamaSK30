@@ -1,7 +1,7 @@
 // TrueSymph.cpp - VST2-instrumentet: kopplar ljudmotorn (TrueSymphDSP.h) till
 // Ableton Live via VST2-gränssnittet.
 //
-// Etapp 1: inget eget fönster ännu. Live visar parametrarna som reglage
+// Inget eget fönster ännu. Live visar parametrarna som reglage
 // (klicka på den lilla triangeln i pluginets titelrad).
 //
 // Trådar: ljudtråden anropar processReplacing/processEvents. Där sker ingen
@@ -21,7 +21,7 @@ namespace {
 
 // Samma ID som när pluginet hette YamaSK30, så att sparade Live-projekt fortsätter fungera.
 const VstInt32 kUniqueId = ('Y' << 24) | ('S' << 16) | ('3' << 8) | '0';
-const VstInt32 kVersion = 101;            // 0.1.1 (etapp 1, nytt namn)
+const VstInt32 kVersion = 200;            // 0.2.0 (etapp 2: poly-synth + tremolo)
 const int kMaxQueuedEvents = 1024;
 
 void copyString(char* dst, const char* src, size_t maxLen)
@@ -32,27 +32,56 @@ void copyString(char* dst, const char* src, size_t maxLen)
 }
 
 // ---------------------------------------------------------------------------
-// Fabriksljud (visas i Lives presetlista)
+// Fabriksljud (visas i Lives presetlista). Varje ljud utgår från
+// standardvärdena och ändrar bara de parametrar som räknas upp.
 // ---------------------------------------------------------------------------
-struct FactoryPreset { const char* name; float v[kNumParams]; };
+struct PresetValue { int index; float value; };
+struct FactoryPreset { const char* name; PresetValue v[16]; int count; };
 
-// Ordning: Volume, Str1, Str2, Str3, SlowAtk, Sustain, SusTime, Mode, Detune,
-//          VibDly, VibSpd, VibDep, Brill, Ensembl, Tune
-#define SUS(s) (float)(std::log((s) / 0.03) / std::log(1.6 / 0.03))
-#define VOL(db) (float)(((db) + 48.0) / 54.0)
-#define DET(c) (float)(((c) + 20.0) / 47.0)
+inline float SUS(double s) { return (float)(std::log(s / 0.03) / std::log(1.6 / 0.03)); }
+inline float VOL(double db) { return (float)normFromVolumeDb(db); }
+inline float DET(double c) { return (float)normFromDetune(c); }
+inline float SEL(int i) { return (float)stepNorm(i, kNumPolySel); }
+inline float FEET(int i) { return (float)stepNorm(i, kNumFeet); }
+
 const FactoryPreset kPresets[] = {
-    { "Dream Strings",   { VOL(0), 1, 1, 0, 1, 1, SUS(0.9), 1, DET(7),  0.25f, 0.25f, 0.20f, 0.5f, 1, 0.4901961f } },
-    { "Ensemble 8'",     { VOL(0), 0, 1, 0, 1, 1, SUS(0.6), 0, DET(0),  0.0f,  0.25f, 0.0f,  0.5f, 1, 0.4901961f } },
-    { "Full Strings",    { VOL(-3),1, 1, 1, 1, 1, SUS(1.2), 1, DET(10), 0.30f, 0.30f, 0.20f, 0.6f, 1, 0.4901961f } },
-    { "Cello 16'",       { VOL(0), 1, 0, 0, 1, 1, SUS(0.7), 1, DET(5),  0.40f, 0.20f, 0.25f, 0.4f, 1, 0.4901961f } },
-    { "Bright Violins",  { VOL(0), 0, 1, 1, 1, 1, SUS(0.8), 1, DET(8),  0.25f, 0.35f, 0.25f, 0.8f, 1, 0.4901961f } },
-    { "Dry Organ Keyer", { VOL(0), 1, 1, 0, 0, 0, SUS(0.1), 0, DET(0),  0.0f,  0.25f, 0.0f,  0.5f, 0, 0.4901961f } },
+    { "Dream Strings",   { }, 0 },
+    { "Ensemble 8'",     { {kParamString1, 0}, {kParamSustainTime, SUS(0.6)}, {kParamMode, 0}, {kParamDetune, DET(0)},
+                           {kParamVibDelay, 0}, {kParamVibDepth, 0} }, 6 },
+    { "Full Strings",    { {kParamVolume, VOL(-3)}, {kParamString3, 1}, {kParamSustainTime, SUS(1.2)}, {kParamDetune, DET(10)},
+                           {kParamVibDelay, 0.3f}, {kParamVibSpeed, 0.3f}, {kParamBrilliance, 0.6f} }, 7 },
+    { "Cello 16'",       { {kParamString2, 0}, {kParamSustainTime, SUS(0.7)}, {kParamDetune, DET(5)}, {kParamVibDelay, 0.4f},
+                           {kParamVibSpeed, 0.2f}, {kParamVibDepth, 0.25f}, {kParamBrilliance, 0.4f} }, 7 },
+    { "Bright Violins",  { {kParamString1, 0}, {kParamString3, 1}, {kParamSustainTime, SUS(0.8)}, {kParamDetune, DET(8)},
+                           {kParamVibSpeed, 0.35f}, {kParamVibDepth, 0.25f}, {kParamBrilliance, 0.8f} }, 7 },
+    { "Dry Organ Keyer", { {kParamSlowAttack, 0}, {kParamSustain, 0}, {kParamMode, 0}, {kParamDetune, DET(0)},
+                           {kParamVibDelay, 0}, {kParamVibDepth, 0}, {kParamEnsemble, 0} }, 7 },
+    { "Poly-Synth 1",    { {kParamString1, 0}, {kParamString2, 0}, {kParamPolySel, SEL(1)} }, 3 },
+    { "Poly-Synth 2",    { {kParamString1, 0}, {kParamString2, 0}, {kParamPolySel, SEL(2)} }, 3 },
+    { "Poly-Synth 3",    { {kParamString1, 0}, {kParamString2, 0}, {kParamPolySel, SEL(3)} }, 3 },
+    { "Strings + Poly 2",{ {kParamPolySel, SEL(2)}, {kParamPolyVol, VOL(-6)} }, 2 },
+    { "Soft Pad",        { {kParamString1, 0}, {kParamString2, 0}, {kParamPolySel, SEL(4)}, {kParamPolyFeet, FEET(3)},
+                           {kParamCutoff, 0.45f}, {kParamResonance, 0.1f}, {kParamEgDepth, 0.25f}, {kParamAttack, 0.8f},
+                           {kParamDecay, 0.7f}, {kParamSustainLevel, 0.6f}, {kParamRelease, 0.6f}, {kParamSustainTime, SUS(1.4)},
+                           {kParamPolyVol, VOL(6)} }, 13 },
+    { "Wah Brass",       { {kParamString1, 0}, {kParamString2, 0}, {kParamPolySel, SEL(4)}, {kParamPolyFeet, FEET(5)},
+                           {kParamCutoff, 0.3f}, {kParamResonance, 0.6f}, {kParamEgDepth, 0.45f}, {kParamAttack, 0.42f},
+                           {kParamDecay, 0.45f}, {kParamSustainLevel, 0.45f}, {kParamRelease, 0.3f}, {kParamSlowAttack, 0},
+                           {kParamSustainTime, SUS(0.3)}, {kParamEnsemble, 0} }, 14 },
+    { "Tremolo Strings", { {kParamEnsemble, 0}, {kParamPolyTremolo, 1}, {kParamTremoloSpeed, 1} }, 3 },
+    { "Slow Rotor Pad",  { {kParamString3, 1}, {kParamEnsemble, 0}, {kParamPolyTremolo, 1}, {kParamTremoloSpeed, 0},
+                           {kParamSustainTime, SUS(1.4)}, {kParamVolume, VOL(-3)} }, 6 },
 };
-#undef SUS
-#undef VOL
-#undef DET
 const int kNumPresets = (int)(sizeof kPresets / sizeof kPresets[0]);
+
+void presetValues(int index, float* out)
+{
+    for (int i = 0; i < kNumParams; ++i) out[i] = defaultParam(i);
+    for (int j = 0; j < kPresets[index].count; ++j) {
+        const PresetValue& pv = kPresets[index].v[j];
+        if (pv.index >= 0 && pv.index < kNumParams) out[pv.index] = pv.value;
+    }
+}
 
 #pragma pack(push, 1)
 struct StateChunk
@@ -92,7 +121,9 @@ struct Plugin
     void loadPreset(int index)
     {
         if (index < 0 || index >= kNumPresets) return;
-        for (int i = 0; i < kNumParams; ++i) setParam(i, kPresets[index].v[i]);
+        float v[kNumParams];
+        presetValues(index, v);
+        for (int i = 0; i < kNumParams; ++i) setParam(i, v[i]);
         program = index;
         copyString(presetName, kPresets[index].name, sizeof presetName);
     }
@@ -126,6 +157,18 @@ void processBlock(Plugin* p, float** outputs, VstInt32 n, bool accumulate)
     e.setBrillianceNorm(p->params[kParamBrilliance].load());
     e.setEnsembleNorm(p->params[kParamEnsemble].load());
     e.setTuneNorm(p->params[kParamTune].load());
+    e.setPolySelNorm(p->params[kParamPolySel].load());
+    e.setPolyVolNorm(p->params[kParamPolyVol].load());
+    e.setPolyFeetNorm(p->params[kParamPolyFeet].load());
+    e.setCutoffNorm(p->params[kParamCutoff].load());
+    e.setResonanceNorm(p->params[kParamResonance].load());
+    e.setEgDepthNorm(p->params[kParamEgDepth].load());
+    e.setAttackNorm(p->params[kParamAttack].load());
+    e.setDecayNorm(p->params[kParamDecay].load());
+    e.setSustainLevelNorm(p->params[kParamSustainLevel].load());
+    e.setReleaseNorm(p->params[kParamRelease].load());
+    e.setPolyTremoloNorm(p->params[kParamPolyTremolo].load());
+    e.setTremoloSpeedNorm(p->params[kParamTremoloSpeed].load());
 
     float* left = outputs[0];
     float* right = outputs[1];
