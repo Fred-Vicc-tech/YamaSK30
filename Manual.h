@@ -79,23 +79,24 @@ static const ManualPara kManualEng[] = {
                 L"has priority. The solo synthesizer never goes through the effect." },
 
     { kManHead, L"EFFECTS" },
-    { kManBody, L"The recording was played through a Korg SDD-3000 delay and a Lexicon MPX500 reverb, so TrueSymph has both. DELAY "
-                L"follows the SDD-3000 service manual: TIME (1-1000 ms), FEEDBACK, MOD SPEED (0.1-15 Hz) and INTENSITY (up to 2:1; the "
-                L"delay time sways, left and right in opposite directions, which makes the echo wide), HIGH CUT (8k/4k/2k) and LOW CUT "
-                L"(125/250/500 Hz) like the SDD-3000's filters, and LEVEL. REVERB: TYPE after the MPX500 banks (PLATE bright and dense, "
-                L"HALL large and clean, CHAMBER even, ROOM small), DECAY (0.3-8 s) and LEVEL. "
-                L"LEVEL at the bottom = off, so the sound is mono and dry like the SK30 itself. The solo synthesizer also goes through "
-                L"the effects (they sit after the SK30, as in the recording)." },
+    { kManBody, L"DELAY is modelled on the Korg SDD-3000 and REVERB on the Lexicon MPX500. Both work like an effect send: the dry "
+                L"sound passes at full level and LEVEL sets how much effect is added. DELAY follows the SDD-3000 service manual: TIME "
+                L"(1-1000 ms), FEEDBACK, MOD SPEED (0.1-15 Hz) and INTENSITY (up to 2:1; the delay time sways, left and right in "
+                L"opposite directions, which makes the echo wide), HIGH CUT (8k/4k/2k) and LOW CUT (125/250/500 Hz) like the "
+                L"SDD-3000's filters, and LEVEL (middle = -10 dB, top = as loud as the dry sound). REVERB: TYPE after the MPX500 banks "
+                L"(PLATE bright and dense, HALL large and clean, CHAMBER even, ROOM small), DECAY (0.3-8 s) and LEVEL (middle = -2 dB, "
+                L"top = +8 dB for a very wet sound; the reverb goes after the delay). LEVEL at the bottom = off, so the sound is mono "
+                L"and dry like the SK30 itself. The solo synthesizer also goes through the effects." },
 
     { kManHead, L"PRESETS" },
     { kManBody, L"Click the preset name to pick a sound from a list (your own presets are under My presets). The arrows step through the factory presets and then your own presets. SAVE stores the current sound as a "
                 L"file in Documents\\TrueSymph Presets; LOAD opens any preset file. Factory presets also appear in Live's preset list." },
 
-    { kManHead, L"SOUNDS FROM THE RECORDING" },
-    { kManBody, L"The presets named Rec: recreate the sounds in Fredrik's SK30 recording, measured from the audio: Intro Lead (solo with "
-                L"portamento over strings), Pluck + Bass and Wah Bass (the bass at 0:25: solo synth as manual bass, the LFO sweeps the resonant filter at 3.2 Hz), High Lead, Poly 2 Sweeps, Ensemble Pad, Swell "
-                L"Chords and Glide Solo. They use the delay and reverb. The leads use TOUCH VIBRATO: add a little aftertouch or mod wheel (about 20 %) for the vibrato "
-                L"heard in the recording. The recording is tuned about 45 cents flat: set TUNE to about 428.5 Hz to match it exactly." },
+    { kManHead, L"REC: PRESETS" },
+    { kManBody, L"The presets named Rec: are complete sounds with delay and reverb: Intro Lead (solo with portamento over strings), "
+                L"Pluck + Bass and Wah Bass (solo synth as manual bass; the LFO sweeps the resonant filter at 3.2 Hz), High Lead, "
+                L"Poly 2 Sweeps, Ensemble Pad, Swell Chords and Glide Solo. The leads use TOUCH VIBRATO: add a little aftertouch or "
+                L"mod wheel (about 20 %) for vibrato." },
 
     { kManHead, L"ABOUT THE SOUND" },
     { kManBody, L"The SK30 is mono, so TrueSymph is mono too (left = right) until you turn on DELAY or REVERB." },
@@ -171,23 +172,24 @@ static const ManualPara kManualSwe[] = {
                 L"företräde. Solosynten går aldrig genom effekten." },
 
     { kManHead, L"EFFEKTER" },
-    { kManBody, L"Inspelningen spelades genom en Korg SDD-3000 (delay) och en Lexicon MPX500 (reverb), så TrueSymph har båda. DELAY "
-                L"följer SDD-3000:s servicemanual: TIME (1-1000 ms), FEEDBACK, MOD SPEED (0,1-15 Hz) och INTENSITY (upp till 2:1; "
-                L"delaytiden svajar åt olika håll i vänster och höger, vilket gör ekot brett), HIGH CUT (8k/4k/2k) och LOW CUT "
-                L"(125/250/500 Hz) som SDD-3000:s filter, och LEVEL. REVERB: TYPE efter MPX500:s banker (PLATE ljus och tät, HALL stor "
-                L"och ren, CHAMBER jämn, ROOM liten), DECAY (0,3-8 s) och LEVEL. LEVEL i "
-                L"botten = av, då är ljudet torrt och mono som SK30 själv. Även solosynten går genom effekterna (de sitter efter SK30, "
-                L"som på inspelningen)." },
+    { kManBody, L"DELAY är modellerad efter Korg SDD-3000 och REVERB efter Lexicon MPX500. Båda fungerar som en effect send: det "
+                L"torra ljudet går igenom i full nivå och LEVEL bestämmer hur mycket effekt som läggs till. DELAY följer SDD-3000:s "
+                L"servicemanual: TIME (1-1000 ms), FEEDBACK, MOD SPEED (0,1-15 Hz) och INTENSITY (upp till 2:1; delaytiden svajar åt "
+                L"olika håll i vänster och höger, vilket gör ekot brett), HIGH CUT (8k/4k/2k) och LOW CUT (125/250/500 Hz) som "
+                L"SDD-3000:s filter, och LEVEL (mitten = -10 dB, toppen = lika starkt som torrt). REVERB: TYPE efter MPX500:s banker "
+                L"(PLATE ljus och tät, HALL stor och ren, CHAMBER jämn, ROOM liten), DECAY (0,3-8 s) och LEVEL (mitten = -2 dB, "
+                L"toppen = +8 dB för mycket klang; reverbet sitter efter delayen). LEVEL i botten = av, då är ljudet torrt och mono "
+                L"som SK30 själv. Även solosynten går genom effekterna." },
 
     { kManHead, L"PRESETS" },
     { kManBody, L"Klicka på presetnamnet för att välja ljud i en lista (egna presets finns under My presets). Pilarna stegar genom fabriksljuden och sedan dina egna presets. SAVE sparar ljudet som en fil i "
                 L"Dokument\\TrueSymph Presets; LOAD öppnar valfri presetfil. Fabriksljuden finns också i Lives presetlista." },
 
-    { kManHead, L"LJUDEN FRÅN INSPELNINGEN" },
-    { kManBody, L"Ljuden som heter Rec: återskapar ljuden i Fredriks SK30-inspelning, uppmätta ur ljudfilen: Intro Lead (solo med "
-                L"portamento över stråkar), Pluck + Bass och Wah Bass (basen vid 0:25: solosynten som manual bass, LFO:n sveper det resonanta filtret med 3,2 Hz), High Lead, Poly 2 Sweeps, Ensemble Pad, Swell "
-                L"Chords och Glide Solo. De använder delay och reverb. Solostämmorna använder TOUCH VIBRATO: lägg på lite aftertouch eller modulationshjul (ca 20 %) "
-                L"för vibratot i inspelningen. Inspelningen ligger ca 45 cent lågt: ställ TUNE på ca 428,5 Hz för att matcha den exakt." },
+    { kManHead, L"REC:-LJUDEN" },
+    { kManBody, L"Ljuden som heter Rec: är färdiga ljud med delay och reverb: Intro Lead (solo med portamento över stråkar), "
+                L"Pluck + Bass och Wah Bass (solosynten som manual bass; LFO:n sveper det resonanta filtret med 3,2 Hz), High Lead, "
+                L"Poly 2 Sweeps, Ensemble Pad, Swell Chords och Glide Solo. Solostämmorna använder TOUCH VIBRATO: lägg på lite "
+                L"aftertouch eller modulationshjul (ca 20 %) för vibrato." },
 
     { kManHead, L"OM LJUDET" },
     { kManBody, L"SK30 är mono, så TrueSymph är också mono (vänster = höger) tills du sätter på DELAY eller REVERB." },

@@ -851,6 +851,23 @@ int main()
         check(f > 500.0, "CC65 slappt: ingen portamento (tonen ar framme direkt)");
     }
 
+    // 0.9.1: DELAY/REVERB LEVEL med ljudtaper; gamla sparade värden låter likadant
+    {
+        check(std::fabs(fxLevelDb(0.5) + 10.0) < 0.01, "DELAY LEVEL: mitten = -10 dB");
+        check(std::fabs(fxLevelDb(1.0)) < 1e-9 && std::fabs(revLevelDb(1.0) - 8.0) < 1e-9, "LEVEL: toppen som forut (0 / +8 dB)");
+        check(fxLevelDb(0.0) <= -100.0 && revLevelDb(0.0) <= -100.0, "LEVEL: 0 = av");
+        check(std::fabs(fxLevelDb(convertOldDelayLevel(0.5f)) + 18.0) < 0.01, "gammal DELAY LEVEL (-18 dB) raknas om");
+        check(std::fabs(revLevelDb(convertOldReverbLevel((float)((-4.0 + 36.0) / 44.0))) + 4.0) < 0.01, "gammal REVERB LEVEL (-4 dB) raknas om");
+        float v[kNumParams];
+        std::string nm;
+        presetFromText(std::string("TrueSymph preset 1\r\nName=Old\r\nDlyLvl=0.5\r\n"), v, &nm);
+        check(std::fabs(fxLevelDb(v[kParamDelayLevel]) + 18.0) < 0.01, "preset utan FxScale (gammal): raknas om");
+        float w[kNumParams]; for (int i = 0; i < kNumParams; ++i) w[i] = defaultParam(i);
+        w[kParamDelayLevel] = 0.5f;
+        presetFromText(presetToText("New", w), v, &nm);
+        check(std::fabs(v[kParamDelayLevel] - 0.5f) < 1e-5, "ny preset: samma varde tillbaka");
+    }
+
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);
     return failures ? 1 : 0;
 }

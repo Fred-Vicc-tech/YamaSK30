@@ -6,7 +6,7 @@ Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
 Efterliknar Yamaha SK30 (1979–80), byggt efter SK30:s servicemanual.
 Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, manual bass och keyboard split. Byggare: **2F Productions** (info@2f.se).
 
-## Status: 0.9.0 – genomgång mot servicemanualen: BOOST (+9,5 dB), översta tangenten, delningspunkter, vibratodelay, fotpedaler
+## Status: 0.9.1 – effektreglage med användbar skala; genomgång mot servicemanualen: BOOST (+9,5 dB), översta tangenten, delningspunkter, vibratodelay, fotpedaler
 
 | Funktion | Status |
 |---|---|
@@ -140,9 +140,9 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | 74 | DlyTime | DELAY TIME | 1–1000 ms |
 | 75 | DlyFdbk | DELAY FEEDBACK | 0–95 % |
 | 76 | DlyMod | DELAY MOD INTENSITY | 1:1 – 2:1 (SDD-3000) |
-| 77 | DlyLvl | DELAY LEVEL | av, −36…0 dB |
+| 77 | DlyLvl | DELAY LEVEL | av…0 dB (ljudtaper, mitten −10 dB) |
 | 78 | RevDcy | REVERB DECAY | 0,3–8 s |
-| 79 | RevLvl | REVERB LEVEL | av, −36…+8 dB (0 dB ≈ lika starkt som torrt) |
+| 79 | RevLvl | REVERB LEVEL | av…+8 dB (ljudtaper, mitten −2 dB; 0 dB ≈ lika starkt som torrt) |
 | 80 | DlySpd | DELAY MOD SPEED | 0,1–15 Hz |
 | 81 | DlyHiCt | DELAY HIGH CUT | OFF, 8k, 4k, 2k (−6 dB/okt) |
 | 82 | DlyLoCt | DELAY LOW CUT | OFF, 125, 250, 500 Hz (−3 dB/okt) |

@@ -113,9 +113,9 @@ enum ParamIndex
     kParamDelayTime = 74,    // DELAY TIME 1..1000 ms
     kParamDelayFeedback = 75,// DELAY FEEDBACK 0..95 %
     kParamDelayMod = 76,     // DELAY MOD (svaj på delaytiden) 0..100 %
-    kParamDelayLevel = 77,   // DELAY LEVEL -inf..0 dB
+    kParamDelayLevel = 77,   // DELAY LEVEL av..0 dB (ljudtaper: mitten -10 dB)
     kParamReverbDecay = 78,  // REVERB DECAY 0,3..8 s
-    kParamReverbLevel = 79,  // REVERB LEVEL -inf, -36..+8 dB
+    kParamReverbLevel = 79,  // REVERB LEVEL av..+8 dB (ljudtaper: mitten -2 dB)
     kParamDelaySpeed = 80,   // DELAY MOD SPEED 0,1..15 Hz (SDD-3000: VCO 0,1-15 Hz)
     kParamDelayHighCut = 81, // DELAY HIGH CUT: OFF, 8k, 4k, 2k (-6 dB/okt)
     kParamDelayLowCut = 82,  // DELAY LOW CUT: OFF, 125, 250, 500 Hz (-3 dB/okt)
@@ -238,11 +238,22 @@ inline void noteName(int m, char* out, size_t max)
 inline double delayMs(double n)       { return std::pow(1000.0, clamp01(n)); }               // 1..1000 ms
 inline double normFromDelayMs(double ms) { return std::log(ms) / std::log(1000.0); }
 inline double delayFeedback(double n) { return 0.95 * clamp01(n); }
-inline double fxLevelDb(double n)     { return n <= 0.0 ? -120.0 : -36.0 + 36.0 * clamp01(n); }
-inline double normFromFxDb(double db) { return (db + 36.0) / 36.0; }
+// DELAY LEVEL och REVERB LEVEL (0.9.1): ljudtaper, så att den användbara delen fyller skalan.
+// Mitten av reglaget = 10 dB under toppen, en fjärdedel = 20 dB under. Toppen som förut.
+const double kFxTaper = 10.0 / 6.0206;                 // 20*k*log10(0,5) = -10 dB
+inline double fxLevelDb(double n)     { return n <= 0.0005 ? -120.0 : 20.0 * kFxTaper * std::log10(clamp01(n)); }       // av, ..0 dB
+inline double normFromFxDb(double db) { return std::pow(10.0, db / (20.0 * kFxTaper)); }
 // REVERB LEVEL: -36..+8 dB, så att toppen ger lika mycket klang som i 0.8.0 och tidigare
-inline double revLevelDb(double n)    { return n <= 0.0 ? -120.0 : -36.0 + 44.0 * clamp01(n); }
-inline double normFromRevDb(double db) { return (db + 36.0) / 44.0; }
+inline double revLevelDb(double n)    { return n <= 0.0005 ? -120.0 : 8.0 + 20.0 * kFxTaper * std::log10(clamp01(n)); } // av, ..+8 dB
+inline double normFromRevDb(double db) { return std::pow(10.0, (db - 8.0) / (20.0 * kFxTaper)); }
+// Värden sparade med den gamla linjära skalan (0.7.0-0.9.0) räknas om så att de låter likadant.
+inline float convertOldDelayLevel(float n)  { return n <= 0.0f ? 0.0f : (float)normFromFxDb(-36.0 + 36.0 * clamp01(n)); }
+inline float convertOldReverbLevel(float n) { return n <= 0.0f ? 0.0f : (float)normFromRevDb(-36.0 + 44.0 * clamp01(n)); }
+inline void convertOldFxLevels(float* v)
+{
+    v[kParamDelayLevel] = convertOldDelayLevel(v[kParamDelayLevel]);
+    v[kParamReverbLevel] = convertOldReverbLevel(v[kParamReverbLevel]);
+}
 inline double reverbSec(double n)     { return 0.3 * std::pow(8.0 / 0.3, clamp01(n)); }
 // SDD-3000: MODULATION INTENSITY 0 - 2:1 (förhållandet mellan längsta och kortaste delaytid)
 inline double delayModRatio(double n) { n = clamp01(n); return 1.0 + n * n; }

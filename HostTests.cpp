@@ -134,6 +134,11 @@ int main()
         e->dispatcher(e, effSetChunk, 0, (VstIntPtr)s2.size(), s2.data(), 0);
         e->dispatcher(e, effSetProgram, 0, e->dispatcher(e, effGetProgram, 0, 0, nullptr, 0), nullptr, 0);
         check(e->getParameter(e, kParamDelayLevel) == 0.6f, "projekt i Live: effekterna foljer med");
+        // Projekt sparat med en äldre version (tillstånd version 1): LEVEL räknas om från gamla skalan
+        s2[4] = 1; s2[5] = s2[6] = s2[7] = 0;
+        e->dispatcher(e, effSetChunk, 0, (VstIntPtr)s2.size(), s2.data(), 0);
+        check(std::fabs(fxLevelDb(e->getParameter(e, kParamDelayLevel)) - (-36.0 + 36.0 * 0.6)) < 0.05,
+              "gammalt projekt: DELAY LEVEL later likadant");
     }
 
     // Felaktiga data

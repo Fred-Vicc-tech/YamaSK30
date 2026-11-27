@@ -158,6 +158,7 @@ inline std::string presetToText(const std::string& name, const float* v)
 {
     std::string t = kPresetHeader;
     t += "\r\nName=" + cleanPresetName(name) + "\r\n";
+    t += "FxScale=2\r\n";                 // DELAY/REVERB LEVEL med ljudtaper (0.9.1)
     char buf[64];
     for (int i = 0; i < kNumParams; ++i) {
         std::snprintf(buf, sizeof buf, "%s=%.6f\r\n", kParamNames[i], (double)v[i]);
@@ -194,6 +195,7 @@ inline bool presetFromText(const std::string& text, float* v, std::string* name)
     for (int i = 0; i < kNumParams; ++i) v[i] = defaultParam(i);
     if (name) *name = "Untitled";
     size_t pos = 0;
+    bool newFxScale = false;
     while (pos < text.size()) {
         size_t end = text.find_first_of("\r\n", pos);
         if (end == std::string::npos) end = text.size();
@@ -203,6 +205,7 @@ inline bool presetFromText(const std::string& text, float* v, std::string* name)
         if (eq == std::string::npos) continue;
         const std::string key = line.substr(0, eq), val = line.substr(eq + 1);
         if (key == "Name") { if (name) *name = cleanPresetName(val); continue; }
+        if (key == "FxScale") { newFxScale = std::atoi(val.c_str()) >= 2; continue; }
         for (int i = 0; i < kNumParams; ++i) {
             if (key != kParamNames[i]) continue;
             char* endp = nullptr;
@@ -210,6 +213,7 @@ inline bool presetFromText(const std::string& text, float* v, std::string* name)
             if (endp != val.c_str() && d >= 0.0 && d <= 1.0) v[i] = (float)d;   // ogiltigt ignoreras
         }
     }
+    if (!newFxScale) convertOldFxLevels(v);   // sparad före 0.9.1: gamla linjära skalan
     return true;
 }
 

@@ -20,7 +20,7 @@
 namespace truesymph {
 
 const int kEditorWidth = 1390, kEditorHeight = 676;
-const uint32_t kStateVersion = 1;
+const uint32_t kStateVersion = 2;        // 2 = DELAY/REVERB LEVEL med ljudtaper (0.9.1)
 const int kMaxQueuedEvents = 1024;
 
 inline void copyString(char* dst, const char* src, size_t maxLen)
@@ -180,11 +180,14 @@ struct Core
         for (int i = 0; i < kNumParams; ++i) setParam(i, defaultParam(i)); // nya parametrar får standardvärden
         const size_t available = (size - kChunkHeader) / sizeof(float);
         if (count > available) count = (uint32_t)available;
-        for (uint32_t i = 0; i < count && i < (uint32_t)kNumParams; ++i) {
-            float v;
-            std::memcpy(&v, data + kChunkHeader + i * sizeof(float), sizeof(float));
-            setParam((int)i, v);
-        }
+        uint32_t ver = 1;
+        std::memcpy(&ver, data + 4, 4);
+        float vals[kNumParams];
+        for (int i = 0; i < kNumParams; ++i) vals[i] = defaultParam(i);
+        for (uint32_t i = 0; i < count && i < (uint32_t)kNumParams; ++i)
+            std::memcpy(&vals[i], data + kChunkHeader + i * sizeof(float), sizeof(float));
+        if (ver < 2 && count > (uint32_t)kParamReverbLevel) convertOldFxLevels(vals);   // projekt sparat före 0.9.1
+        for (int i = 0; i < kNumParams; ++i) setParam(i, vals[i]);
         return true;
     }
 };

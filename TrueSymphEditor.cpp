@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.9.0";
+const wchar_t* const kVersionText = L"v0.9.1";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);

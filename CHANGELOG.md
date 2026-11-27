@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.9.1 (2026-11-27)
+- DELAY LEVEL och REVERB LEVEL har ljudtaper: mitten = 10 dB under toppen, en fjärdedel = 20 dB under.
+  Toppen som förut. Effekterna hörs nu över en större del av reglaget i stället för bara nära toppen.
+  Projekt och presetfiler sparade med äldre versioner räknas om så att de låter likadant.
+- Manualen: effekterna beskrivs som modellerade efter Korg SDD-3000 och Lexicon MPX500 (inga hänvisningar
+  till inspelningen).
+
 ## 0.9.0 (2026-11-27)
 Genomgång mot SK30:s servicemanual:
 - BOOST-knapp under MASTER VOLUME, på som standard: SK30:s utgångssteg (MO = 3 × mixen, VR1, s. 67),
