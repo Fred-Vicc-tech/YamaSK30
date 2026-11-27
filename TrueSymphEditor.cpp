@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.9.10";
+const wchar_t* const kVersionText = L"v0.9.11";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -189,17 +189,17 @@ struct Editor
         // 26 px från panelkanten och 18 px mellan grupperna.
         // Översta raden (0.9.9): samma avstånd mellan reglagen i OUTPUT, SOLO och EFFECTS
         // (33 px inom en grupp, 51 px mellan grupper); PITCH-rattarna ovanför varandra.
-        // --- OUTPUT (16..226) --- MASTER VOLUME och BOOST i höjd med reglagen bredvid
-        knob(kParamMaster, 50.0f, ta + 16.0f, L"MASTER\nVOLUME");
-        fader(kParamSoloVol, 101.0f, ta, L"SOLO");
-        fader(kParamOrgVol, 134.0f, ta, L"ORGAN");
-        fader(kParamVolume, 167.0f, ta, L"STRING");
-        fader(kParamPolyVol, 200.0f, ta, L"POLY");
+        // --- OUTPUT (16..253) --- MASTER VOLUME och BOOST i höjd med reglagen bredvid
+        knob(kParamMaster, 58.0f, ta + 16.0f, L"MASTER\nVOLUME");
+        fader(kParamSoloVol, 128.0f, ta, L"SOLO");
+        fader(kParamOrgVol, 161.0f, ta, L"ORGAN");
+        fader(kParamVolume, 194.0f, ta, L"STRING");
+        fader(kParamPolyVol, 227.0f, ta, L"POLY");
 
-        // --- PITCH (234..341) --- tre rattar ovanför varandra
-        knob(kParamTune, 287.5f, ta + 16.0f, L"TUNE");
-        knob(kParamDetune, 287.5f, ta + 85.0f, L"DETUNE");
-        knob(kParamSoloTune, 287.5f, ta + 154.0f, L"SOLO TUNE");
+        // --- PITCH (261..341) --- tre rattar ovanför varandra, smal ruta
+        knob(kParamTune, 301.0f, ta + 16.0f, L"TUNE");
+        knob(kParamDetune, 301.0f, ta + 80.0f, L"DETUNE");
+        knob(kParamSoloTune, 301.0f, ta + 144.0f, L"SOLO TUNE");
 
         // --- SOLO SYNTHESIZER (349..980) ---
         fader(kParamLfoSpeed, 375.0f, ta, L"LFO");
@@ -280,7 +280,7 @@ struct Editor
 
         // DECAY/SUSTAIN (orgel) och SLOW ATTACK/SUSTAIN (poly-synth): fyrkantiga knappar
         // BOOST under MASTER VOLUME: SK30:s utgångssteg (+9,5 dB), på som standard
-        btns.push_back({ { 33.0f, ta + 74.0f, 34.0f, 34.0f }, L"BOOST", kActToggle, kParamBoost, 0, 0, false });
+        btns.push_back({ { 41.0f, ta + 74.0f, 34.0f, 34.0f }, L"BOOST", kActToggle, kParamBoost, 0, 0, false });
         btns.push_back({ { 167.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"DECAY", kActToggle, kParamOrgDecay, 0, 0, false });
         btns.push_back({ { 167.0f, kRowBY + 124.0f, 34.0f, 34.0f }, L"SUSTAIN", kActToggle, kParamOrgSustain, 0, 0, false });
         btns.push_back({ { 854.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"SLOW\nATTACK", kActToggle, kParamSlowAttack, 0, 0, false });
@@ -857,8 +857,8 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     }
 
     // --- Paneler ---
-    drawPanel(g, 16.0f, kRowAY, 210.0f, kRowAH);   drawSectionTitle(g, ff, L"OUTPUT", 16.0f, kRowAY, 210.0f);
-    drawPanel(g, 234.0f, kRowAY, 107.0f, kRowAH);  drawSectionTitle(g, ff, L"PITCH", 234.0f, kRowAY, 107.0f);
+    drawPanel(g, 16.0f, kRowAY, 237.0f, kRowAH);   drawSectionTitle(g, ff, L"OUTPUT", 16.0f, kRowAY, 237.0f);
+    drawPanel(g, 261.0f, kRowAY, 80.0f, kRowAH);   drawSectionTitle(g, ff, L"PITCH", 261.0f, kRowAY, 80.0f);
     drawPanel(g, 349.0f, kRowAY, 631.0f, kRowAH);  drawSectionTitle(g, ff, L"SOLO SYNTHESIZER", 349.0f, kRowAY, 631.0f);
     drawPanel(g, 988.0f, kRowAY, 466.0f, kRowAH);  drawSectionTitle(g, ff, L"EFFECTS", 988.0f, kRowAY, 466.0f);
     drawPanel(g, 16.0f, kRowBY, 124.0f, kRowBH);   drawSectionTitle(g, ff, L"VIBRATO", 16.0f, kRowBY, 124.0f);

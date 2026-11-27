@@ -1,5 +1,9 @@
 # Ändringslogg
 
+## 0.9.11 (2026-11-27)
+- PITCH smalare (80 px) med rattarna tätare i höjdled och mer luft under den nedersta; OUTPUT bredare med
+  mer luft mellan MASTER VOLUME och reglagen.
+
 ## 0.9.10 (2026-11-27)
 - Texten under rattarna sitter närmare ratten (i bågens öppning), så att rattarna får mer luft runt sig.
 
