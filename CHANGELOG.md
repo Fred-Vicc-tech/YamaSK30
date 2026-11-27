@@ -1,5 +1,13 @@
 # Ändringslogg
 
+## 0.9.2 (2026-11-27)
+- DELAY: omkopplare DIGI / TAPE. TAPE är i Roland RE-201 Space Echo-stil: wow och flutter, bandmättning
+  och filter i återmatningen så att varje eko blir mörkare och tunnare.
+- REVERB TYPE: två nya typer i AMS RMX16-stil. AMBIENCE (kort, tät rymd nästan utan svans) och NONLIN
+  (grindad reverb: jämn skur som tar tvärt slut; DECAY styr grindtiden). Nivån kalibrerad som de andra.
+- Fönstret 1430 px brett för omkopplaren; ORGAN och POLY-SYNTH har fått lite mer luft.
+- Sparade projekt och presets med REVERB TYPE från äldre versioner behåller sin typ.
+
 ## 0.9.1 (2026-11-27)
 - DELAY LEVEL och REVERB LEVEL har ljudtaper: mitten = 10 dB under toppen, en fjärdedel = 20 dB under.
   Toppen som förut. Effekterna hörs nu över en större del av reglaget i stället för bara nära toppen.

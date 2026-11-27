@@ -22,7 +22,7 @@ namespace {
 
 // Samma ID som när pluginet hette YamaSK30, så att sparade Live-projekt fortsätter fungera.
 const VstInt32 kUniqueId = ('Y' << 24) | ('S' << 16) | ('3' << 8) | '0';
-const VstInt32 kVersion = 901;            // 0.9.1
+const VstInt32 kVersion = 902;            // 0.9.2
 
 struct Plugin : Core
 {

@@ -766,7 +766,8 @@ int main()
                 e.handleMidi(0x90, 60, 100); stereo(e, 0.3, L, R); e.handleMidi(0x80, 60, 0); stereo(e, 1.0, L, R);
                 tail[ty] = rms(L, (size_t)(0.3 * sr), (size_t)(0.5 * sr));
             }
-            check(tail[0] > 1e-5 && tail[1] > 1e-5 && tail[2] > 1e-5 && tail[3] > 1e-5, "REVERB TYPE: alla fyra later");
+            bool all = true; for (int ty = 0; ty < kNumReverbTypes; ++ty) all = all && tail[ty] > 1e-5;
+            check(all, "REVERB TYPE: alla sex later");
             check(std::fabs(tail[0] - tail[1]) > 1e-6 && std::fabs(tail[0] - tail[3]) > 1e-6, "REVERB TYPE: typerna skiljer sig");
         }
         // REVERB LEVEL på 0 dB höjer inte hela syntens volym mycket (högst 4 dB för ett hållet ackord)
@@ -866,6 +867,47 @@ int main()
         w[kParamDelayLevel] = 0.5f;
         presetFromText(presetToText("New", w), v, &nm);
         check(std::fabs(v[kParamDelayLevel] - 0.5f) < 1e-5, "ny preset: samma varde tillbaka");
+    }
+
+    // 0.9.2: AMBIENCE och NONLIN (AMS RMX16-stil), TAPE-delay (Space Echo-stil)
+    {
+        auto stereo = [&](Engine& e, double sec, std::vector<double>& L, std::vector<double>& R) {
+            L.resize((size_t)(sec * sr)); R.resize(L.size());
+            for (size_t i = 0; i < L.size(); ++i) e.nextStereo(L[i], R[i]);
+        };
+        auto wetTail = [&](int ty, double dec, std::vector<double>& w) {
+            std::vector<double> a, b, R;
+            for (int k = 0; k < 2; ++k) {
+                Engine e; e.prepare(sr); plain(e);
+                e.setReverbLevelNorm(k ? 1.0 : 0.0); e.setReverbTypeNorm(stepNorm(ty, kNumReverbTypes)); e.setReverbDecayNorm(normFromReverbSec(dec));
+                e.handleMidi(0x90, 60, 100); std::vector<double> L1; stereo(e, 0.03, L1, R); e.handleMidi(0x80, 60, 0);
+                std::vector<double> L2; stereo(e, 1.2, L2, R); L1.insert(L1.end(), L2.begin(), L2.end());
+                (k ? b : a) = L1;
+            }
+            w.resize(a.size()); for (size_t i = 0; i < a.size(); ++i) w[i] = b[i] - a[i];
+        };
+        std::vector<double> nl, amb, pl;
+        wetTail(kRevNonLin, 3.0, nl); wetTail(kRevAmbience, 3.0, amb); wetTail(0, 3.0, pl);
+        const double nlIn = rms(nl, (size_t)(0.10 * sr), (size_t)(0.25 * sr)), nlOut = rms(nl, (size_t)(0.42 * sr), (size_t)(0.55 * sr));
+        check(nlIn > 1e-4 && 20.0 * std::log10(nlIn / (nlOut + 1e-12)) > 30.0, "NONLIN: jamn skur som tar tvart slut efter grindtiden (0,3 s)");
+        const double ambLate = rms(amb, (size_t)(0.7 * sr), (size_t)(0.9 * sr)), plLate = rms(pl, (size_t)(0.7 * sr), (size_t)(0.9 * sr));
+        check(ambLate < plLate * 0.1, "AMBIENCE: kort svans jamfort med PLATE");
+        check(finite(nl) && finite(amb), "AMBIENCE/NONLIN: inga ogiltiga tal");
+        check(std::fabs(convertOldReverbType((float)stepNorm(3, 4)) - (float)stepNorm(3, kNumReverbTypes)) < 1e-6, "gammal TYPE (ROOM) raknas om");
+
+        // TAPE: ekona blir mörkare för varje varv (jämför eko 1 och eko 3 med DIGI)
+        double ratio[2];
+        for (int tp = 0; tp < 2; ++tp) {
+            Engine e; e.prepare(sr); plain(e);
+            e.setDelayModeNorm(tp ? 1.0 : 0.0);
+            e.setDelayTimeNorm(normFromDelayMs(250.0)); e.setDelayFeedbackNorm(0.7); e.setDelayLevelNorm(1.0); e.setDelayModNorm(0.0);
+            e.handleMidi(0x90, 72, 100); std::vector<double> L, R; stereo(e, 0.05, L, R); e.handleMidi(0x80, 72, 0);
+            std::vector<double> L2; stereo(e, 1.2, L2, R); L.insert(L.end(), L2.begin(), L2.end());
+            const double c1 = centroid(L, (size_t)(0.26 * sr), 2048, sr), c3 = centroid(L, (size_t)(0.76 * sr), 2048, sr);
+            ratio[tp] = c3 / c1;
+            check(finite(L), tp ? "TAPE: inga ogiltiga tal" : "DIGI: inga ogiltiga tal");
+        }
+        check(ratio[1] < ratio[0] * 0.9, "TAPE: ekona morknar for varje varv");
     }
 
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);

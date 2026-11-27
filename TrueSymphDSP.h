@@ -121,6 +121,7 @@ enum ParamIndex
     kParamDelayLowCut = 82,  // DELAY LOW CUT: OFF, 125, 250, 500 Hz (-3 dB/okt)
     kParamReverbType = 83,   // REVERB TYPE: PLATE, HALL, CHAMBER, ROOM (som MPX500:s banker)
     kParamBoost = 84,        // BOOST: SK30:s utgångssteg (MO = 3 x mixen, VR1), +9,5 dB, på som standard
+    kParamDelayMode = 85,    // DELAY: DIGI (Korg SDD-3000) eller TAPE (Roland Space Echo-stil)
     kNumParams
 };
 
@@ -136,7 +137,7 @@ static const char* const kParamNames[kNumParams] = {
     "SReso", "SMod", "SEGDep", "VCA", "SAttack", "SDecay", "SSusLvl", "SRelease", "TchVib", "TchBri",
     "TchMod", "SoloTun", "Split", "SplitPt", "BassPt",
     "DlyTime", "DlyFdbk", "DlyMod", "DlyLvl", "RevDcy", "RevLvl", "DlySpd", "DlyHiCt", "DlyLoCt", "RevType",
-    "Boost"
+    "Boost", "DlyMode"
 };
 static const char* const kParamLabels[kNumParams] = {
     "dB", "", "", "", "", "", "s", "", "cent", "s", "Hz", "cent", "dB", "", "Hz",
@@ -148,7 +149,7 @@ static const char* const kParamLabels[kNumParams] = {
     "Q", "oct", "oct", "", "s", "s", "", "s", "", "",
     "", "cent", "", "", "",
     "ms", "%", "", "dB", "s", "dB", "Hz", "", "", "",
-    ""
+    "", ""
 };
 
 inline double clamp01(double v) { return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); }
@@ -259,7 +260,10 @@ inline double reverbSec(double n)     { return 0.3 * std::pow(8.0 / 0.3, clamp01
 inline double delayModRatio(double n) { n = clamp01(n); return 1.0 + n * n; }
 inline double delaySpeedHz(double n)  { return 0.1 * std::pow(150.0, clamp01(n)); }        // 0,1..15 Hz
 inline double normFromDelaySpeed(double hz) { return std::log(hz / 0.1) / std::log(150.0); }
-const int kNumHighCut = 4, kNumLowCut = 4, kNumReverbTypes = 4;
+const int kNumHighCut = 4, kNumLowCut = 4, kNumReverbTypes = 6, kNumDelayModes = 2;
+const int kRevAmbience = 4, kRevNonLin = 5;          // AMS RMX16-stil
+// TYPE sparad med 4 typer (före 0.9.2) -> samma typ bland 6
+inline float convertOldReverbType(float n) { return (float)stepNorm(stepIndex(n, 4), kNumReverbTypes); }
 static const double kHighCutHz[kNumHighCut] = { 0.0, 8000.0, 4000.0, 2000.0 };
 static const double kLowCutHz[kNumLowCut] = { 0.0, 125.0, 250.0, 500.0 };
 inline double normFromReverbSec(double s) { return std::log(s / 0.3) / std::log(8.0 / 0.3); }
@@ -345,7 +349,8 @@ inline float defaultParam(int index)
     case kParamDelayHighCut:return (float)stepNorm(1, kNumHighCut);  // 8 kHz
     case kParamDelayLowCut: return 0.0f;                            // OFF
     case kParamReverbType:  return 0.0f;                            // PLATE
-    case kParamBoost:       return 1.0f;                            // på (nivå i klass med andra syntar)
+    case kParamBoost:       return 1.0f;
+    case kParamDelayMode:   return 0.0f;                            // DIGI (SDD-3000)                            // på (nivå i klass med andra syntar)
     case kParamDelayLevel:  return 0.0f;                            // av (torrt som originalet)
     case kParamReverbDecay: return (float)normFromReverbSec(3.0);
     case kParamReverbLevel: return 0.0f;                            // av
@@ -447,7 +452,8 @@ inline void paramDisplayText(int index, double n, char* out, size_t max)
     case kParamDelaySpeed:  std::snprintf(out, max, delaySpeedHz(n) < 10.0 ? "%.2f" : "%.1f", delaySpeedHz(n)); break;
     case kParamDelayHighCut: { static const char* const t[kNumHighCut] = { "OFF", "8k", "4k", "2k" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumHighCut)]); break; }
     case kParamDelayLowCut: { static const char* const t[kNumLowCut] = { "OFF", "125", "250", "500" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumLowCut)]); break; }
-    case kParamReverbType: { static const char* const t[kNumReverbTypes] = { "PLATE", "HALL", "CHAMBER", "ROOM" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumReverbTypes)]); break; }
+    case kParamDelayMode:   std::snprintf(out, max, "%s", stepIndex(n, kNumDelayModes) ? "TAPE" : "DIGI"); break;
+    case kParamReverbType: { static const char* const t[kNumReverbTypes] = { "PLATE", "HALL", "CHAMBER", "ROOM", "AMBIENCE", "NONLIN" }; std::snprintf(out, max, "%s", t[stepIndex(n, kNumReverbTypes)]); break; }
     case kParamDelayLevel: case kParamReverbLevel: {
         const double db = index == kParamReverbLevel ? revLevelDb(n) : fxLevelDb(n);
         if (db <= -100.0) std::snprintf(out, max, "OFF"); else std::snprintf(out, max, "%.1f", db);
@@ -963,6 +969,13 @@ struct StereoDelay
     double sr = 44100.0;
     double timeSm = 0.38, lfo = 0.0;
     Biquad bandLP;                              // 17 kHz (effektens bandbredd)
+    // TAPE (Roland RE-201 Space Echo-stil): wow och flutter, bandmättning och ett
+    // mörkare och tunnare eko för varje varv (filter i återmatningen).
+    bool tape = false;
+    double wowPh = 0.0, flutPh = 0.0, wowDrift = 0.0, wowDriftT = 0.0;
+    uint32_t rng = 0x2F2F2F2Fu;
+    OnePoleLP tapeLP;                           // ca 3,2 kHz i slingan
+    OnePoleHP tapeHP;                           // ca 110 Hz i slingan
     OnePoleLP highCut;
     OnePoleHP lowCut;
     int highCutIdx = -1, lowCutIdx = -1;
@@ -974,10 +987,15 @@ struct StereoDelay
     {
         sr = rate;
         bandLP.lowpass(std::fmin(17000.0, sr * 0.45), 0.707, sr);
+        tapeLP.set(3200.0, sr); tapeHP.set(110.0, sr);
         highCutIdx = -1; lowCutIdx = -1;
         reset();
     }
-    void reset() { std::memset(buf, 0, sizeof(float) * kSize); wp = 0; lfo = 0.0; bandLP.reset(); highCut.reset(); lowCut.reset(); }
+    void reset()
+    {
+        std::memset(buf, 0, sizeof(float) * kSize); wp = 0; lfo = 0.0; bandLP.reset(); highCut.reset(); lowCut.reset();
+        tapeLP.reset(); tapeHP.reset(); wowPh = flutPh = wowDrift = wowDriftT = 0.0; rng = 0x2F2F2F2Fu;
+    }
     void setFilters(int hi, int lo)
     {
         if (hi != highCutIdx) { highCutIdx = hi; if (hi > 0) highCut.set(kHighCutHz[hi], sr); }
@@ -999,7 +1017,14 @@ struct StereoDelay
         const double tri = lfo < 0.5 ? 4.0 * lfo - 1.0 : 3.0 - 4.0 * lfo;      // VCO: triangel
         // INTENSITY: tiden svajar mellan T/sqrt(r) och T*sqrt(r) (förhållande r:1)
         const double m = std::pow(ratio, 0.5 * tri);
-        const double d = timeSm * sr;
+        double d = timeSm * sr;
+        if (tape) {
+            // wow (ca 0,55 Hz, långsamt vandrande) och flutter (ca 6,5 Hz): tillsammans ca 0,3 %
+            wowPh += 0.55 / sr; if (wowPh >= 1.0) { wowPh -= 1.0; rng = rng * 1664525u + 1013904223u; wowDriftT = ((rng >> 8) / 16777216.0) - 0.5; }
+            flutPh += 6.5 / sr; if (flutPh >= 1.0) flutPh -= 1.0;
+            wowDrift += (wowDriftT - wowDrift) * (1.0 / (0.8 * sr));
+            d *= 1.0 + 0.0022 * std::sin(2.0 * kPi * wowPh) + 0.0012 * wowDrift + 0.0006 * std::sin(2.0 * kPi * flutPh);
+        }
         double dl = d * m, dr = d / m;
         if (dl < 1.0) dl = 1.0;
         if (dr < 1.0) dr = 1.0;
@@ -1007,8 +1032,15 @@ struct StereoDelay
         if (dr > kSize - 4) dr = kSize - 4;
         const double yl = read(dl), yr = read(dr);
         double fb = 0.5 * (yl + yr) * feedback;
-        fb = std::tanh(fb * 1.1) / 1.1;                                         // lätt mättning vid hög återmatning
-        double w = bandLP.process(x + fb);
+        double w;
+        if (tape) {
+            fb = tapeHP.process(tapeLP.process(fb));                             // varje eko mörkare och tunnare
+            w = std::tanh(2.2 * (x + fb)) / 2.2;                                  // bandmättning
+            w = bandLP.process(w);
+        } else {
+            fb = std::tanh(fb * 1.1) / 1.1;                                     // lätt mättning vid hög återmatning
+            w = bandLP.process(x + fb);
+        }
         if (highCutIdx > 0) w = highCut.process(w);
         if (lowCutIdx > 0) { const double hp = lowCut.process(w); w = 0.5 * (w + hp) + 0.5 * hp; } // ca -3 dB/okt: halva vägen
         buf[wp] = (float)w;
@@ -1068,10 +1100,31 @@ struct PlateReverb
             { 1.45, 25.0, 0.45, 0.65, 0.70, 0.55,  0.55 },
             { 1.15, 12.0, 0.38, 0.72, 0.72, 0.60,  0.58 },
             { 0.62,  5.0, 0.50, 0.70, 0.65, 0.55,  0.70 },
+            { 0.42,  3.0, 0.22, 0.90, 0.78, 0.66,  0.95 },   // AMBIENCE (RMX16): tät tidig rymd, kort svans, ljus
+            { 0.80,  0.0, 0.30, 0.85, 0.75, 0.625, 0.60 },   // NONLIN (RMX16): diffusorerna matar grinden nedan
         };
         return d[t < 0 ? 0 : (t >= kNumReverbTypes ? kNumReverbTypes - 1 : t)];
     }
 
+    // NONLIN: en tät "skur" av reflexer med jämn nivå som tar tvärt slut efter grindtiden
+    // (AMS RMX16 NonLin 2). 48 tappar per kanal på fasta, slumpade platser inom grindtiden.
+    static const int kNlTaps = 48;
+    float* nlBuf = nullptr; int nlSize = 0, nlWp = 0;
+    double nlPosL[kNlTaps], nlPosR[kNlTaps], nlAmpL[kNlTaps], nlAmpR[kNlTaps];
+    int nlTapL[kNlTaps], nlTapR[kNlTaps];
+    double nlGate = -1.0;
+    ~PlateReverb() { delete[] nlBuf; }
+    void setGate(double gateSec)
+    {
+        if (std::fabs(gateSec - nlGate) < 1e-4) return;
+        nlGate = gateSec;
+        const double n = gateSec * sr;
+        for (int i = 0; i < kNlTaps; ++i) {
+            nlTapL[i] = 1 + (int)(nlPosL[i] * n); nlTapR[i] = 1 + (int)(nlPosR[i] * n);
+            if (nlTapL[i] >= nlSize) nlTapL[i] = nlSize - 1;
+            if (nlTapR[i] >= nlSize) nlTapR[i] = nlSize - 1;
+        }
+    }
     int S(double n) const { return (int)(n * scale * size + 0.5); }
     void prepare(double rate)
     {
@@ -1084,6 +1137,20 @@ struct PlateReverb
         apModL.init(cap(672 + 32)); apModR.init(cap(908 + 32));
         d1L.init(cap(4453)); d2L.init(cap(3720)); d1R.init(cap(4217)); d2R.init(cap(3163));
         ap2L.l.init(cap(1800)); ap2L.g = 0.5; ap2R.l.init(cap(2656)); ap2R.g = 0.5;
+        delete[] nlBuf; nlSize = 1; while (nlSize < (int)(1.3 * sr)) nlSize <<= 1;
+        nlBuf = new float[nlSize]; std::memset(nlBuf, 0, sizeof(float) * nlSize); nlWp = 0;
+        uint32_t r = 0x5EED1981u;
+        auto rnd = [&r]() { r = r * 1664525u + 1013904223u; return (r >> 8) / 16777216.0; };
+        for (int i = 0; i < kNlTaps; ++i) {
+            // jämnt fördelade fack med slump inom facket, så att tätheten är jämn
+            nlPosL[i] = (i + rnd()) / kNlTaps; nlPosR[i] = (i + rnd()) / kNlTaps;
+            // jämn nivå med kort uppgång och tvärt slut sist (5 %)
+            auto env = [](double u) { double a = u < 0.04 ? 0.6 + 10.0 * u : 1.0; if (u > 0.95) a *= (1.0 - u) / 0.05; return a; };
+            const double sgnL = rnd() < 0.5 ? -1.0 : 1.0, sgnR = rnd() < 0.5 ? -1.0 : 1.0;
+            nlAmpL[i] = sgnL * env(nlPosL[i]) / std::sqrt((double)kNlTaps);
+            nlAmpR[i] = sgnR * env(nlPosR[i]) / std::sqrt((double)kNlTaps);
+        }
+        nlGate = -1.0;
         type = -1;
         setType(0);
         reset();
@@ -1106,6 +1173,8 @@ struct PlateReverb
     {
         pre.clear(); for (int i = 0; i < 4; ++i) diff[i].l.clear();
         apModL.clear(); apModR.clear(); d1L.clear(); d2L.clear(); d1R.clear(); d2R.clear(); ap2L.l.clear(); ap2R.l.clear();
+        if (nlBuf) std::memset(nlBuf, 0, sizeof(float) * nlSize);
+        nlWp = 0;
         dampL = dampR = inLP = fbL = fbR = lfo = 0.0;
     }
     float modAllPass(Line& l, int base, double exc, double ph, float x)
@@ -1118,8 +1187,35 @@ struct PlateReverb
         l.push(v);
         return d - g * v;
     }
+    // Grindtid för NONLIN och efterklangstid för AMBIENCE ur DECAY-reglaget
+    static double gateFor(double decaySec) { double g = 0.1 * decaySec; return g < 0.06 ? 0.06 : (g > 0.8 ? 0.8 : g); }
+    static double ambienceDecay(double decaySec) { double d = 0.2 * decaySec; return d < 0.15 ? 0.15 : (d > 1.6 ? 1.6 : d); }
+    // Nivåkompensation så att alla typer låter ungefär lika starka vid samma LEVEL
+    double levelComp(double decaySec) const
+    {
+        if (type == kRevNonLin) return 2.55;
+        if (type == kRevAmbience) return 1.1;
+        return std::sqrt(3.0 / decaySec);
+    }
     void process(double x, double decaySec, double& outL, double& outR)
     {
+        if (type == kRevNonLin) {
+            const float in = pre.last(); pre.push((float)x);
+            inLP += (in - inLP) * bandwidth;
+            float v = (float)inLP;
+            for (int i = 0; i < 4; ++i) v = diff[i].process(v);
+            setGate(gateFor(decaySec));
+            nlBuf[nlWp] = v;
+            double l = 0.0, r = 0.0;
+            for (int i = 0; i < kNlTaps; ++i) {
+                l += nlAmpL[i] * nlBuf[(nlWp - nlTapL[i]) & (nlSize - 1)];
+                r += nlAmpR[i] * nlBuf[(nlWp - nlTapR[i]) & (nlSize - 1)];
+            }
+            nlWp = (nlWp + 1) & (nlSize - 1);
+            outL = outGain * l; outR = outGain * r;
+            return;
+        }
+        if (type == kRevAmbience) decaySec = ambienceDecay(decaySec);
         // förstärkning per tankvarv för vald efterklangstid (-60 dB på decaySec)
         const double loop = (672.0 + 4453.0 + 1800.0 + 3720.0) * size / 29761.0;
         double g = std::pow(10.0, -3.0 * loop / (2.0 * decaySec));   // g används två gånger per tankhalva
@@ -1388,6 +1484,7 @@ public:
     void setDelaySpeedNorm(double n)  { dlySpeed = delaySpeedHz(n); }
     void setDelayFiltersNorm(double hi, double lo) { delay.setFilters(stepIndex(hi, kNumHighCut), stepIndex(lo, kNumLowCut)); }
     void setReverbTypeNorm(double n)  { reverb.setType(stepIndex(n, kNumReverbTypes)); }
+    void setDelayModeNorm(double n)   { delay.tape = stepIndex(n, kNumDelayModes) == 1; }
     void setBassPointNorm(double n)   { const int b = splitNote(n); if (b != bassPoint) { bassPoint = b; updateSolo(false); } }
 
     // Alla parametrar på en gång (normaliserade 0..1, index enligt ParamIndex)
@@ -1467,6 +1564,7 @@ public:
         setDelayFiltersNorm(v[kParamDelayHighCut], v[kParamDelayLowCut]);
         setReverbTypeNorm(v[kParamReverbType]);
         boostTarget = isOn(v[kParamBoost]) ? kBoostGain : 1.0;
+        setDelayModeNorm(v[kParamDelayMode]);
     }
 
     // --- MIDI --------------------------------------------------------------
@@ -1690,7 +1788,7 @@ public:
             reverb.process(0.5 * (l + r), revDecay, rl, rr);
             // Nivån kalibrerad så att LEVEL på max ger ungefär lika mycket reverb som torrt
             // ljud (inte +5..7 dB som förut), och lika stark klang oavsett DECAY.
-            const double rg = revLevelSm * kReverbTrim * std::sqrt(3.0 / revDecay);
+            const double rg = revLevelSm * kReverbTrim * reverb.levelComp(revDecay);
             l += rl * rg; r += rr * rg;
             revActive = (revLevelTarget > 0.0) ? (int)(sr * (revDecay + 1.0)) : revActive - 1;
         }

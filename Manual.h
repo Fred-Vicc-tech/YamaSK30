@@ -79,7 +79,8 @@ static const ManualPara kManualEng[] = {
                 L"has priority. The solo synthesizer never goes through the effect." },
 
     { kManHead, L"EFFECTS" },
-    { kManBody, L"DELAY is modelled on the Korg SDD-3000 and REVERB on the Lexicon MPX500. Both work like an effect send: the dry "
+    { kManBody, L"DELAY is modelled on the Korg SDD-3000 (DIGI) and the Roland RE-201 Space Echo (TAPE); REVERB on the Lexicon MPX500 "
+                L"(PLATE, HALL, CHAMBER, ROOM) and the AMS RMX16 (AMBIENCE, NONLIN). The effects work like an effect send: the dry "
                 L"sound passes at full level and LEVEL sets how much effect is added. DELAY follows the SDD-3000 service manual: TIME "
                 L"(1-1000 ms), FEEDBACK, MOD SPEED (0.1-15 Hz) and INTENSITY (up to 2:1; the delay time sways, left and right in "
                 L"opposite directions, which makes the echo wide), HIGH CUT (8k/4k/2k) and LOW CUT (125/250/500 Hz) like the "
@@ -87,6 +88,11 @@ static const ManualPara kManualEng[] = {
                 L"(PLATE bright and dense, HALL large and clean, CHAMBER even, ROOM small), DECAY (0.3-8 s) and LEVEL (middle = -2 dB, "
                 L"top = +8 dB for a very wet sound; the reverb goes after the delay). LEVEL at the bottom = off, so the sound is mono "
                 L"and dry like the SK30 itself. The solo synthesizer also goes through the effects." },
+    { kManBody, L"The switch at the start of DELAY selects DIGI (clean SDD-3000 echo) or TAPE: the tape echo sways slightly (wow and "
+                L"flutter), saturates when pushed, and every repeat is darker and thinner than the one before. "
+                L"REVERB TYPE AMBIENCE is a short, dense sense of space with almost no tail (DECAY sets its length, about a fifth of the "
+                L"value shown). NONLIN is the gated 80s reverb: an even burst that stops abruptly; DECAY sets the gate time (one tenth "
+                L"of the value shown, 0.06-0.8 s)." },
 
     { kManHead, L"PRESETS" },
     { kManBody, L"Click the preset name to pick a sound from a list (your own presets are under My presets). The arrows step through the factory presets and then your own presets. SAVE stores the current sound as a "
@@ -172,7 +178,8 @@ static const ManualPara kManualSwe[] = {
                 L"företräde. Solosynten går aldrig genom effekten." },
 
     { kManHead, L"EFFEKTER" },
-    { kManBody, L"DELAY är modellerad efter Korg SDD-3000 och REVERB efter Lexicon MPX500. Båda fungerar som en effect send: det "
+    { kManBody, L"DELAY är modellerad efter Korg SDD-3000 (DIGI) och Roland RE-201 Space Echo (TAPE); REVERB efter Lexicon MPX500 "
+                L"(PLATE, HALL, CHAMBER, ROOM) och AMS RMX16 (AMBIENCE, NONLIN). Effekterna fungerar som en effect send: det "
                 L"torra ljudet går igenom i full nivå och LEVEL bestämmer hur mycket effekt som läggs till. DELAY följer SDD-3000:s "
                 L"servicemanual: TIME (1-1000 ms), FEEDBACK, MOD SPEED (0,1-15 Hz) och INTENSITY (upp till 2:1; delaytiden svajar åt "
                 L"olika håll i vänster och höger, vilket gör ekot brett), HIGH CUT (8k/4k/2k) och LOW CUT (125/250/500 Hz) som "
@@ -180,6 +187,11 @@ static const ManualPara kManualSwe[] = {
                 L"(PLATE ljus och tät, HALL stor och ren, CHAMBER jämn, ROOM liten), DECAY (0,3-8 s) och LEVEL (mitten = -2 dB, "
                 L"toppen = +8 dB för mycket klang; reverbet sitter efter delayen). LEVEL i botten = av, då är ljudet torrt och mono "
                 L"som SK30 själv. Även solosynten går genom effekterna." },
+    { kManBody, L"Omkopplaren först i DELAY väljer DIGI (rent SDD-3000-eko) eller TAPE: bandekot svajar lite (wow och flutter), "
+                L"mättas när det drivs och varje upprepning blir mörkare och tunnare än den förra. "
+                L"REVERB TYPE AMBIENCE är en kort, tät rymdkänsla nästan utan svans (DECAY styr längden, ungefär en femtedel av "
+                L"visat värde). NONLIN är 80-talets grindade reverb: en jämn skur som tar tvärt slut; DECAY styr grindtiden (en "
+                L"tiondel av visat värde, 0,06-0,8 s)." },
 
     { kManHead, L"PRESETS" },
     { kManBody, L"Klicka på presetnamnet för att välja ljud i en lista (egna presets finns under My presets). Pilarna stegar genom fabriksljuden och sedan dina egna presets. SAVE sparar ljudet som en fil i "
