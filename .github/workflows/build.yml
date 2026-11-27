@@ -37,6 +37,13 @@ jobs:
           Push-Location shots
           & ..\build\Release\RenderGui.exe
           if ($LASTEXITCODE -ne 0) { throw "RenderGui failed" }
+          # Bilderna även som text i loggen (base64), så att de kan hämtas utan nedladdning
+          foreach ($f in @("TrueSymph_front.png", "TrueSymph_back.png", "TrueSymph_front2.png")) {
+            $b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path $f)))
+            Write-Host "IMGBEGIN $f"
+            for ($i = 0; $i -lt $b64.Length; $i += 2000) { Write-Host ("IMG " + $b64.Substring($i, [Math]::Min(2000, $b64.Length - $i))) }
+            Write-Host "IMGEND $f"
+          }
           Pop-Location
       - uses: actions/upload-artifact@v4
         with:
