@@ -186,10 +186,10 @@ struct Editor
         // 26 px från panelkanten och 18 px mellan grupperna.
         // --- OUTPUT (16..228) ---
         knob(kParamMaster, 54.0f, kRowAY + 112.0f, L"MASTER\nVOLUME");
-        fader(kParamSoloVol, 106.0f, ta, L"SOLO");
-        fader(kParamOrgVol, 138.0f, ta, L"ORGAN");
-        fader(kParamVolume, 170.0f, ta, L"STRING");
-        fader(kParamPolyVol, 202.0f, ta, L"POLY");
+        fader(kParamSoloVol, 98.0f, ta, L"SOLO");
+        fader(kParamOrgVol, 133.0f, ta, L"ORGAN");
+        fader(kParamVolume, 168.0f, ta, L"STRING");
+        fader(kParamPolyVol, 203.0f, ta, L"POLY");
 
         // --- PITCH (236..384) ---
         knob(kParamTune, 268.0f, kRowAY + 112.0f, L"TUNE");
