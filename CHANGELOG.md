@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.8.2 (2026-11-27)
+- Presetlistan: öppnas varje gång och stängs när man väljer ett ljud. Fönstret flyttade fokus
+  när musen gick över listan, och Windows kräver att fönstret som äger en lista är förgrundsfönster.
+- REVERB LEVEL höjde hela syntens volym (reverbet var 5-7 dB starkare än det torra ljudet på max).
+  Nu ger max ungefär lika mycket klang som torrt ljud, och klangen blir inte starkare med längre
+  DECAY. Rec:-ljuden låter som förut (deras REVERB LEVEL justerad från -12 till -4 dB).
+
 ## 0.8.1 (2026-11-27)
 - Ljudet och effekterna man ställt in följer nu med när ett Live-projekt öppnas. Live skickar
   programnumret igen efter att ha läst tillståndet, och det skrev över allt med fabriksljudet.

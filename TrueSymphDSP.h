@@ -1647,7 +1647,10 @@ public:
         if (revLevelSm > 1e-5 || revLevelTarget > 0.0 || revActive > 0) {
             double rl, rr;
             reverb.process(0.5 * (l + r), revDecay, rl, rr);
-            l += rl * revLevelSm; r += rr * revLevelSm;
+            // Nivån kalibrerad så att LEVEL på max ger ungefär lika mycket reverb som torrt
+            // ljud (inte +5..7 dB som förut), och lika stark klang oavsett DECAY.
+            const double rg = revLevelSm * kReverbTrim * std::sqrt(3.0 / revDecay);
+            l += rl * rg; r += rr * rg;
             revActive = (revLevelTarget > 0.0) ? (int)(sr * (revDecay + 1.0)) : revActive - 1;
         }
         limiter.processStereo(l, r);       // går aldrig över -0,3 dBFS
@@ -1679,6 +1682,7 @@ private:
     static constexpr double kOrganGain = 0.05;      // orgeln ungefär lika stark som stråkarna
     static constexpr double kPercGain = 1.6;        // slagverket tydligt över fotlägena
     static constexpr double kSoloGain = 0.16;       // solosynten ungefär lika stark som ett stråkackord
+    static constexpr double kReverbTrim = 0.398;    // -8 dB (0.8.2)
     static constexpr double kOutputMakeup = 1.0;    // samma nivå som 0.7.0 (Fredrik föredrog det)
     static constexpr double kStringGain = 0.15;     // ger ca -24 dBFS RMS för en ton och ca -16 dBFS för ett 4-tonsackord (STRING 1+2, MODE II)
 

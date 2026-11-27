@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.8.1";
+const wchar_t* const kVersionText = L"v0.8.2";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -155,6 +155,7 @@ struct Editor
     RectDef btnEng = { 0, 0, 0, 0 }, btnSwe = { 0, 0, 0, 0 };
     HWND prevFocus = nullptr;
     bool tracking = false;
+    bool menuOpen = false;          // presetlistan är öppen: rör inte fokus
     bool overLogo(int x, int y) const { return x >= 15 && x <= logoRight && y >= 4 && y <= 50; }
 
     Editor() { build(); }
@@ -1089,7 +1090,17 @@ void showPresetMenu(Editor* ed)
     }
     POINT pt = { (LONG)(ed->presetPrev.x + ed->presetPrev.w + 4.0f), (LONG)(ed->presetPrev.y + ed->presetPrev.h + 2.0f) };
     ClientToScreen(ed->hwnd, &pt);
-    const int cmd = (int)TrackPopupMenu(menu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN | TPM_NONOTIFY, pt.x, pt.y, 0, ed->hwnd, nullptr);
+    // Windows kräver att fönstret som äger listan är förgrundsfönster, annars öppnas
+    // den ibland inte alls eller stängs inte förrän man klickar utanför (Microsofts
+    // rekommendation: SetForegroundWindow före, WM_NULL efter).
+    ed->menuOpen = true;
+    HWND root = GetAncestor(ed->hwnd, GA_ROOT);
+    if (root) SetForegroundWindow(root);
+    const int cmd = (int)TrackPopupMenu(menu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN | TPM_NONOTIFY | TPM_LEFTBUTTON,
+                                        pt.x, pt.y, 0, ed->hwnd, nullptr);
+    PostMessageW(ed->hwnd, WM_NULL, 0, 0);
+    ed->menuOpen = false;
+    ed->tracking = false;                   // börja följa musen på nytt
     DestroyMenu(menu);                      // tar även bort undermenyn
     if (cmd >= 1 && cmd <= kNumFactoryPresets) { p->loadFactoryPreset(cmd - 1, true); presetsChanged(ed); }
     else if (cmd >= 1000 && cmd - 1000 < (int)user.size()) loadUserPreset(ed, user[cmd - 1000], true);
@@ -1253,13 +1264,14 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if (ed) {
             ed->tracking = false;
             ed->hoverParam = -1;
-            if (GetFocus() == hwnd && ed->prevFocus && IsWindow(ed->prevFocus)) SetFocus(ed->prevFocus);
-            ed->prevFocus = nullptr;
+            // Medan presetlistan är öppen får fokus inte flyttas (då stängs listan direkt)
+            if (!ed->menuOpen && GetFocus() == hwnd && ed->prevFocus && IsWindow(ed->prevFocus)) SetFocus(ed->prevFocus);
+            if (!ed->menuOpen) ed->prevFocus = nullptr;
         }
         return 0;
     case WM_MOUSEMOVE:
         // Windows 7 skickar mushjulet till fönstret som har fokus: ta fokus medan musen är över TrueSymph
-        if (ed && !ed->tracking) {
+        if (ed && !ed->tracking && !ed->menuOpen) {
             HWND f = GetFocus();
             if (f != hwnd) { ed->prevFocus = f; SetFocus(hwnd); }
             TRACKMOUSEEVENT tme = {};
