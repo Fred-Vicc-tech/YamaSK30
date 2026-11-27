@@ -863,10 +863,12 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     // EFFECTS: vilken enhet delayen och reverbet är modellerade efter just nu
     if (!ed->showBack) {
         const bool dlyOn = fxLevelDb(pv[kParamDelayLevel]) > -100.0, revOn = revLevelDb(pv[kParamReverbLevel]) > -100.0;
+        g.SetTextRenderingHint(TextRenderingHintAntiAlias);   // jämnare bokstavsavstånd i liten text
         drawText(g, effectStyle(kParamDelayMode, pv[kParamDelayMode]), ff, 8.5f, FontStyleBold, dlyOn ? kCyan : kTextDim,
                  1032.0f, kRowAY + 195.0f, 370.0f, StringAlignmentNear);
         drawText(g, effectStyle(kParamReverbType, pv[kParamReverbType]), ff, 8.5f, FontStyleBold, revOn ? kCyan : kTextDim,
                  1032.0f, kRowAY + 207.0f, 370.0f, StringAlignmentNear);
+        g.SetTextRenderingHint(TextRenderingHintAntiAliasGridFit);
     }
 
     // --- Reglage ---
