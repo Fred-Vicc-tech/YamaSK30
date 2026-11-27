@@ -195,9 +195,9 @@ struct Editor
         fader(kParamPolyVol, 190.0f, ta, L"POLY");
 
         // --- PITCH (222..370) ---
-        knob(kParamTune, 254.0f, kRowAY + 112.0f, L"TUNE");
+        knob(kParamTune, 251.0f, kRowAY + 112.0f, L"TUNE");
         knob(kParamDetune, 296.0f, kRowAY + 112.0f, L"DETUNE");
-        knob(kParamSoloTune, 338.0f, kRowAY + 112.0f, L"SOLO\nTUNE");
+        knob(kParamSoloTune, 341.0f, kRowAY + 112.0f, L"SOLO\nTUNE");
 
         // --- SOLO SYNTHESIZER (378..998) ---
         fader(kParamLfoSpeed, 404.0f, ta, L"LFO");
