@@ -1,0 +1,19 @@
+name: build
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (Visual Studio 2022, toolset v143 = Windows 7-kompatibel)
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -T v143
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YamaSK30-win64
+          path: build/Release/YamaSK30.dll
