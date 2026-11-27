@@ -15,5 +15,5 @@ jobs:
         run: ctest --test-dir build -C Release --output-on-failure
       - uses: actions/upload-artifact@v4
         with:
-          name: YamaSK30-win64
-          path: build/Release/YamaSK30.dll
+          name: TrueSymph-win64
+          path: build/Release/TrueSymph.dll

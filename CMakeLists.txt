@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(YamaSK30 CXX)
+project(TrueSymph CXX)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,15 +22,15 @@ endif()
 
 # --- Pluginet (bara på Windows) -------------------------------------------
 if(WIN32)
-    add_library(YamaSK30 MODULE YamaSK30.cpp YamaSK30DSP.h vst2.h)
-    set_target_properties(YamaSK30 PROPERTIES PREFIX "" SUFFIX ".dll")
+    add_library(TrueSymph MODULE TrueSymph.cpp TrueSymphDSP.h vst2.h)
+    set_target_properties(TrueSymph PROPERTIES PREFIX "" SUFFIX ".dll")
 endif()
 
 # --- Automatiska tester ----------------------------------------------------
 enable_testing()
 
-add_executable(YamaSK30Tests YamaSK30Tests.cpp)
-add_test(NAME dsp COMMAND YamaSK30Tests)
+add_executable(TrueSymphTests TrueSymphTests.cpp)
+add_test(NAME dsp COMMAND TrueSymphTests)
 
-add_executable(HostTests HostTests.cpp YamaSK30.cpp)
+add_executable(HostTests HostTests.cpp TrueSymph.cpp)
 add_test(NAME host COMMAND HostTests)

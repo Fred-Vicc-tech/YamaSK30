@@ -1,4 +1,4 @@
-# YamaSK30 – Symphonic Ensemble
+# TrueSymph – Symphonic Ensemble
 
 Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
 Efterliknar stråkdelen och ensemblen i Yamaha SK30 (1979–80), byggt efter
@@ -18,7 +18,7 @@ SK30:s servicemanual. Byggare: **2F Productions** (info@2f.se).
 | ENSEMBLE: tre BBD-linjer, LFO 0,64 + 6,4 Hz i trappsteg, 120° | Klar, automatiskt testad |
 | 7 röster, mjukt röstbyte (inget klick) | Klar, automatiskt testad |
 | 6 fabriksljud i Lives presetlista | Klar, automatiskt testad |
-| Fungerar i Live 9.6 på Win7 | **Ej testat ännu** |
+| Fungerar i Live 9.6 på Win7 | Testat av användaren: fungerar |
 | Poly-synth (filter, envelope), tremolo | Etapp 2–3 |
 | Orgel | Senare (om den ska med) |
 | Eget fönster (kompakt SK30-panel) | Senare etapp |
@@ -26,9 +26,9 @@ SK30:s servicemanual. Byggare: **2F Productions** (info@2f.se).
 ## Installera och testa
 
 1. Gå till repot på GitHub → fliken **Actions** → senaste gröna körningen.
-2. Ladda ner **YamaSK30-win64** (en zip-fil) och packa upp `YamaSK30.dll`.
-3. Lägg `YamaSK30.dll` i din VST-mapp (samma mapp som TrueSub).
-4. Starta Live → **Plug-ins** → dra YamaSK30 till ett MIDI-spår.
+2. Ladda ner **TrueSymph-win64** (en zip-fil) och packa upp `TrueSymph.dll`.
+3. Lägg `TrueSymph.dll` i din VST-mapp (samma mapp som TrueSub).
+4. Starta Live → **Plug-ins** → dra TrueSymph till ett MIDI-spår.
 5. Etapp 1 har inget eget fönster. Klicka på den lilla triangeln i pluginets
    titelrad i Live för att se reglagen.
 
@@ -79,5 +79,7 @@ SK30:s servicemanual. Byggare: **2F Productions** (info@2f.se).
 
 ## Namnet
 
-"Yamaha" och "SK30" är Yamahas varumärken. Pluginet är privat och har ingen
-koppling till Yamaha. Om det någon gång ska spridas bör namnet ändras.
+Pluginet hette först YamaSK30 och heter nu TrueSymph. Det har samma interna ID
+som förut, så Live-projekt som sparats med YamaSK30 öppnas med TrueSymph.
+Ta bort den gamla `YamaSK30.dll` ur VST-mappen så att pluginet inte syns två gånger.
+TrueSymph har ingen koppling till Yamaha.

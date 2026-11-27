@@ -1,4 +1,4 @@
-// YamaSK30.cpp - VST2-instrumentet: kopplar ljudmotorn (YamaSK30DSP.h) till
+// TrueSymph.cpp - VST2-instrumentet: kopplar ljudmotorn (TrueSymphDSP.h) till
 // Ableton Live via VST2-gränssnittet.
 //
 // Etapp 1: inget eget fönster ännu. Live visar parametrarna som reglage
@@ -7,7 +7,7 @@
 // Trådar: ljudtråden anropar processReplacing/processEvents. Där sker ingen
 // allokering och inga lås. Parametrar skrivs/läses som atomiska värden.
 #include "vst2.h"
-#include "YamaSK30DSP.h"
+#include "TrueSymphDSP.h"
 
 #include <atomic>
 #include <cstdio>
@@ -15,12 +15,13 @@
 #include <new>
 #include <xmmintrin.h>
 
-using namespace yamask30;
+using namespace truesymph;
 
 namespace {
 
+// Samma ID som när pluginet hette YamaSK30, så att sparade Live-projekt fortsätter fungera.
 const VstInt32 kUniqueId = ('Y' << 24) | ('S' << 16) | ('3' << 8) | '0';
-const VstInt32 kVersion = 100;            // 0.1.0 (etapp 1)
+const VstInt32 kVersion = 101;            // 0.1.1 (etapp 1, nytt namn)
 const int kMaxQueuedEvents = 1024;
 
 void copyString(char* dst, const char* src, size_t maxLen)
@@ -257,8 +258,8 @@ VstIntPtr dispatcher(AEffect* e, VstInt32 opcode, VstInt32 index, VstIntPtr valu
     }
 
     case effGetPlugCategory: return kPlugCategSynth;
-    case effGetEffectName: if (ptr) copyString((char*)ptr, "YamaSK30", 32); return 1;
-    case effGetProductString: if (ptr) copyString((char*)ptr, "YamaSK30 Symphonic Ensemble", 64); return 1;
+    case effGetEffectName: if (ptr) copyString((char*)ptr, "TrueSymph", 32); return 1;
+    case effGetProductString: if (ptr) copyString((char*)ptr, "TrueSymph Symphonic Ensemble", 64); return 1;
     case effGetVendorString: if (ptr) copyString((char*)ptr, "2F Productions", 64); return 1;
     case effGetVendorVersion: return kVersion;
     case effGetVstVersion: return 2400;

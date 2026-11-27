@@ -1,4 +1,4 @@
-// vst2.h - minimal egen beskrivning av VST2-gränssnittet (ABI) för YamaSK30 (samma som i TrueSub).
+// vst2.h - minimal egen beskrivning av VST2-gränssnittet (ABI) för TrueSymph (samma som i TrueSub).
 // Bygger på samma egna header som HighLowStepFilter, utökad med det ett
 // instrument behöver: MIDI-händelser och synt-flagga.
 // Innehåller ingen kod eller text från Steinbergs VST2 SDK.

@@ -1,12 +1,12 @@
-// YamaSK30Tests.cpp - automatiska tester av ljudmotorn (körs vid varje bygge).
-#include "YamaSK30DSP.h"
+// TrueSymphTests.cpp - automatiska tester av ljudmotorn (körs vid varje bygge).
+#include "TrueSymphDSP.h"
 
 #include <cmath>
 #include <cstdio>
 #include <string>
 #include <vector>
 
-using namespace yamask30;
+using namespace truesymph;
 
 static int failures = 0;
 static void check(bool ok, const char* name)

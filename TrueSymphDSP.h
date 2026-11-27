@@ -1,4 +1,4 @@
-// YamaSK30DSP.h - ljudmotorn för YamaSK30 (etapp 1: stråkdelen + ensemble).
+// TrueSymphDSP.h - ljudmotorn för TrueSymph (etapp 1: stråkdelen + ensemble).
 //
 // Byggd efter Yamaha SK30:s servicemanual (KEC-90407/90452):
 //   PG-kortet:  två tongeneratorer (YM70400) som delar ner en masterklocka på
@@ -23,7 +23,7 @@
 #include <cstring>
 #include <cstdio>
 
-namespace yamask30 {
+namespace truesymph {
 
 const double kPi = 3.14159265358979323846;
 
@@ -671,4 +671,4 @@ private:
     Ensemble ensemble;
 };
 
-} // namespace yamask30
+} // namespace truesymph

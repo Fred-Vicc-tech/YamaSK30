@@ -2,7 +2,7 @@
 // VST2-del: att det anmäler sig som instrument, tar emot MIDI, låter,
 // sparar/läser tillstånd, har fabriksljud och tål felaktiga data.
 #include "vst2.h"
-#include "YamaSK30DSP.h"
+#include "TrueSymphDSP.h"
 
 #include <cmath>
 #include <cstdio>
@@ -57,7 +57,7 @@ static double renderPeak(AEffect* e, int blocks, int blockSize)
 
 int main()
 {
-    using namespace yamask30;
+    using namespace truesymph;
     AEffect* e = VSTPluginMain(hostCallback);
     check(e != nullptr && e->magic == kEffectMagic, "plugin skapas");
     if (!e) return 1;
@@ -69,7 +69,7 @@ int main()
 
     char name[64] = { 0 };
     e->dispatcher(e, effGetEffectName, 0, 0, name, 0);
-    check(std::strcmp(name, "YamaSK30") == 0, "namn YamaSK30");
+    check(std::strcmp(name, "TrueSymph") == 0, "namn TrueSymph");
     e->dispatcher(e, effGetVendorString, 0, 0, name, 0);
     check(std::strcmp(name, "2F Productions") == 0, "tillverkare 2F Productions");
 
