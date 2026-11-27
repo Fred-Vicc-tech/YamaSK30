@@ -1,5 +1,10 @@
 # Ändringslogg
 
+## 0.6.0 (2026-11-27)
+- Klick på presetnamnet öppnar en lista med alla fabriksljud och egna presets (My presets).
+- Sju nya ljud (Rec:) som återskapar ljuden i Fredriks SK30-inspelning, uppmätta ur ljudfilen.
+- Solosyntens PORTAMENTO är nu en analog RC-glidning (samma tid oavsett intervall), som i inspelningen.
+
 ## 0.5.0 – etapp 5 (2026-11-27)
 - Eget fönster (GDI+) i SK30-stil: skjutreglage, SK30-knappar med lysdiod (mått och färger
   från Fredriks bild), guldfärgade grupplinjer, display för reglaget under musen.

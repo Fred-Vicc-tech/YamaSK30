@@ -73,8 +73,14 @@ static const ManualPara kManualEng[] = {
                 L"has priority. The solo synthesizer never goes through the effect." },
 
     { kManHead, L"PRESETS" },
-    { kManBody, L"The arrows step through the factory presets and then your own presets. SAVE stores the current sound as a "
+    { kManBody, L"Click the preset name to pick a sound from a list (your own presets are under My presets). The arrows step through the factory presets and then your own presets. SAVE stores the current sound as a "
                 L"file in Documents\\TrueSymph Presets; LOAD opens any preset file. Factory presets also appear in Live's preset list." },
+
+    { kManHead, L"SOUNDS FROM THE RECORDING" },
+    { kManBody, L"The presets named Rec: recreate the sounds in Fredrik's SK30 recording, measured from the audio: Intro Lead (solo with "
+                L"portamento over strings), Pluck + Bass (POLY-SYNTH 1 with manual bass), High Lead, Poly 2 Sweeps, Ensemble Pad, Swell "
+                L"Chords and Glide Solo. The leads use TOUCH VIBRATO: add a little aftertouch or mod wheel (about 20 %) for the vibrato "
+                L"heard in the recording. The recording is tuned about 45 cents flat: set TUNE to about 428.5 Hz to match it exactly." },
 
     { kManHead, L"ABOUT THE SOUND" },
     { kManBody, L"The SK30 is mono, so TrueSymph is mono too (left = right). For the classic sound add reverb and delay after it." },
@@ -141,8 +147,14 @@ static const ManualPara kManualSwe[] = {
                 L"företräde. Solosynten går aldrig genom effekten." },
 
     { kManHead, L"PRESETS" },
-    { kManBody, L"Pilarna stegar genom fabriksljuden och sedan dina egna presets. SAVE sparar ljudet som en fil i "
+    { kManBody, L"Klicka på presetnamnet för att välja ljud i en lista (egna presets finns under My presets). Pilarna stegar genom fabriksljuden och sedan dina egna presets. SAVE sparar ljudet som en fil i "
                 L"Dokument\\TrueSymph Presets; LOAD öppnar valfri presetfil. Fabriksljuden finns också i Lives presetlista." },
+
+    { kManHead, L"LJUDEN FRÅN INSPELNINGEN" },
+    { kManBody, L"Ljuden som heter Rec: återskapar ljuden i Fredriks SK30-inspelning, uppmätta ur ljudfilen: Intro Lead (solo med "
+                L"portamento över stråkar), Pluck + Bass (POLY-SYNTH 1 med manual bass), High Lead, Poly 2 Sweeps, Ensemble Pad, Swell "
+                L"Chords och Glide Solo. Solostämmorna använder TOUCH VIBRATO: lägg på lite aftertouch eller modulationshjul (ca 20 %) "
+                L"för vibratot i inspelningen. Inspelningen ligger ca 45 cent lågt: ställ TUNE på ca 428,5 Hz för att matcha den exakt." },
 
     { kManHead, L"OM LJUDET" },
     { kManBody, L"SK30 är mono, så TrueSymph är också mono (vänster = höger). Lägg reverb och delay efter för det klassiska ljudet." },

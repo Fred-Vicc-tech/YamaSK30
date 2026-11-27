@@ -6,7 +6,7 @@ Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
 Efterliknar Yamaha SK30 (1979–80), byggt efter SK30:s servicemanual.
 Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, manual bass och keyboard split. Byggare: **2F Productions** (info@2f.se).
 
-## Status: etapp 5 – eget fönster
+## Status: 0.6.0 – presetlista och ljud från inspelningen
 
 | Funktion | Status |
 |---|---|
@@ -45,10 +45,12 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | Etapp 4 i Live | Användaren testar |
 | Eget fönster: kompakt SK30-panel med skjutreglage, SK30-knappar (enligt Fredriks bild) och guldlinjer | Klar, skärmbilder i bygget |
 | Display som visar reglaget under musen; grå reglage när de inte används | Klar |
-| PRESET: pilar, SAVE/LOAD (Dokument\\TrueSymph Presets\\*.tsy) | Klar, automatiskt testad (filformat) |
+| PRESET: lista vid klick på namnet, pilar, SAVE/LOAD (Dokument\\TrueSymph Presets\\*.tsy) | Klar, automatiskt testad (filformat) |
 | Baksida (klicka på loggan): credits och manual på engelska och svenska (ENG / SWE) | Klar |
 | Windows 7-kontroll i bygget (inga nyare DLL:er/funktioner) | Klar |
-| Etapp 5 i Live | **Ej testat ännu** |
+| Etapp 5 i Live | Testat av användaren: fungerar |
+| Presetlista vid klick på presetnamnet | **Ej testat ännu** |
+| 7 ljud (Rec:) uppmätta ur Fredriks SK30-inspelning | Klar |
 
 ## Installera och testa
 

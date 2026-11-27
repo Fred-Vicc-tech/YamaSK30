@@ -87,6 +87,28 @@ static const FactoryPreset kPresets[] = {
                            {kParamOrgVol, VOL(-4)}, {kParamOrgEnsemble, 1} }, 6 },
     { "Slow Rotor Pad",  { {kParamString3, 1}, {kParamEnsemble, 0}, {kParamPolyTremolo, 1}, {kParamTremoloSpeed, 0},
                            {kParamSustainTime, SUS(1.4)}, {kParamVolume, VOL(-3)} }, 6 },
+    // --- Ljuden från Fredriks SK30-inspelning (uppmätta: register, glid, vibrato, filter) ---
+    { "Rec: Intro Lead",  { {kParamSoloVol, VOL(-2)}, {kParamSoloCutoff, 0.36f}, {kParamSoloReso, 0.2f}, {kParamSoloEgDepth, 0.12f},
+                            {kParamPortamento, 0.22f}, {kParamTouchVib, 1}, {kParamLfoSpeed, 0.572f}, {kParamSoloAttack, 0.25f},
+                            {kParamSoloDecay, 0.5f}, {kParamSoloSustain, 0.85f}, {kParamSoloRelease, 0.35f}, {kParamVolume, VOL(-3)} }, 12 },
+    { "Rec: Pluck + Bass", { {kParamPolySel, SEL(1)}, {kParamPolyVol, VOL(-4)}, {kParamVolume, VOL(-3)}, {kParamSoloVol, VOL(-4)},
+                            {kParamSoloMode, SMODE(2)}, {kParamSoloFeet, SFEET(3)}, {kParamSoloWave, 0.7f}, {kParamSoloCutoff, 0.4f},
+                            {kParamSoloReso, 0.15f}, {kParamSoloEgDepth, 0.2f}, {kParamSoloAttack, 0.1f}, {kParamSoloDecay, 0.75f},
+                            {kParamSoloSustain, 0.5f}, {kParamSoloRelease, 0.25f} }, 14 },
+    { "Rec: High Lead",   { {kParamString3, 1}, {kParamVolume, VOL(-4)}, {kParamSoloVol, VOL(-2)}, {kParamSoloFeet, SFEET(0)},
+                            {kParamSoloCutoff, 0.3f}, {kParamSoloReso, 0.2f}, {kParamSoloEgDepth, 0.1f}, {kParamPortamento, 0.22f},
+                            {kParamTouchVib, 1}, {kParamLfoSpeed, 0.572f}, {kParamSoloSustain, 0.9f}, {kParamSoloRelease, 0.4f} }, 12 },
+    { "Rec: Poly 2 Sweeps", { {kParamString1, 0}, {kParamPolySel, SEL(2)}, {kParamVolume, VOL(-6)}, {kParamSoloVol, VOL(-4)},
+                            {kParamSoloMode, SMODE(2)}, {kParamSoloFeet, SFEET(3)}, {kParamSoloWave, 0.6f}, {kParamSoloCutoff, 0.38f},
+                            {kParamSoloEgDepth, 0.25f}, {kParamSoloDecay, 0.6f}, {kParamSoloSustain, 0.4f} }, 11 },
+    { "Rec: Ensemble Pad", { {kParamString3, 1}, {kParamBrilliance, 0.65f}, {kParamSustainTime, SUS(1.2)}, {kParamDetune, DET(9)},
+                            {kParamVibDelay, 0.35f}, {kParamVibDepth, 0.25f} }, 6 },
+    { "Rec: Swell Chords", { {kParamPolySel, SEL(4)}, {kParamPolyFeet, FEET(5)}, {kParamCutoff, 0.3f}, {kParamResonance, 0.55f},
+                            {kParamEgDepth, 0.42f}, {kParamAttack, 0.72f}, {kParamDecay, 0.38f}, {kParamSustainLevel, 0.3f},
+                            {kParamRelease, 0.6f}, {kParamPolyVol, VOL(-2)}, {kParamVolume, VOL(-4)}, {kParamSustainTime, SUS(1.0)} }, 12 },
+    { "Rec: Glide Solo",  { {kParamString1, 0}, {kParamVolume, VOL(-5)}, {kParamSoloVol, VOL(-2)}, {kParamSoloCutoff, 0.36f},
+                            {kParamSoloReso, 0.3f}, {kParamSoloEgDepth, 0.15f}, {kParamPortamento, 0.3f}, {kParamGlide, 0.38f},
+                            {kParamTouchVib, 1}, {kParamLfoSpeed, 0.572f}, {kParamSoloSustain, 0.85f} }, 11 },
 };
 const int kNumFactoryPresets = (int)(sizeof kPresets / sizeof kPresets[0]);
 

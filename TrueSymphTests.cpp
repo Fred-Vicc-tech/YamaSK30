@@ -650,7 +650,7 @@ int main()
         bool names = true;
         for (int i = 0; i < kNumParams; ++i) for (int j = i + 1; j < kNumParams; ++j) if (std::string(kParamNames[i]) == kParamNames[j]) names = false;
         check(names, "parameternamnen ar unika (presetfilerna bygger pa dem)");
-        check(kNumFactoryPresets == 28 && std::string(factoryPresetName(0)) == "Dream Strings", "28 fabriksljud");
+        check(kNumFactoryPresets == 35 && std::string(factoryPresetName(0)) == "Dream Strings", "35 fabriksljud");
     }
 
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);

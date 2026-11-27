@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.5.0";
+const wchar_t* const kVersionText = L"v0.6.0";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -767,7 +767,12 @@ void paint(Editor* ed, HDC hdc, int width, int height)
         drawBox(g, bx, ed->presetPrev.y, bw, ed->presetPrev.h);
         wchar_t nm[40];
         wideFromNarrow(p->presetName, nm, 40);
-        drawText(g, nm, ff, 14, FontStyleBold, kCyan, bx, ed->presetPrev.y + 4.0f, bw, StringAlignmentCenter);
+        drawText(g, nm, ff, 14, FontStyleBold, kCyan, bx, ed->presetPrev.y + 4.0f, bw - 10.0f, StringAlignmentCenter);
+        // liten pil: klicka för lista
+        PointF tri[3] = { PointF(bx + bw - 15.0f, ed->presetPrev.y + 12.0f), PointF(bx + bw - 7.0f, ed->presetPrev.y + 12.0f),
+                          PointF(bx + bw - 11.0f, ed->presetPrev.y + 17.0f) };
+        SolidBrush triB(kTextDim);
+        g.FillPolygon(&triB, tri, 3);
     }
     drawFlatButton(g, ff, ed->btnSave, L"SAVE");
     drawFlatButton(g, ff, ed->btnLoad, L"LOAD");
@@ -1013,6 +1018,41 @@ void loadPresetFile(Editor* ed)
     loadUserPreset(ed, file, true);
 }
 
+// Klick på presetrutan: lista med alla ljud (fabriksljud och egna presets)
+void showPresetMenu(Editor* ed)
+{
+    Core* p = ed->plugin;
+    HMENU menu = CreatePopupMenu();
+    if (!menu) return;
+    const int kPerColumn = 18;
+    for (int i = 0; i < kNumFactoryPresets; ++i) {
+        wchar_t nm[40];
+        wideFromNarrow(factoryPresetName(i), nm, 40);
+        UINT flags = MF_STRING | (p->program == i ? MF_CHECKED : 0);
+        if (i > 0 && i % kPerColumn == 0) flags |= MF_MENUBARBREAK;     // ny kolumn
+        AppendMenuW(menu, flags, 1 + i, nm);
+    }
+    const std::vector<std::wstring> user = listUserPresets(presetFolder());
+    HMENU sub = CreatePopupMenu();
+    if (sub) {
+        if (user.empty()) AppendMenuW(sub, MF_STRING | MF_GRAYED, 0, L"(no saved presets yet)");
+        for (size_t i = 0; i < user.size() && i < 500; ++i) {
+            const std::string n = presetNameFromPath(user[i].c_str());
+            UINT flags = MF_STRING | (p->program < 0 && n == p->presetName ? MF_CHECKED : 0);
+            if (i > 0 && i % 25 == 0) flags |= MF_MENUBARBREAK;
+            AppendMenuW(sub, flags, 1000 + (UINT)i, widen(n).c_str());
+        }
+        AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+        AppendMenuW(menu, MF_POPUP | MF_STRING, (UINT_PTR)sub, L"My presets");
+    }
+    POINT pt = { (LONG)(ed->presetPrev.x + ed->presetPrev.w + 4.0f), (LONG)(ed->presetPrev.y + ed->presetPrev.h + 2.0f) };
+    ClientToScreen(ed->hwnd, &pt);
+    const int cmd = (int)TrackPopupMenu(menu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN | TPM_NONOTIFY, pt.x, pt.y, 0, ed->hwnd, nullptr);
+    DestroyMenu(menu);                      // tar även bort undermenyn
+    if (cmd >= 1 && cmd <= kNumFactoryPresets) { p->loadFactoryPreset(cmd - 1, true); presetsChanged(ed); }
+    else if (cmd >= 1000 && cmd - 1000 < (int)user.size()) loadUserPreset(ed, user[cmd - 1000], true);
+}
+
 void pressButton(Editor* ed, const Btn& b)
 {
     Core* p = ed->plugin;
@@ -1048,6 +1088,10 @@ bool handleButtons(Editor* ed, int x, int y)
 {
     for (const Btn& b : ed->btns) if (b.r.hit(x, y)) { pressButton(ed, b); return true; }
     if (ed->presetPrev.hit(x, y)) { stepPreset(ed, -1); return true; }
+    if (x > ed->presetPrev.x + ed->presetPrev.w && x < ed->presetNext.x && y >= ed->presetPrev.y && y <= ed->presetPrev.y + ed->presetPrev.h) {
+        showPresetMenu(ed);                 // klick på namnet: lista
+        return true;
+    }
     if (ed->presetNext.hit(x, y)) { stepPreset(ed, +1); return true; }
     if (ed->btnSave.hit(x, y)) { savePresetFile(ed); return true; }
     if (ed->btnLoad.hit(x, y)) { loadPresetFile(ed); return true; }
@@ -1106,7 +1150,9 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_SETCURSOR:
         if (ed && LOWORD(lParam) == HTCLIENT) {
             POINT pt; GetCursorPos(&pt); ScreenToClient(hwnd, &pt);
-            if (ed->overLogo(pt.x, pt.y) || (ed->showBack && (ed->btnBack.hit(pt.x, pt.y) || ed->btnEng.hit(pt.x, pt.y) || ed->btnSwe.hit(pt.x, pt.y)))) {
+            const bool overPreset = !ed->showBack && pt.x > ed->presetPrev.x + ed->presetPrev.w && pt.x < ed->presetNext.x
+                                    && pt.y >= ed->presetPrev.y && pt.y <= ed->presetPrev.y + ed->presetPrev.h;
+            if (overPreset || ed->overLogo(pt.x, pt.y) || (ed->showBack && (ed->btnBack.hit(pt.x, pt.y) || ed->btnEng.hit(pt.x, pt.y) || ed->btnSwe.hit(pt.x, pt.y)))) {
                 SetCursor(LoadCursor(nullptr, IDC_HAND));
                 return TRUE;
             }

@@ -206,7 +206,7 @@ const int kNumPwSources = 3;                     // LFO, MANUAL, EG
 const int kNumVcaModes = 3;                      // HOLD, GATE, EG
 const int kNumSplit = 3;                         // OFF, POLY▼ORGAN, ORGAN▼POLY
 inline double lfoSpeedHz(double n)   { return 0.1 * std::pow(1000.0, clamp01(n)); }
-inline double portaSec(double n)     { n = clamp01(n); return 3.0 * n * n; }      // tid för tre oktaver
+inline double portaSec(double n)     { n = clamp01(n); return 3.0 * n * n; }      // glidtid (RC), 0..3 s
 inline double glideSemis(double n)   { return 12.0 * (2.0 * clamp01(n) - 1.0); }  // mitten = av
 inline double soloPw(double n)       { return 0.50 + 0.35 * clamp01(n); }
 inline double soloTuneCents(double n){ return -500.0 + 1200.0 * clamp01(n); }
@@ -815,11 +815,11 @@ struct SoloSynth
     double next(double tuneRatio)
     {
         updateEg();
-        // PORTAMENTO: konstant hastighet, portaTime = tid för tre oktaver (C3-C6)
+        // PORTAMENTO: analog RC-glidning (som i Fredriks inspelning: samma tid oavsett intervall).
+        // portaTime = tiden tills tonen nästan är framme (ca 95 %), max 3 s.
         if (portaTime > 0.005) {
-            const double step = 36.0 / (portaTime * sr);
-            if (pitch < target) { pitch += step; if (pitch > target) pitch = target; }
-            else if (pitch > target) { pitch -= step; if (pitch < target) pitch = target; }
+            const double coef = 1.0 - std::exp(-3.0 / (portaTime * sr));
+            pitch += (target - pitch) * coef;
         } else pitch = target;
         glideOff -= glideOff * glideCoef;
 
