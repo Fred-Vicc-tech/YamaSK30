@@ -33,6 +33,9 @@ endif()
 enable_testing()
 
 add_executable(TrueSymphTests TrueSymphTests.cpp)
+if(MSVC)
+    target_link_options(TrueSymphTests PRIVATE /STACK:33554432)   # många motorer på stacken i testerna (32 MB)
+endif()
 add_test(NAME dsp COMMAND TrueSymphTests)
 
 add_executable(HostTests HostTests.cpp TrueSymph.cpp ${TRUESYMPH_EDITOR_SOURCES})
