@@ -1,10 +1,12 @@
 # TrueSymph – Symphonic Ensemble
 
 Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
+
+![TrueSymph](docs/TrueSymph_front.png)
 Efterliknar Yamaha SK30 (1979–80), byggt efter SK30:s servicemanual.
 Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, manual bass och keyboard split. Byggare: **2F Productions** (info@2f.se).
 
-## Status: etapp 4 – solosynt, manual bass, keyboard split
+## Status: etapp 5 – eget fönster
 
 | Funktion | Status |
 |---|---|
@@ -40,8 +42,13 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 | MODE NORMAL (högsta tonen), BASS (lägsta tonen), MANUAL BASS (egna bastangenter) | Klar, automatiskt testad |
 | KEYBOARD SPLIT POLY-SYNTH▼ORGAN / ORGAN▼POLY-SYNTH, 7 + 7 röster | Klar, automatiskt testad |
 | 28 fabriksljud i Lives presetlista | Klar, automatiskt testad |
-| Etapp 4 i Live | **Ej testat ännu** |
-| Eget fönster (kompakt SK30-panel) | Etapp 5 |
+| Etapp 4 i Live | Användaren testar |
+| Eget fönster: kompakt SK30-panel med skjutreglage, SK30-knappar (enligt Fredriks bild) och guldlinjer | Klar, skärmbilder i bygget |
+| Display som visar reglaget under musen; grå reglage när de inte används | Klar |
+| PRESET: pilar, SAVE/LOAD (Dokument\\TrueSymph Presets\\*.tsy) | Klar, automatiskt testad (filformat) |
+| Baksida (klicka på loggan): credits och manual på engelska och svenska (ENG / SWE) | Klar |
+| Windows 7-kontroll i bygget (inga nyare DLL:er/funktioner) | Klar |
+| Etapp 5 i Live | **Ej testat ännu** |
 
 ## Installera och testa
 
@@ -49,8 +56,17 @@ Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, m
 2. Ladda ner **TrueSymph-win64** (en zip-fil) och packa upp `TrueSymph.dll`.
 3. Lägg `TrueSymph.dll` i din VST-mapp (samma mapp som TrueSub).
 4. Starta Live → **Plug-ins** → dra TrueSymph till ett MIDI-spår.
-5. Etapp 1 har inget eget fönster. Klicka på den lilla triangeln i pluginets
-   titelrad i Live för att se reglagen.
+5. Ta bort eventuell gammal `YamaSK30.dll` ur VST-mappen.
+
+## Fönstret
+
+- **Reglage och rattar:** dra upp/ner, Shift = finjustering, mushjulet = små steg,
+  dubbelklick = standardvärde. Displayen överst visar reglaget under musen.
+- **Knapparna** fungerar som på SK30: lysdioden lyser när knappen är på. ORGAN och
+  POLY-SYNTH väljer ett läge, STRING 1/2/3 kan kombineras (CANCEL stänger av alla),
+  SPLIT-knapparna och MANUAL BASS slås av med ett nytt tryck.
+- **Grå reglage** används inte just nu (t.ex. tone levers när ORGAN inte står på MANUAL).
+- **Loggan** vänder pluginet: baksidan har credits och manualen (ENG / SWE).
 
 ## Parametrar (index ändras aldrig)
 

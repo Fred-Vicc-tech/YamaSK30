@@ -1,5 +1,13 @@
 # Ändringslogg
 
+## 0.5.0 – etapp 5 (2026-11-27)
+- Eget fönster (GDI+) i SK30-stil: skjutreglage, SK30-knappar med lysdiod (mått och färger
+  från Fredriks bild), guldfärgade grupplinjer, display för reglaget under musen.
+- PRESET med pilar, SAVE och LOAD (Dokument\TrueSymph Presets, .tsy).
+- Baksida med credits (2F Productions) och manual på engelska och svenska.
+- Koden omstrukturerad som TruePan: TrueSymphCore.h (kärna), Presets.h, TrueSymphEditor.cpp, Manual.h.
+- Bygget ritar skärmbilder av fönstret och kontrollerar Windows 7-kompatibiliteten.
+
 ## 0.4.0 – etapp 4 (2026-11-27)
 - Solosynt (CPB 7/9): VCO med FEET 4'–64', WAVE, PW (LFO/MANUAL/EG), VCF med tangentföljning,
   VCA HOLD/GATE/EG, ADSR, LFO 0,1–100 Hz, PORTAMENTO, GLIDE, SOLO TUNE, TOUCH (aftertouch/modhjul).

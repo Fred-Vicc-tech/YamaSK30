@@ -1,5 +1,6 @@
 // TrueSymphTests.cpp - automatiska tester av ljudmotorn (körs vid varje bygge).
 #include "TrueSymphDSP.h"
+#include "Presets.h"
 
 #include <cmath>
 #include <cstdio>
@@ -629,6 +630,27 @@ int main()
         for (int n = 60; n < 67; ++n) p2.handleMidi(0x90, n, 100);
         render(p2, 0.2, sr);
         check(p2.activeVoices() == 14, "SPLIT: 7 + 7 roster");
+    }
+
+
+    // ===== Etapp 5: presetfiler =====
+    {
+        float v[kNumParams], w[kNumParams];
+        factoryPresetValues(5, v);
+        v[kParamCutoff] = 0.123f;
+        const std::string text = presetToText("My Pad", v);
+        std::string name;
+        check(presetFromText(text, w, &name) && name == "My Pad", "preset: sparas och lases (namn)");
+        bool same = true; for (int i = 0; i < kNumParams; ++i) same = same && std::fabs(v[i] - w[i]) < 1e-5f;
+        check(same, "preset: alla varden tillbaka");
+        check(!presetFromText("TruePan preset 8\r\nPan=0.5\r\n", w, &name), "preset: fel filtyp avvisas");
+        check(presetFromText("TrueSymph preset 1\r\nCutoff=7\r\nOkand=0.5\r\n", w, &name) && w[kParamCutoff] == defaultParam(kParamCutoff), "preset: ogiltiga rader ignoreras");
+        check(cleanPresetName("a=b\x01" "c") == "abc" && cleanPresetName("") == "Untitled", "preset: namn rensas");
+        check(uniquePresetName("Pad", [](const std::string& n) { return n == "Pad" || n == "Pad 2"; }) == "Pad 3", "preset: unikt namn");
+        bool names = true;
+        for (int i = 0; i < kNumParams; ++i) for (int j = i + 1; j < kNumParams; ++j) if (std::string(kParamNames[i]) == kParamNames[j]) names = false;
+        check(names, "parameternamnen ar unika (presetfilerna bygger pa dem)");
+        check(kNumFactoryPresets == 28 && std::string(factoryPresetName(0)) == "Dream Strings", "28 fabriksljud");
     }
 
     std::printf("\n%s (%d fel)\n", failures ? "TESTER MISSLYCKADES" : "ALLA TESTER OK", failures);
