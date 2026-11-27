@@ -13,7 +13,32 @@ jobs:
         run: cmake --build build --config Release
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
+      - name: Check Windows 7 compatibility (no newer system DLLs or functions)
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $dumpbin = Get-ChildItem -Path "$vs\VC\Tools\MSVC" -Recurse -Filter dumpbin.exe | Where-Object { $_.FullName -like "*Hostx64\x64*" } | Select-Object -First 1
+          $f = "build\Release\TrueSymph.dll"
+          $deps = & $dumpbin.FullName /dependents $f
+          $deps
+          if ($deps -match "api-ms-win|VCRUNTIME|MSVCP|ucrtbase") { throw "$f needs DLLs that Windows 7 may lack" }
+          $imports = & $dumpbin.FullName /imports $f
+          if ($imports -match "GetSystemTimePreciseAsFileTime|CreateFile2|GetCurrentThreadStackLimits|PathCch|SetThreadDescription|WaitOnAddress|WakeByAddress|GetOverlappedResultEx") {
+            throw "$f uses Windows functions that Windows 7 lacks"
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: TrueSymph-win64
           path: build/Release/TrueSymph.dll
+      - name: Render GUI screenshots
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force shots | Out-Null
+          Push-Location shots
+          & ..\build\Release\RenderGui.exe
+          if ($LASTEXITCODE -ne 0) { throw "RenderGui failed" }
+          Pop-Location
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TrueSymph-screenshots
+          path: shots

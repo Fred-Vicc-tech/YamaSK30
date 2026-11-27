@@ -18,12 +18,15 @@ endif()
 
 if(WIN32)
     add_compile_definitions(_WIN32_WINNT=0x0601 WINVER=0x0601 NOMINMAX _CRT_SECURE_NO_WARNINGS)
+    set(TRUESYMPH_EDITOR_SOURCES TrueSymphEditor.cpp Manual.h)
+    set(TRUESYMPH_EDITOR_LIBS gdiplus user32 gdi32 comdlg32 shell32)
 endif()
 
 # --- Pluginet (bara på Windows) -------------------------------------------
 if(WIN32)
-    add_library(TrueSymph MODULE TrueSymph.cpp TrueSymphDSP.h vst2.h)
+    add_library(TrueSymph MODULE TrueSymph.cpp TrueSymphCore.h TrueSymphDSP.h Presets.h vst2.h ${TRUESYMPH_EDITOR_SOURCES})
     set_target_properties(TrueSymph PROPERTIES PREFIX "" SUFFIX ".dll")
+    target_link_libraries(TrueSymph PRIVATE ${TRUESYMPH_EDITOR_LIBS})
 endif()
 
 # --- Automatiska tester ----------------------------------------------------
@@ -32,5 +35,12 @@ enable_testing()
 add_executable(TrueSymphTests TrueSymphTests.cpp)
 add_test(NAME dsp COMMAND TrueSymphTests)
 
-add_executable(HostTests HostTests.cpp TrueSymph.cpp)
+add_executable(HostTests HostTests.cpp TrueSymph.cpp ${TRUESYMPH_EDITOR_SOURCES})
+target_link_libraries(HostTests PRIVATE ${TRUESYMPH_EDITOR_LIBS})
 add_test(NAME host COMMAND HostTests)
+
+# Bilder av gränssnittet (Windows): ritas med samma kod som pluginet
+if(WIN32)
+    add_executable(RenderGui RenderGui.cpp ${TRUESYMPH_EDITOR_SOURCES})
+    target_link_libraries(RenderGui PRIVATE ${TRUESYMPH_EDITOR_LIBS})
+endif()

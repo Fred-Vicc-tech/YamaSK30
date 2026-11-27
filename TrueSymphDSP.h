@@ -1023,6 +1023,75 @@ public:
     void setSplitPointNorm(double n)  { splitPoint = splitNote(n); }
     void setBassPointNorm(double n)   { const int b = splitNote(n); if (b != bassPoint) { bassPoint = b; updateSolo(false); } }
 
+    // Alla parametrar på en gång (normaliserade 0..1, index enligt ParamIndex)
+    void setParams(const float* v)
+    {
+        setVolumeNorm(v[kParamVolume]);
+        setStringNorm(0, v[kParamString1]);
+        setStringNorm(1, v[kParamString2]);
+        setStringNorm(2, v[kParamString3]);
+        setSlowAttackNorm(v[kParamSlowAttack]);
+        setSustainNorm(v[kParamSustain]);
+        setSustainTimeNorm(v[kParamSustainTime]);
+        setModeNorm(v[kParamMode]);
+        setDetuneNorm(v[kParamDetune]);
+        setVibDelayNorm(v[kParamVibDelay]);
+        setVibSpeedNorm(v[kParamVibSpeed]);
+        setVibDepthNorm(v[kParamVibDepth]);
+        setBrillianceNorm(v[kParamBrilliance]);
+        setEnsembleNorm(v[kParamEnsemble]);
+        setTuneNorm(v[kParamTune]);
+        setPolySelNorm(v[kParamPolySel]);
+        setPolyVolNorm(v[kParamPolyVol]);
+        setPolyFeetNorm(v[kParamPolyFeet]);
+        setCutoffNorm(v[kParamCutoff]);
+        setResonanceNorm(v[kParamResonance]);
+        setEgDepthNorm(v[kParamEgDepth]);
+        setAttackNorm(v[kParamAttack]);
+        setDecayNorm(v[kParamDecay]);
+        setSustainLevelNorm(v[kParamSustainLevel]);
+        setReleaseNorm(v[kParamRelease]);
+        setPolyTremoloNorm(v[kParamPolyTremolo]);
+        setTremoloSpeedNorm(v[kParamTremoloSpeed]);
+        setOrgSelNorm(v[kParamOrgSel]);
+        setOrgVolNorm(v[kParamOrgVol]);
+        setOrgDecayNorm(v[kParamOrgDecay]);
+        setOrgSustainNorm(v[kParamOrgSustain]);
+        setOrgTimeNorm(v[kParamOrgTime]);
+        setOrgBrillNorm(v[kParamOrgBrill]);
+        setPercDecayNorm(v[kParamPercDecay]);
+        for (int i = 0; i < 3; ++i) setPercNorm(i, v[kParamPerc2 + i]);
+        for (int i = 0; i < kNumFootages; ++i) setFootageNorm(i, v[kParamOrg16 + i]);
+        setOrgTremoloNorm(v[kParamOrgTremolo]);
+        setOrgEnsembleNorm(v[kParamOrgEnsemble]);
+        setMasterNorm(v[kParamMaster]);
+        setSoloVolNorm(v[kParamSoloVol]);
+        setSoloModeNorm(v[kParamSoloMode]);
+        setLfoSpeedNorm(v[kParamLfoSpeed]);
+        setPortamentoNorm(v[kParamPortamento]);
+        setGlideNorm(v[kParamGlide]);
+        setSoloFeetNorm(v[kParamSoloFeet]);
+        setSoloWaveNorm(v[kParamSoloWave]);
+        setSoloPwNorm(v[kParamSoloPw]);
+        setPwSourceNorm(v[kParamPwSource]);
+        setSoloCutoffNorm(v[kParamSoloCutoff]);
+        setSoloResoNorm(v[kParamSoloReso]);
+        setSoloModNorm(v[kParamSoloMod]);
+        setSoloEgDepthNorm(v[kParamSoloEgDepth]);
+        setVcaModeNorm(v[kParamVcaMode]);
+        setSoloAttackNorm(v[kParamSoloAttack]);
+        setSoloDecayNorm(v[kParamSoloDecay]);
+        setSoloSustainNorm(v[kParamSoloSustain]);
+        setSoloReleaseNorm(v[kParamSoloRelease]);
+        setTouchVibNorm(v[kParamTouchVib]);
+        setTouchBrillNorm(v[kParamTouchBrill]);
+        setTouchModNorm(v[kParamTouchMod]);
+        setSoloTuneNorm(v[kParamSoloTune]);
+        setSplitNorm(v[kParamSplit]);
+        setSplitPointNorm(v[kParamSplitPoint]);
+        setBassPointNorm(v[kParamBassPoint]);
+    }
+
     // --- MIDI --------------------------------------------------------------
     void handleMidi(uint8_t status, uint8_t d1, uint8_t d2)
     {
