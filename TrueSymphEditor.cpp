@@ -55,7 +55,7 @@ const float kRowBY = 304.0f, kRowBH = 222.0f;
 const float kRowCY = 532.0f, kRowCH = 128.0f;
 const float kTrackLen = 100.0f;          // skjutreglagens längd
 const float kTrackDY = 58.0f;            // reglagets topp under panelens överkant
-const float kKnobR = 20.0f;
+const float kKnobR = 17.0f;
 
 enum CtlKind { kFader, kKnob, kSwitch };
 enum CapColor { kCapCream, kCapAmber };
@@ -178,38 +178,38 @@ struct Editor
         const float ta = kRowAY + kTrackDY, tb = kRowBY + kTrackDY;
 
         // --- OUTPUT ---
-        knob(kParamMaster, 62.0f, kRowAY + 112.0f, L"MASTER\nVOLUME");
+        knob(kParamMaster, 60.0f, kRowAY + 112.0f, L"MASTER\nVOLUME");
         fader(kParamSoloVol, 114.0f, ta, L"SOLO");
-        fader(kParamOrgVol, 145.0f, ta, L"ORGAN");
-        fader(kParamVolume, 176.0f, ta, L"STRING");
-        fader(kParamPolyVol, 207.0f, ta, L"POLY-\nSYNTH");
+        fader(kParamOrgVol, 148.0f, ta, L"ORGAN");
+        fader(kParamVolume, 182.0f, ta, L"STRING");
+        fader(kParamPolyVol, 216.0f, ta, L"POLY-\nSYNTH");
 
         // --- PITCH ---
-        knob(kParamTune, 270.0f, kRowAY + 112.0f, L"TUNE");
-        knob(kParamDetune, 318.0f, kRowAY + 112.0f, L"POLY-SYNTH\nDETUNE");
-        knob(kParamSoloTune, 366.0f, kRowAY + 112.0f, L"SOLO\nTUNE");
+        knob(kParamTune, 282.0f, kRowAY + 112.0f, L"TUNE");
+        knob(kParamDetune, 337.0f, kRowAY + 112.0f, L"POLY-SYNTH\nDETUNE");
+        knob(kParamSoloTune, 392.0f, kRowAY + 112.0f, L"SOLO\nTUNE");
 
         // --- SOLO SYNTHESIZER ---
-        fader(kParamLfoSpeed, 422.0f, ta, L"LFO\nSPEED");
-        fader(kParamPortamento, 462.0f, ta, L"PORTA-\nMENTO");
-        fader(kParamGlide, 502.0f, ta, L"GLIDE\nDEPTH");
-        fader(kParamSoloFeet, 560.0f, ta, L"FEET", kCapCream, kNumSoloFeet);
-        fader(kParamSoloWave, 600.0f, ta, L"WAVE");
-        fader(kParamSoloPw, 640.0f, ta, L"PW");
-        sw(kParamPwSource, 676.0f, ta + 18.0f, L"", 3, kNumPwSources, L"LFO", 0, L"MAN", 1, L"EG", 2);
-        groups.push_back({ 548.0f, 712.0f, kRowAY + 36.0f, L"VCO" });
-        fader(kParamSoloCutoff, 752.0f, ta, L"CUTOFF\nFREQ");
-        fader(kParamSoloReso, 792.0f, ta, L"RESO-\nNANCE");
-        fader(kParamSoloMod, 832.0f, ta, L"MODU-\nLATION");
-        fader(kParamSoloEgDepth, 872.0f, ta, L"EG\nDEPTH");
-        groups.push_back({ 738.0f, 886.0f, kRowAY + 36.0f, L"VCF" });
-        sw(kParamVcaMode, 912.0f, ta + 18.0f, L"", 3, kNumVcaModes, L"HOLD", 0, L"GATE", 1, L"EG", 2);
-        groups.push_back({ 902.0f, 958.0f, kRowAY + 36.0f, L"VCA" });
-        fader(kParamSoloAttack, 992.0f, ta, L"ATTACK\nTIME");
-        fader(kParamSoloDecay, 1034.0f, ta, L"DECAY\nTIME");
-        fader(kParamSoloSustain, 1076.0f, ta, L"SUSTAIN\nLEVEL");
-        fader(kParamSoloRelease, 1118.0f, ta, L"RELEASE\nTIME");
-        groups.push_back({ 976.0f, 1134.0f, kRowAY + 36.0f, L"EG" });
+        fader(kParamLfoSpeed, 456.0f, ta, L"LFO\nSPEED");
+        fader(kParamPortamento, 494.0f, ta, L"PORTA-\nMENTO");
+        fader(kParamGlide, 532.0f, ta, L"GLIDE\nDEPTH");
+        fader(kParamSoloFeet, 588.0f, ta, L"FEET", kCapCream, kNumSoloFeet);
+        fader(kParamSoloWave, 626.0f, ta, L"WAVE");
+        fader(kParamSoloPw, 664.0f, ta, L"PW");
+        sw(kParamPwSource, 696.0f, ta + 18.0f, L"", 3, kNumPwSources, L"LFO", 0, L"MAN", 1, L"EG", 2);
+        groups.push_back({ 572.0f, 730.0f, kRowAY + 36.0f, L"VCO" });
+        fader(kParamSoloCutoff, 770.0f, ta, L"CUTOFF");
+        fader(kParamSoloReso, 808.0f, ta, L"RESO-\nNANCE");
+        fader(kParamSoloMod, 846.0f, ta, L"MODU-\nLATION");
+        fader(kParamSoloEgDepth, 884.0f, ta, L"EG\nDEPTH");
+        groups.push_back({ 754.0f, 900.0f, kRowAY + 36.0f, L"VCF" });
+        sw(kParamVcaMode, 922.0f, ta + 18.0f, L"", 3, kNumVcaModes, L"HOLD", 0, L"GATE", 1, L"EG", 2);
+        groups.push_back({ 912.0f, 966.0f, kRowAY + 36.0f, L"VCA" });
+        fader(kParamSoloAttack, 1000.0f, ta, L"ATTACK");
+        fader(kParamSoloDecay, 1038.0f, ta, L"DECAY");
+        fader(kParamSoloSustain, 1076.0f, ta, L"SUSTAIN");
+        fader(kParamSoloRelease, 1114.0f, ta, L"RELEASE");
+        groups.push_back({ 984.0f, 1130.0f, kRowAY + 36.0f, L"EG" });
 
         // --- VIBRATO ---
         fader(kParamVibDelay, 46.0f, tb, L"DELAY");
@@ -219,38 +219,40 @@ struct Editor
 
         // --- ORGAN --- (DECAY/SUSTAIN-knapparna läggs till i btns nedan)
         fader(kParamOrgTime, 222.0f, tb, L"S ~ L");
-        fader(kParamOrgBrill, 258.0f, tb, L"BRILLI-\nANCE");
-        fader(kParamPercDecay, 302.0f, tb, L"DECAY\nTIME", kCapAmber);
-        fader(kParamPerc2, 338.0f, tb, L"2nd", kCapAmber);
-        fader(kParamPerc3, 374.0f, tb, L"3rd", kCapAmber);
-        fader(kParamPerc5, 410.0f, tb, L"5th", kCapAmber);
-        groups.push_back({ 288.0f, 424.0f, kRowBY + 36.0f, L"PERCUSSIVE" });
+        fader(kParamOrgBrill, 257.0f, tb, L"BRILLI-\nANCE");
+        fader(kParamPercDecay, 298.0f, tb, L"DECAY\nTIME", kCapAmber);
+        fader(kParamPerc2, 332.0f, tb, L"2nd", kCapAmber);
+        fader(kParamPerc3, 366.0f, tb, L"3rd", kCapAmber);
+        fader(kParamPerc5, 400.0f, tb, L"5th", kCapAmber);
+        groups.push_back({ 284.0f, 414.0f, kRowBY + 36.0f, L"PERCUSSIVE" });
         const wchar_t* feet[kNumFootages] = { L"16'", L"8'", L"5 1/3'", L"4'", L"2 2/3'", L"2'", L"1 3/5'", L"1 1/3'", L"1'" };
-        for (int i = 0; i < kNumFootages; ++i) fader(kParamOrg16 + i, 454.0f + i * 34.0f, tb, feet[i], kCapAmber);
-        groups.push_back({ 440.0f, 740.0f, kRowBY + 36.0f, L"TONE LEVER" });
+        for (int i = 0; i < kNumFootages; ++i) fader(kParamOrg16 + i, 442.0f + i * 32.0f, tb, feet[i], kCapAmber);
+        groups.push_back({ 428.0f, 712.0f, kRowBY + 36.0f, L"TONE LEVER" });
 
         // --- POLY-SYNTH ---
-        fader(kParamSustainTime, 818.0f, tb, L"S ~ L");
-        fader(kParamBrilliance, 850.0f, tb, L"BRILLI-\nANCE");
-        sw(kParamMode, 880.0f, tb + 24.0f, L"MODE", 2, 2, L"II", 1, L"I", 0);
-        fader(kParamPolyFeet, 918.0f, tb, L"FEET", kCapAmber, kNumFeet);
-        fader(kParamCutoff, 950.0f, tb, L"CUTOFF\nFREQ", kCapAmber);
-        fader(kParamResonance, 982.0f, tb, L"RESO-\nNANCE", kCapAmber);
-        fader(kParamEgDepth, 1014.0f, tb, L"EG\nDEPTH", kCapAmber);
-        fader(kParamAttack, 1046.0f, tb, L"ATTACK\nTIME", kCapAmber);
-        fader(kParamDecay, 1078.0f, tb, L"DECAY\nTIME", kCapAmber);
-        fader(kParamSustainLevel, 1110.0f, tb, L"SUSTAIN\nLEVEL", kCapAmber);
-        fader(kParamRelease, 1142.0f, tb, L"RELEASE\nTIME", kCapAmber);
+        fader(kParamSustainTime, 790.0f, tb, L"S ~ L");
+        fader(kParamBrilliance, 825.0f, tb, L"BRILLI-\nANCE");
+        sw(kParamMode, 854.0f, tb + 24.0f, L"MODE", 2, 2, L"II", 1, L"I", 0);
+        fader(kParamPolyFeet, 902.0f, tb, L"FEET", kCapAmber, kNumFeet);
+        fader(kParamCutoff, 936.0f, tb, L"CUTOFF", kCapAmber);
+        fader(kParamResonance, 969.0f, tb, L"RESO-\nNANCE", kCapAmber);
+        fader(kParamEgDepth, 1002.0f, tb, L"EG\nDEPTH", kCapAmber);
+        fader(kParamAttack, 1036.0f, tb, L"ATTACK", kCapAmber);
+        fader(kParamDecay, 1069.0f, tb, L"DECAY", kCapAmber);
+        fader(kParamSustainLevel, 1102.0f, tb, L"SUSTAIN", kCapAmber);
+        fader(kParamRelease, 1135.0f, tb, L"RELEASE", kCapAmber);
+        groups.push_back({ 922.0f, 1016.0f, kRowBY + 36.0f, L"VCF" });
+        groups.push_back({ 1022.0f, 1149.0f, kRowBY + 36.0f, L"EG" });
 
         // DECAY/SUSTAIN (orgel) och SLOW ATTACK/SUSTAIN (poly-synth): fyrkantiga knappar
         btns.push_back({ { 167.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"DECAY", kActToggle, kParamOrgDecay, 0, 0, false });
         btns.push_back({ { 167.0f, kRowBY + 124.0f, 34.0f, 34.0f }, L"SUSTAIN", kActToggle, kParamOrgSustain, 0, 0, false });
-        btns.push_back({ { 765.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"SLOW\nATTACK", kActToggle, kParamSlowAttack, 0, 0, false });
-        btns.push_back({ { 765.0f, kRowBY + 124.0f, 34.0f, 34.0f }, L"SUSTAIN", kActToggle, kParamSustain, 0, 0, false });
+        btns.push_back({ { 735.0f, kRowBY + 62.0f, 34.0f, 34.0f }, L"SLOW\nATTACK", kActToggle, kParamSlowAttack, 0, 0, false });
+        btns.push_back({ { 735.0f, kRowBY + 124.0f, 34.0f, 34.0f }, L"SUSTAIN", kActToggle, kParamSustain, 0, 0, false });
 
         // --- Knappraden ---
-        const float by = kRowCY + 32.0f, bw = 34.0f, pitch = 36.0f, gap = 18.0f;   // 2 px mellanrum som i bilden
-        float x = 30.0f;
+        const float by = kRowCY + 32.0f, bw = 33.0f, pitch = 37.0f, gap = 12.0f;
+        float x = 28.0f;
         auto group = [&](const wchar_t* label, int n) { groups.push_back({ x, x + (n - 1) * pitch + bw, kRowCY + 18.0f, label }); };
         auto add = [&](const wchar_t* label, int act, int param, int index, int count, bool cream) {
             btns.push_back({ { x, by, bw, bw }, label, act, param, index, count, cream });
@@ -270,7 +272,7 @@ struct Editor
         add(L"MODU-\nLATION", kActToggle, kParamTouchMod, 0, 0, false);
         x += gap;
         const float splitX = x;
-        group(L"KEYBOARD SPLIT", 2);
+        group(L"SPLIT", 2);
         add(L"POLY|\nORGAN", kActSplit, kParamSplit, 1, kNumSplit, false);
         add(L"ORGAN|\nPOLY", kActSplit, kParamSplit, 2, kNumSplit, false);
         x += gap;
@@ -304,9 +306,9 @@ struct Editor
         // Delningspunkter: små pilväljare under knapparna
         const float sy = kRowCY + 102.0f;
         bassPrev = { bassX, sy, 18.0f, 20.0f };
-        bassNext = { bassX + 90.0f, sy, 18.0f, 20.0f };
+        bassNext = { bassX + 3 * pitch + gap - 22.0f, sy, 18.0f, 20.0f };
         splitPrev = { splitX, sy, 18.0f, 20.0f };
-        splitNext = { splitX + 50.0f, sy, 18.0f, 20.0f };
+        splitNext = { splitX + 2 * pitch - 22.0f, sy, 18.0f, 20.0f };
     }
 
     // Reglage under musen
@@ -410,7 +412,7 @@ void drawSkButton(Graphics& g, const FontFamily& ff, const Btn& b, bool on)
         SolidBrush led(kPanel);
         g.FillRectangle(&led, lx, ly, lw, lh);
     }
-    drawText(g, b.label, ff, 9.5f, FontStyleBold, kLabel, r.x - 12.0f, r.y + r.h + 3.0f, r.w + 24.0f, StringAlignmentCenter, 30.0f);
+    drawText(g, b.label, ff, 8.5f, FontStyleBold, kLabel, r.x - 6.0f, r.y + r.h + 3.0f, r.w + 12.0f, StringAlignmentCenter, 30.0f);
 }
 
 // Guldfärgad grupplinje med rubrik (som på SK30-panelen)
@@ -444,8 +446,7 @@ void drawFader(Graphics& g, const FontFamily& ff, const Ctl& c, float v, bool di
     for (int i = 0; i < n; ++i) {
         const float ty = y + L * (1.0f - (float)i / (n - 1));
         const bool big = c.steps > 1 || i == 0 || i == 5 || i == 10;
-        g.DrawLine(big ? &tickBig : &tick, x - 15.0f, ty, x - (big ? 9.0f : 11.0f), ty);
-        g.DrawLine(big ? &tickBig : &tick, x + 15.0f, ty, x + (big ? 9.0f : 11.0f), ty);
+        g.DrawLine(big ? &tickBig : &tick, x - 14.0f, ty, x - (big ? 7.0f : 10.0f), ty);
     }
     // spår
     SolidBrush slot(Color(255, 2, 2, 2));
@@ -466,7 +467,7 @@ void drawFader(Graphics& g, const FontFamily& ff, const Ctl& c, float v, bool di
     g.DrawRectangle(&capEdge, x - 11.0f, cy - 7.0f, 22.0f, 14.0f);
     Pen mid(Color(255, 40, 34, 26), 1.5f);
     g.DrawLine(&mid, x - 9.0f, cy, x + 9.0f, cy);
-    drawText(g, c.label, ff, 9.5f, FontStyleBold, dim ? kTextDim : kLabel, x - 26.0f, y + L + 12.0f, 52.0f, StringAlignmentCenter, 30.0f);
+    drawText(g, c.label, ff, 9.0f, FontStyleBold, dim ? kTextDim : kLabel, x - 22.0f, y + L + 12.0f, 44.0f, StringAlignmentCenter, 30.0f);
 }
 
 // Ratt i TrueSub-stil (kuggkant, cyan båge)
@@ -782,12 +783,12 @@ void paint(Editor* ed, HDC hdc, int width, int height)
     }
 
     // --- Paneler ---
-    drawPanel(g, 16.0f, kRowAY, 214.0f, kRowAH);   drawSectionTitle(g, ff, L"OUTPUT", 16.0f, kRowAY, 214.0f);
-    drawPanel(g, 238.0f, kRowAY, 152.0f, kRowAH);  drawSectionTitle(g, ff, L"PITCH", 238.0f, kRowAY, 152.0f);
-    drawPanel(g, 398.0f, kRowAY, 766.0f, kRowAH);  drawSectionTitle(g, ff, L"SOLO SYNTHESIZER", 398.0f, kRowAY, 766.0f);
+    drawPanel(g, 16.0f, kRowAY, 226.0f, kRowAH);   drawSectionTitle(g, ff, L"OUTPUT", 16.0f, kRowAY, 226.0f);
+    drawPanel(g, 250.0f, kRowAY, 170.0f, kRowAH);  drawSectionTitle(g, ff, L"PITCH", 250.0f, kRowAY, 170.0f);
+    drawPanel(g, 428.0f, kRowAY, 736.0f, kRowAH);  drawSectionTitle(g, ff, L"SOLO SYNTHESIZER", 428.0f, kRowAY, 736.0f);
     drawPanel(g, 16.0f, kRowBY, 134.0f, kRowBH);   drawSectionTitle(g, ff, L"VIBRATO", 16.0f, kRowBY, 134.0f);
-    drawPanel(g, 158.0f, kRowBY, 590.0f, kRowBH);  drawSectionTitle(g, ff, L"ORGAN", 158.0f, kRowBY, 590.0f);
-    drawPanel(g, 756.0f, kRowBY, 408.0f, kRowBH);  drawSectionTitle(g, ff, L"POLY-SYNTH", 756.0f, kRowBY, 408.0f);
+    drawPanel(g, 158.0f, kRowBY, 562.0f, kRowBH);  drawSectionTitle(g, ff, L"ORGAN", 158.0f, kRowBY, 562.0f);
+    drawPanel(g, 728.0f, kRowBY, 436.0f, kRowBH);  drawSectionTitle(g, ff, L"POLY-SYNTH", 728.0f, kRowBY, 436.0f);
     drawPanel(g, 16.0f, kRowCY, 1148.0f, kRowCH);
     for (const Group& gr : ed->groups) drawGroup(g, ff, gr);
 
@@ -819,7 +820,7 @@ void paint(Editor* ed, HDC hdc, int width, int height)
         drawFlatButton(g, ff, ed->bassPrev, L"<", false, 11.0f);
         drawFlatButton(g, ff, ed->bassNext, L">", false, 11.0f);
         noteName(splitNote(pv[kParamBassPoint]), nb, sizeof nb); wideFromNarrow(nb, wn, 16);
-        swprintf(txt, 96, L"BASS UP TO %ls", wn);
+        swprintf(txt, 96, L"BASS TO %ls", wn);
         const bool manBass = stepIndex(pv[kParamSoloMode], kNumSoloModes) == 2;
         drawText(g, txt, ff, 10.0f, FontStyleBold, manBass ? kCyan : kTextDim, ed->bassPrev.x + 18.0f, ed->bassPrev.y + 3.0f,
                  ed->bassNext.x - ed->bassPrev.x - 18.0f, StringAlignmentCenter);
