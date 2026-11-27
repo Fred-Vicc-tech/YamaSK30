@@ -6,7 +6,7 @@ Privat VST2-instrument (64-bit) för Ableton Live 9.6 på Windows 7 och senare.
 Efterliknar Yamaha SK30 (1979–80), byggt efter SK30:s servicemanual.
 Alla delar finns med: stråkar, poly-synth, orgel, solosynt, ensemble/tremolo, manual bass och keyboard split. Byggare: **2F Productions** (info@2f.se).
 
-## Status: 0.8.0 – ren limiter (inget knaster), +4 dB, lättare fönster
+## Status: 0.8.1 – inställningar följer med Live-projektet, 0.7.0:s ljudnivå och fönster
 
 | Funktion | Status |
 |---|---|

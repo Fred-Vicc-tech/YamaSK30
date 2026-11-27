@@ -22,7 +22,7 @@ namespace {
 
 // Samma ID som när pluginet hette YamaSK30, så att sparade Live-projekt fortsätter fungera.
 const VstInt32 kUniqueId = ('Y' << 24) | ('S' << 16) | ('3' << 8) | '0';
-const VstInt32 kVersion = 800;            // 0.7.0 (effekter: delay + reverb, wah-bas)
+const VstInt32 kVersion = 801;            // 0.8.1
 
 struct Plugin : Core
 {
@@ -110,7 +110,13 @@ VstIntPtr dispatcher(AEffect* e, VstInt32 opcode, VstInt32 index, VstIntPtr valu
     case effCanBeAutomated: return (index >= 0 && index < kNumParams) ? 1 : 0;
 
     case effGetProgram: return p->program < 0 ? 0 : p->program;
-    case effSetProgram: p->loadFactoryPreset((int)value, false); return 0;
+    case effSetProgram:
+        // Live (och andra värdar) skickar samma programnummer igen när ett projekt
+        // öppnas, efter att tillståndet lästs. Då får det inte skriva över ljudet
+        // man ställt in med fabriksljudet.
+        if ((int)value == (p->program < 0 ? 0 : p->program)) return 0;
+        p->loadFactoryPreset((int)value, false);
+        return 0;
     case effGetProgramName: if (ptr) copyString((char*)ptr, p->presetName, 24); return 0;
     case effSetProgramName: if (ptr) copyString(p->presetName, cleanPresetName((const char*)ptr).c_str(), sizeof p->presetName); return 0;
     case effGetProgramNameIndexed:

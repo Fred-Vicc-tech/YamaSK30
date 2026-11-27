@@ -121,6 +121,20 @@ int main()
     e->setParameter(e, kParamEnsemble, 1.0f);
     check(e->dispatcher(e, effSetChunk, 0, (VstIntPtr)saved.size(), saved.data(), 0) == 1, "tillstand lases");
     check(e->getParameter(e, kParamTune) == 0.25f && e->getParameter(e, kParamEnsemble) == 0.0f, "varden aterstalls");
+    // Som när Live öppnar ett projekt: tillståndet läses, sedan skickas samma programnummer igen
+    {
+        const VstIntPtr prog = e->dispatcher(e, effGetProgram, 0, 0, nullptr, 0);
+        e->dispatcher(e, effSetProgram, 0, prog, nullptr, 0);
+        check(e->getParameter(e, kParamTune) == 0.25f && e->getParameter(e, kParamEnsemble) == 0.0f,
+              "projekt i Live: inställt ljud skrivs inte over av fabriksljudet");
+        e->setParameter(e, kParamDelayLevel, 0.6f);
+        e->dispatcher(e, effGetChunk, 0, 0, &data, 0);
+        std::vector<unsigned char> s2((unsigned char*)data, (unsigned char*)data + size);
+        e->setParameter(e, kParamDelayLevel, 0.0f);
+        e->dispatcher(e, effSetChunk, 0, (VstIntPtr)s2.size(), s2.data(), 0);
+        e->dispatcher(e, effSetProgram, 0, e->dispatcher(e, effGetProgram, 0, 0, nullptr, 0), nullptr, 0);
+        check(e->getParameter(e, kParamDelayLevel) == 0.6f, "projekt i Live: effekterna foljer med");
+    }
 
     // Felaktiga data
     unsigned char junk[64]; std::memset(junk, 0x7F, sizeof junk);

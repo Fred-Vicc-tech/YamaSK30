@@ -19,9 +19,6 @@ int main()
     busy.setParam(truesymph::kParamDelayLevel, 0.6f);
     busy.setParam(truesymph::kParamReverbLevel, 0.7f);
     const bool c = truesymph::editorRenderPng(&busy, false, L"TrueSymph_front2.png");
-    double fullMs = 0.0, meterMs = 0.0;
-    truesymph::editorBenchPaint(&busy, 40, &fullMs, &meterMs);
-    std::printf("paint: full panel %.2f ms, meter only %.2f ms per frame (25 frames/s)\n", fullMs, meterMs);
     std::printf("front %s, back %s, front2 %s\n", a ? "ok" : "FAILED", b ? "ok" : "FAILED", c ? "ok" : "FAILED");
     return (a && b && c) ? 0 : 1;
 }

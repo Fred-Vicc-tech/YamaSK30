@@ -194,6 +194,5 @@ void editorOpen(Core* core, void* parentWindow);
 void editorClose(Core* core);
 // Ritar fönstret till en PNG-fil (bilder av gränssnittet i bygget)
 bool editorRenderPng(Core* core, bool backSide, const wchar_t* path);
-void editorBenchPaint(Core* core, int frames, double* fullMs, double* meterMs);
 
 } // namespace truesymph

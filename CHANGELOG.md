@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.8.1 (2026-11-27)
+- Ljudet och effekterna man ställt in följer nu med när ett Live-projekt öppnas. Live skickar
+  programnumret igen efter att ha läst tillståndet, och det skrev över allt med fabriksljudet.
+- Tillbaka till 0.7.0:s nivå (de +4 dB i 0.8.0 togs bort) och 0.7.0:s fönster (presetlistan
+  öppnades inte i 0.8.0). Limitern utan hård klippning från 0.8.0 är kvar; den märks bara när
+  ljudet når taket.
+
 ## 0.8.0 (2026-11-27)
 - Knaster borta: den gamla limitern hann inte alltid sänka helt innan en topp kom och klippte då
   resten hårt (hördes som knaster när man vred upp nivåerna). Nya limitern håller kravet över hela

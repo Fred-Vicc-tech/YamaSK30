@@ -1679,7 +1679,7 @@ private:
     static constexpr double kOrganGain = 0.05;      // orgeln ungefär lika stark som stråkarna
     static constexpr double kPercGain = 1.6;        // slagverket tydligt över fotlägena
     static constexpr double kSoloGain = 0.16;       // solosynten ungefär lika stark som ett stråkackord
-    static constexpr double kOutputMakeup = 1.585;  // +4 dB (0.8.0): i nivå med andra syntar i Live
+    static constexpr double kOutputMakeup = 1.0;    // samma nivå som 0.7.0 (Fredrik föredrog det)
     static constexpr double kStringGain = 0.15;     // ger ca -24 dBFS RMS för en ton och ca -16 dBFS för ett 4-tonsackord (STRING 1+2, MODE II)
 
     struct Voice
