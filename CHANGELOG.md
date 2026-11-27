@@ -1,5 +1,9 @@
 # Ändringslogg
 
+## 0.9.9 (2026-11-27)
+- PITCH-rattarna ligger ovanför varandra (som Fredriks skiss). Översta raden har nu samma avstånd mellan
+  reglagen i OUTPUT, SOLO SYNTHESIZER och EFFECTS: 33 px inom en grupp och 51 px mellan grupper.
+
 ## 0.9.8 (2026-11-27)
 - DUCK för delay och reverb (i stil med Waves Factory Trackspacer): effekten delas i 16 frekvensband och
   varje band sänks så mycket som ljudet spelar där (upp till 20 dB), 10 ms ner och 250 ms tillbaka.
