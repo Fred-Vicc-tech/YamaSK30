@@ -1,5 +1,10 @@
 # Ändringslogg
 
+## 0.8.4 (2026-11-27)
+- Fönstret 1390 × 676 px: lika stor marginal (16 px) runt om, även längst ner. Reglagen ligger
+  minst 26 px från panelkanterna och med samma avstånd mellan grupperna. LFO/PORTA/GLIDE har fått
+  luft från SOLO SYNTHESIZER-panelens vänsterkant och en egen grupplinje.
+
 ## 0.8.3 (2026-11-27)
 - REVERB LEVEL går nu upp till +8 dB, så att man kan få lika mycket reverb som i 0.8.0 och tidigare
   (reglaget i topp = samma som förut). 0 dB ≈ lika mycket klang som torrt ljud. Rec:-ljuden oförändrade.
