@@ -1,5 +1,9 @@
 # Ändringslogg
 
+## 0.9.6 (2026-11-27)
+- Rattarna ser ut som på SK30: benvit rund knopp med svart ram och en tunn svart visare från mitten
+  till kanten. Den blå värdebågen runt ratten är kvar.
+
 ## 0.9.5 (2026-11-27)
 - DELAY: TAPE 3 HEADS (RE-201 med tre huvuden), ECHOPLEX (Maestro: varm, tiden glider), ECHOREC (Binson:
   fyra huvuden, rytmiska mönster) och MEMORY MAN (Electro-Harmonix BBD: mörk, inbyggd chorus).

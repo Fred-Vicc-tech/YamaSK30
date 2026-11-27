@@ -35,7 +35,7 @@ namespace {
 
 using namespace Gdiplus;
 
-const wchar_t* const kVersionText = L"v0.9.5";
+const wchar_t* const kVersionText = L"v0.9.6";
 
 // Färger: TrueSub-familjens mörka metall och cyan, SK30:s guldtryck och knappar.
 const Color kBgTop(255, 38, 39, 42);
@@ -512,37 +512,30 @@ void drawKnob(Graphics& g, const FontFamily& ff, const Ctl& c, float v, bool dim
     else if (v > 0.001f) g.DrawArc(&arc, cx - ar, cy - ar, ar * 2, ar * 2, start, sweep * v);
     const float kPiF = 3.14159265f;
     const float angle = (start + sweep * v) * kPiF / 180.0f;
-    for (int i = 0; i < 4; ++i) {
-        const float rr = r + 2.5f - i * 1.0f;
-        SolidBrush sh(Color((BYTE)(40 + i * 25), 0, 0, 0));
-        g.FillEllipse(&sh, cx - rr + 1.5f, cy - rr + 3.0f, rr * 2, rr * 2);
+    // Ratt som på SK30: benvit rund knopp med svart ram (ca 4 px) och en tunn svart visare
+    // från mitten ut till kanten.
+    for (int i = 0; i < 4; ++i) {                                   // mjuk skugga under ratten
+        const float rr = r + 1.5f - i * 1.0f;
+        SolidBrush sh(Color((BYTE)(35 + i * 22), 0, 0, 0));
+        g.FillEllipse(&sh, cx - rr + 1.0f, cy - rr + 2.5f, rr * 2, rr * 2);
     }
-    const int n = 14;
-    const float tip = r * 0.96f, root = tip - 2.5f;
-    PointF pts[14 * 24];
-    const int m = n * 24;
-    for (int i = 0; i < m; ++i) {
-        const float a = 2.0f * kPiF * i / m;
-        float u = (a - angle + kPiF / n) * n / (2.0f * kPiF);
-        u -= std::floor(u);
-        const float xx = std::fabs(u - 0.5f) * 2.0f;
-        float t = (xx - 0.25f) / 0.5f;
-        t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
-        t = t * t * (3.0f - 2.0f * t);
-        const float rr = tip - (tip - root) * t;
-        pts[i] = PointF(cx + rr * std::cos(a), cy + rr * std::sin(a));
-    }
-    SolidBrush darkB(Color(255, 14, 14, 16));
-    g.FillEllipse(&darkB, cx - r, cy - r, r * 2, r * 2);
-    SolidBrush rimB(dim ? Color(255, 72, 80, 88) : Color(255, 115, 127, 139));
-    g.FillPolygon(&rimB, pts, m);
-    const float ringOut = root - 3.5f, ringIn = ringOut - 2.5f;
-    SolidBrush ringB(Color(255, 26, 34, 43)), capB(dim ? Color(255, 68, 76, 84) : Color(255, 109, 122, 134));
-    g.FillEllipse(&ringB, cx - ringOut, cy - ringOut, ringOut * 2, ringOut * 2);
-    g.FillEllipse(&capB, cx - ringIn, cy - ringIn, ringIn * 2, ringIn * 2);
-    Pen pointer(dim ? Color(255, 140, 146, 152) : Color(255, 250, 250, 250), 2.0f);
-    g.DrawLine(&pointer, cx + std::cos(angle) * (ringOut * 0.2f), cy + std::sin(angle) * (ringOut * 0.2f),
-               cx + std::cos(angle) * (tip - 2.0f), cy + std::sin(angle) * (tip - 2.0f));
+    SolidBrush frame(Color(255, 6, 6, 7));                          // svart ram
+    g.FillEllipse(&frame, cx - r, cy - r, r * 2, r * 2);
+    Pen frameEdge(Color(255, 64, 66, 70), 1.0f);                    // tunn ljusare kant så att ramen syns mot panelen
+    g.DrawEllipse(&frameEdge, cx - r, cy - r, r * 2, r * 2);
+    const float ri = r - 4.0f;                                      // benvit knopp innanför ramen
+    GraphicsPath cap;
+    cap.AddEllipse(cx - ri, cy - ri, ri * 2, ri * 2);
+    PathGradientBrush capB(&cap);
+    capB.SetCenterPoint(PointF(cx - ri * 0.35f, cy - ri * 0.40f));  // ljuset uppifrån vänster
+    capB.SetCenterColor(dim ? Color(255, 150, 148, 142) : Color(255, 250, 246, 236));
+    Color edgeC = dim ? Color(255, 112, 110, 104) : Color(255, 206, 198, 178);
+    int ncol = 1;
+    capB.SetSurroundColors(&edgeC, &ncol);
+    g.FillEllipse(&capB, cx - ri, cy - ri, ri * 2, ri * 2);
+    Pen pointer(dim ? Color(255, 70, 70, 72) : Color(255, 12, 12, 12), 1.6f);   // tunn svart visare
+    pointer.SetStartCap(LineCapRound); pointer.SetEndCap(LineCapRound);
+    g.DrawLine(&pointer, cx, cy, cx + std::cos(angle) * (ri - 0.8f), cy + std::sin(angle) * (ri - 0.8f));
     drawText(g, c.label, ff, 9.0f, FontStyleBold, dim ? kTextDim : kLabel, cx - 24.0f, cy + r + 12.0f, 48.0f, StringAlignmentCenter, 30.0f);
 }
 
